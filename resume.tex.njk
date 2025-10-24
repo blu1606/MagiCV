@@ -1,0 +1,136 @@
+\documentclass[11pt]{article}
+\usepackage{graphicx}
+\setlength{\parindent}{0pt}
+\usepackage[hidelinks]{hyperref}
+\usepackage{enumitem}
+% Với XeLaTeX + tiếng Việt, bạn có thể đổi inputenc/fontenc/babel sang fontspec+polyglossia
+% nhưng để giữ nguyên theo template gốc:
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{lipsum}
+\usepackage[left={{ margins.left }},top={{ margins.top }},right={{ margins.right }},bottom={{ margins.bottom }}]{geometry}
+
+% by: Aline R. Antunes (nguyên bản); tham số hoá bởi bạn.
+
+\begin{document}
+
+% =========================
+% Header (Name)
+% =========================
+\begin{center}
+    \textbf{{{{ profile.name }}}}\\
+    \hrulefill
+\end{center}
+
+% =========================
+% Contact line
+% =========================
+\begin{center}
+    {{ profile.address }} \textbullet{} {{ profile.city_state_zip }} \textbullet{} \href{mailto:{{ profile.email }}}{{ profile.email }} \textbullet{} {{ profile.phone }}
+\end{center}
+
+\vspace{0.5pt}
+
+% =========================
+% Education
+% =========================
+\begin{center}
+    \textbf{Education}
+\end{center}
+
+{% for ed in education %}
+\textbf{{{{ ed.school }}}} \hfill {{ ed.location }}
+
+{{ ed.degree }}{% if ed.concentration %}, {{ ed.concentration }}{% endif %}{% if ed.gpa %}. GPA: {{ ed.gpa }}{% endif %} \hfill {{ ed.graduation_date }}{% if ed.thesis %} \\
+Thesis: {{ ed.thesis }}{% endif %}
+
+{% if ed.coursework or ed.awards %}
+Relevant Coursework: {% if ed.coursework %}{{ ed.coursework | join(", ") }}{% endif %}{% if ed.awards %}{% if ed.coursework %}; {% endif %}Awards: {{ ed.awards | join(", ") }}{% endif %}
+{% endif %}
+
+\vspace{12pt}
+{% endfor %}
+
+{% if study_abroad %}
+\textbf{Study Abroad} \hfill {{ study_abroad.location }}\\
+Study abroad coursework in {{ study_abroad.topic }}. \hfill {{ study_abroad.start }} -- {{ study_abroad.end }}
+
+\vspace{12pt}
+{% endif %}
+
+{% if high_school %}
+\textbf{{{{ high_school.name }}}} \hfill {{ high_school.location }}\\
+{% if high_school.details %}{{ high_school.details }} \hfill {{ high_school.graduation_date }}{% else %}Graduation Date: {{ high_school.graduation_date }}{% endif %}
+
+\vspace{12pt}
+{% endif %}
+
+% =========================
+% Experience
+% =========================
+\begin{center}
+    \textbf{Experience}
+\end{center}
+
+{% for exp in experience %}
+\textbf{{{{ exp.organization }}}} \hfill {{ exp.location }}{% if exp.remote %} (Remote){% endif %}\\
+\textbf{{{{ exp.title }}}} \hfill {{ exp.start }} -- {{ exp.end }}
+\begin{itemize}[noitemsep, topsep=0pt, partopsep=0pt, parsep=0pt]
+{% for b in exp.bullets %}
+    \item {{ b }}
+{% endfor %}
+\end{itemize}
+
+\vspace{12pt}
+{% endfor %}
+
+% =========================
+% Leadership & Activities
+% =========================
+{% if leadership and leadership|length > 0 %}
+\begin{center}
+    \textbf{Leadership \& Activities}
+\end{center}
+
+{% for act in leadership %}
+\textbf{{{{ act.organization }}}} \hfill {{ act.location }}\\
+\textbf{{{{ act.role }}}} \hfill {{ act.start }} -- {{ act.end }}
+{% if act.bullets and act.bullets|length > 0 %}
+\begin{itemize}[noitemsep, topsep=0pt, partopsep=0pt, parsep=0pt]
+{% for b in act.bullets %}
+    \item {{ b }}
+{% endfor %}
+\end{itemize}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+% =========================
+% Skills & Interests
+% =========================
+{% if skills %}
+\begin{center}
+    \textbf{Skills \& Interests}
+\end{center}
+
+{% if skills.technical and skills.technical|length > 0 %}
+\textbf{Technical:} {{ skills.technical | join(", ") }}\\
+{% endif %}
+
+{% if skills.languages and skills.languages|length > 0 %}
+\textbf{Language:} {% for lang in skills.languages %}{{ lang.name }} ({{ lang.level }}){% if not loop.last %}, {% endif %}{% endfor %}\\
+{% endif %}
+
+{% if skills.laboratory and skills.laboratory|length > 0 %}
+\textbf{Laboratory:} {{ skills.laboratory | join(", ") }}\\
+{% endif %}
+
+{% if skills.interests and skills.interests|length > 0 %}
+\textbf{Interests:} {{ skills.interests | join(", ") }}
+{% endif %}
+
+{% endif %}
+
+\end{document}

@@ -1,0 +1,728 @@
+import { getSupabaseAdmin } from '@/lib/supabase';
+import type { Profile, Account, Component, CV, CVPdf, ComponentType, ProviderType, LegacySourceType } from '@/lib/supabase';
+
+/**
+ * Supabase Service - Updated to match actual database schema
+ */
+export class SupabaseService {
+  private static supabase = getSupabaseAdmin();
+
+  /**
+   * Profile operations (replaces User operations)
+   */
+  static async createProfile(id: string, full_name?: string, avatar_url?: string, profession?: string): Promise<Profile> {
+    const { data, error } = await this.supabase
+      .from('profiles')
+      .insert({ id, full_name, avatar_url, profession })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  static async getProfileById(id: string): Promise<Profile | null> {
+    const { data, error } = await this.supabase
+      .from('profiles')
+      .select()
+      .eq('id', id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  }
+
+  static async getAllProfiles(): Promise<Profile[]> {
+    const { data, error } = await this.supabase
+      .from('profiles')
+      .select()
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  static async updateProfile(id: string, updates: Partial<Profile>): Promise<Profile> {
+    const { data, error } = await this.supabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  static async deleteProfile(id: string): Promise<void> {
+    const { error } = await this.supabase
+      .from('profiles')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  }
+
+  /**
+   * Legacy User methods for backward compatibility
+   */
+  static async createUser(email: string, name?: string): Promise<any> {
+    // For backward compatibility, we create a profile with a generated UUID
+    // In real app, this should use Supabase Auth to create user first
+    const { data: authData, error: authError } = await this.supabase.auth.admin.createUser({
+      email,
+      email_confirm: true,
+    });
+
+    if (authError) throw authError;
+
+    const profile = await this.createProfile(authData.user.id, name);
+    return {
+      id: profile.id,
+      email,
+      name: profile.full_name,
+      created_at: profile.created_at,
+      updated_at: profile.updated_at,
+    };
+  }
+
+  static async getUserByEmail(email: string): Promise<any> {
+    const { data, error } = await this.supabase.auth.admin.listUsers();
+    if (error) throw error;
+    
+    const user = data.users.find(u => u.email === email);
+    if (!user) return null;
+
+    const profile = await this.getProfileById(user.id);
+    return profile ? {
+      id: profile.id,
+      email: user.email,
+      name: profile.full_name,
+      created_at: profile.created_at,
+      updated_at: profile.updated_at,
+    } : null;
+  }
+
+  static async getUserById(id: string): Promise<any> {
+    const profile = await this.getProfileById(id);
+    if (!profile) return null;
+
+    const { data: authData } = await this.supabase.auth.admin.getUserById(id);
+    
+    return {
+      id: profile.id,
+      email: authData?.user?.email || '',
+      name: profile.full_name,
+      created_at: profile.created_at,
+      updated_at: profile.updated_at,
+    };
+  }
+
+  static async getAllUsers(): Promise<any[]> {
+    const profiles = await this.getAllProfiles();
+    const { data: authData } = await this.supabase.auth.admin.listUsers();
+    
+    return profiles.map(p => {
+      const authUser = authData?.users.find(u => u.id === p.id);
+      return {
+        id: p.id,
+        email: authUser?.email || '',
+        name: p.full_name,
+        created_at: p.created_at,
+        updated_at: p.updated_at,
+      };
+    });
+  }
+
+  static async updateUser(id: string, updates: any): Promise<any> {
+    const profile = await this.updateProfile(id, { full_name: updates.name });
+    return {
+      id: profile.id,
+      email: updates.email || '',
+      name: profile.full_name,
+      created_at: profile.created_at,
+      updated_at: profile.updated_at,
+    };
+  }
+
+  static async deleteUser(id: string): Promise<void> {
+    await this.deleteProfile(id);
+  }
+
+  /**
+   * Account operations
+   */
+  static async createAccount(account: Omit<Account, 'id' | 'created_at' | 'updated_at'>): Promise<Account> {
+    const { data, error } = await this.supabase
+      .from('accounts')
+      .insert(account)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  static async getAccountsByUserId(userId: string): Promise<Account[]> {
+    const { data, error } = await this.supabase
+      .from('accounts')
+      .select()
+      .eq('user_id', userId);
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  static async getAccountByProvider(userId: string, provider: ProviderType): Promise<Account | null> {
+    const { data, error } = await this.supabase
+      .from('accounts')
+      .select()
+      .eq('user_id', userId)
+      .eq('provider', provider)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  }
+
+  /**
+   * Component operations
+   */
+  static async createComponent(component: Omit<Component, 'id' | 'created_at' | 'updated_at'>): Promise<Component> {
+    // Convert legacy data to new schema
+    const componentData: any = {
+      user_id: component.user_id,
+      account_id: component.account_id,
+      type: component.type,
+      title: component.title,
+      organization: component.organization,
+      start_date: component.start_date,
+      end_date: component.end_date,
+      description: component.description,
+      highlights: component.highlights || [],
+      embedding: component.embedding,
+      src: component.src,
+    };
+
+    const { data, error } = await this.supabase
+      .from('components')
+      .insert(componentData)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  static async getUserComponents(userId: string): Promise<{
+    total: number;
+    byType: Record<string, number>;
+    components: Component[];
+  }> {
+    const { data, error } = await this.supabase
+      .from('components')
+      .select()
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    const components = data || [];
+    const byType = {
+      experience: components.filter(c => c.type === 'experience').length,
+      project: components.filter(c => c.type === 'project').length,
+      education: components.filter(c => c.type === 'education').length,
+      skill: components.filter(c => c.type === 'skill').length,
+    };
+
+    return {
+      total: components.length,
+      byType,
+      components,
+    };
+  }
+
+  static async getComponentsByType(userId: string, type: ComponentType): Promise<Component[]> {
+    const { data, error } = await this.supabase
+      .from('components')
+      .select()
+      .eq('user_id', userId)
+      .eq('type', type)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  // Legacy method for backward compatibility
+  static async getComponentsBySource(userId: string, source: LegacySourceType): Promise<Component[]> {
+    const { data, error } = await this.supabase
+      .from('components')
+      .select()
+      .eq('user_id', userId)
+      .eq('src', source)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  static async deleteUserComponents(userId: string): Promise<number> {
+    const { data, error } = await this.supabase
+      .from('components')
+      .delete()
+      .eq('user_id', userId)
+      .select();
+
+    if (error) throw error;
+    return data?.length || 0;
+  }
+
+  static async deleteComponentsBySource(userId: string, source: LegacySourceType): Promise<number> {
+    const { data, error } = await this.supabase
+      .from('components')
+      .delete()
+      .eq('user_id', userId)
+      .eq('src', source)
+      .select();
+
+    if (error) throw error;
+    return data?.length || 0;
+  }
+
+  /**
+   * CV operations
+   */
+  static async createCV(cv: Omit<CV, 'id' | 'created_at' | 'updated_at'>): Promise<CV> {
+    const { data, error } = await this.supabase
+      .from('cvs')
+      .insert(cv)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  static async getCVsByUserId(userId: string): Promise<CV[]> {
+    const { data, error } = await this.supabase
+      .from('cvs')
+      .select()
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  static async getCVById(id: string): Promise<CV | null> {
+    const { data, error } = await this.supabase
+      .from('cvs')
+      .select()
+      .eq('id', id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  }
+
+  static async updateCV(id: string, updates: Partial<CV>): Promise<CV> {
+    const { data, error } = await this.supabase
+      .from('cvs')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  static async deleteCV(id: string): Promise<void> {
+    const { error } = await this.supabase
+      .from('cvs')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  }
+
+  /**
+   * CV PDF operations
+   */
+  static async createCVPdf(cvPdf: Omit<CVPdf, 'id' | 'created_at' | 'updated_at'>): Promise<CVPdf> {
+    const { data, error } = await this.supabase
+      .from('cv_pdfs')
+      .insert(cvPdf)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  static async getCVPdfsByUserId(userId: string): Promise<CVPdf[]> {
+    const { data, error } = await this.supabase
+      .from('cv_pdfs')
+      .select()
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  static async getCVPdfsByCVId(cvId: string): Promise<CVPdf[]> {
+    const { data, error } = await this.supabase
+      .from('cv_pdfs')
+      .select()
+      .eq('cv_id', cvId)
+      .order('version', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  /**
+   * Supabase Storage operations for CV PDFs
+   */
+  static async uploadCVPdf(
+    userId: string,
+    filename: string,
+    fileBuffer: Buffer
+  ): Promise<{ path: string; url: string }> {
+    const path = `${userId}/${Date.now()}-${filename}`;
+    
+    const { data, error } = await this.supabase.storage
+      .from('cv_pdfs')
+      .upload(path, fileBuffer, {
+        contentType: 'application/pdf',
+        upsert: false,
+      });
+
+    if (error) throw error;
+
+    const { data: urlData } = this.supabase.storage
+      .from('cv_pdfs')
+      .getPublicUrl(path);
+
+    return {
+      path: data.path,
+      url: urlData.publicUrl,
+    };
+  }
+
+  static async deleteCVPdfFile(path: string): Promise<void> {
+    const { error } = await this.supabase.storage
+      .from('cv_pdfs')
+      .remove([path]);
+
+    if (error) throw error;
+  }
+
+  /**
+   * Legacy Job Description methods (mapped to CV operations)
+   */
+  static async createJobDescription(jd: any): Promise<any> {
+    // Map job description to CV format
+    const cv = await this.createCV({
+      user_id: jd.user_id,
+      title: jd.title,
+      job_description: jd.raw_text,
+      content: jd.parsed_data || {},
+    });
+
+    // If there's a PDF path, create CV PDF record
+    if (jd.pdf_path) {
+      const cvPdf = await this.createCVPdf({
+        user_id: jd.user_id,
+        cv_id: cv.id,
+        file_url: jd.pdf_url || jd.pdf_path,
+        filename: jd.pdf_path,
+        mime_type: 'application/pdf',
+        version: 1,
+      });
+    }
+
+    return {
+      id: cv.id,
+      user_id: cv.user_id,
+      title: cv.title,
+      company: jd.company,
+      pdf_path: jd.pdf_path,
+      pdf_url: jd.pdf_url,
+      raw_text: cv.job_description,
+      parsed_data: cv.content,
+      embedding: jd.embedding,
+      created_at: cv.created_at,
+      updated_at: cv.updated_at,
+    };
+  }
+
+  static async getJobDescriptions(userId: string): Promise<any[]> {
+    const cvs = await this.getCVsByUserId(userId);
+    return cvs.map(cv => ({
+      id: cv.id,
+      user_id: cv.user_id,
+      title: cv.title,
+      raw_text: cv.job_description,
+      parsed_data: cv.content,
+      created_at: cv.created_at,
+      updated_at: cv.updated_at,
+    }));
+  }
+
+  static async getJobDescriptionById(id: string): Promise<any> {
+    const cv = await this.getCVById(id);
+    if (!cv) return null;
+
+    return {
+      id: cv.id,
+      user_id: cv.user_id,
+      title: cv.title,
+      raw_text: cv.job_description,
+      parsed_data: cv.content,
+      created_at: cv.created_at,
+      updated_at: cv.updated_at,
+    };
+  }
+
+  static async updateJobDescription(id: string, updates: any): Promise<any> {
+    const cv = await this.updateCV(id, {
+      title: updates.title,
+      job_description: updates.raw_text,
+      content: updates.parsed_data,
+    });
+
+    return {
+      id: cv.id,
+      user_id: cv.user_id,
+      title: cv.title,
+      raw_text: cv.job_description,
+      parsed_data: cv.content,
+      created_at: cv.created_at,
+      updated_at: cv.updated_at,
+    };
+  }
+
+  static async deleteJobDescription(id: string): Promise<void> {
+    await this.deleteCV(id);
+  }
+
+  /**
+   * Legacy data normalization methods - convert to new schema
+   */
+  static async saveGitHubData(userId: string, githubData: any) {
+    const results = [];
+    
+    // Get or create GitHub account
+    let account = await this.getAccountByProvider(userId, 'github');
+    if (!account) {
+      account = await this.createAccount({
+        user_id: userId,
+        provider: 'github',
+        provider_account_id: githubData.profile.login,
+      });
+    }
+
+    // Save profile as a skill component
+    const profileComponent = await this.createComponent({
+      user_id: userId,
+      account_id: account.id,
+      type: 'skill',
+      title: 'GitHub Profile',
+      description: `${githubData.profile.name || githubData.profile.login} - ${githubData.profile.bio || ''}`,
+      highlights: [
+        `Company: ${githubData.profile.company || 'N/A'}`,
+        `Location: ${githubData.profile.location || 'N/A'}`,
+        `Followers: ${githubData.profile.followers || 0}`,
+        `Public Repos: ${githubData.profile.public_repos || 0}`,
+      ],
+      src: 'github',
+    });
+    results.push(profileComponent);
+
+    // Save repositories as project components
+    for (const repo of githubData.repositories) {
+      const repoComponent = await this.createComponent({
+        user_id: userId,
+        account_id: account.id,
+        type: 'project',
+        title: repo.name,
+        organization: githubData.profile.login,
+        description: repo.description || 'No description',
+        highlights: [
+          `Language: ${repo.language || 'N/A'}`,
+          `Stars: ${repo.stargazers_count || 0}`,
+          `Forks: ${repo.forks_count || 0}`,
+          ...(repo.topics || []).map((t: string) => `Topic: ${t}`),
+        ],
+        src: 'github',
+      });
+      results.push(repoComponent);
+    }
+
+    return {
+      accountId: account.id,
+      componentIds: results.map(r => r.id),
+      totalSaved: results.length,
+    };
+  }
+
+  static async saveYouTubeData(userId: string, youtubeData: any) {
+    const results = [];
+
+    // Save channel as skill
+    const channelComponent = await this.createComponent({
+      user_id: userId,
+      type: 'skill',
+      title: 'YouTube Channel',
+      description: youtubeData.channel.description,
+      highlights: [
+        `Subscribers: ${youtubeData.channel.subscriberCount || 0}`,
+        `Videos: ${youtubeData.channel.videoCount || 0}`,
+        `Views: ${youtubeData.channel.viewCount || 0}`,
+      ],
+      src: 'youtube',
+    });
+    results.push(channelComponent);
+
+    // Save videos as projects
+    for (const video of youtubeData.videos) {
+      const videoComponent = await this.createComponent({
+        user_id: userId,
+        type: 'project',
+        title: video.title,
+        description: video.description,
+        highlights: [
+          `Views: ${video.viewCount || 0}`,
+          `Likes: ${video.likeCount || 0}`,
+          `Published: ${video.publishedAt || 'N/A'}`,
+        ],
+        src: 'youtube',
+      });
+      results.push(videoComponent);
+    }
+
+    return {
+      componentIds: results.map(r => r.id),
+      totalSaved: results.length,
+    };
+  }
+
+  static async saveLinkedInData(userId: string, linkedinData: any) {
+    const results = [];
+
+    // Get or create LinkedIn account
+    let account = await this.getAccountByProvider(userId, 'linkedin');
+    if (!account && linkedinData.profile.id) {
+      account = await this.createAccount({
+        user_id: userId,
+        provider: 'linkedin',
+        provider_account_id: linkedinData.profile.id,
+      });
+    }
+
+    // Save experiences
+    for (const exp of linkedinData.experiences || []) {
+      const expComponent = await this.createComponent({
+        user_id: userId,
+        account_id: account?.id,
+        type: 'experience',
+        title: exp.title,
+        organization: exp.company,
+        start_date: exp.startDate,
+        end_date: exp.endDate,
+        description: exp.description || '',
+        highlights: (exp.skills || []).map((s: string) => `Skill: ${s}`),
+        src: 'linkedin',
+      });
+      results.push(expComponent);
+    }
+
+    // Save education
+    for (const edu of linkedinData.education || []) {
+      const eduComponent = await this.createComponent({
+        user_id: userId,
+        account_id: account?.id,
+        type: 'education',
+        title: edu.degree || 'Degree',
+        organization: edu.school,
+        start_date: edu.startDate,
+        end_date: edu.endDate,
+        description: `${edu.field || ''} - ${edu.description || ''}`,
+        highlights: [],
+        src: 'linkedin',
+      });
+      results.push(eduComponent);
+    }
+
+    // Save skills
+    for (const skill of linkedinData.skills || []) {
+      const skillComponent = await this.createComponent({
+        user_id: userId,
+        account_id: account?.id,
+        type: 'skill',
+        title: skill.name || skill,
+        description: typeof skill === 'object' ? skill.endorsements : '',
+        highlights: [],
+        src: 'linkedin',
+      });
+      results.push(skillComponent);
+    }
+
+    return {
+      accountId: account?.id,
+      componentCounts: {
+        experiences: (linkedinData.experiences || []).length,
+        education: (linkedinData.education || []).length,
+        skills: (linkedinData.skills || []).length,
+      },
+      totalSaved: results.length,
+    };
+  }
+
+  /**
+   * Vector search operations
+   */
+  static async similaritySearchComponents(
+    userId: string,
+    embedding: number[],
+    limit: number = 10
+  ): Promise<Component[]> {
+    const { data, error } = await this.supabase.rpc('match_components', {
+      query_embedding: embedding,
+      match_threshold: 0.7,
+      match_count: limit,
+      user_id_param: userId,
+    });
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  static async similaritySearchJobDescriptions(
+    userId: string,
+    embedding: number[],
+    limit: number = 5
+  ): Promise<any[]> {
+    const { data, error } = await this.supabase.rpc('match_cvs', {
+      query_embedding: embedding,
+      match_threshold: 0.7,
+      match_count: limit,
+      user_id_param: userId,
+    });
+
+    if (error) throw error;
+    return (data || []).map((cv: any) => ({
+      id: cv.id,
+      user_id: cv.user_id,
+      title: cv.title,
+      raw_text: cv.job_description,
+      parsed_data: cv.content,
+      created_at: cv.created_at,
+      updated_at: cv.updated_at,
+      similarity: cv.similarity,
+    }));
+  }
+}
