@@ -6,16 +6,17 @@ import { SupabaseService } from '@/services/supabase-service';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
+    const { userId } = await params;
     const { searchParams } = new URL(request.url);
     const source = searchParams.get('source');
     const type = searchParams.get('type');
 
     if (source) {
       const components = await SupabaseService.getComponentsBySource(
-        params.userId,
+        userId,
         source as any
       );
       return NextResponse.json(components);
@@ -23,13 +24,13 @@ export async function GET(
 
     if (type) {
       const components = await SupabaseService.getComponentsByType(
-        params.userId,
+        userId,
         type as any
       );
       return NextResponse.json(components);
     }
 
-    const result = await SupabaseService.getUserComponents(params.userId);
+    const result = await SupabaseService.getUserComponents(userId);
     return NextResponse.json(result);
   } catch (error: any) {
     return NextResponse.json(
@@ -44,15 +45,16 @@ export async function GET(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
+    const { userId } = await params;
     const { searchParams } = new URL(request.url);
     const source = searchParams.get('source');
 
     if (source) {
       const count = await SupabaseService.deleteComponentsBySource(
-        params.userId,
+        userId,
         source as any
       );
       return NextResponse.json({
@@ -61,7 +63,7 @@ export async function DELETE(
       });
     }
 
-    const count = await SupabaseService.deleteUserComponents(params.userId);
+    const count = await SupabaseService.deleteUserComponents(userId);
     return NextResponse.json({
       message: `Deleted ${count} components`,
       deletedCount: count,

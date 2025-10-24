@@ -6,10 +6,11 @@ import { SupabaseService } from '@/services/supabase-service';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
-    const user = await SupabaseService.getUserById(params.userId);
+    const { userId } = await params;
+    const user = await SupabaseService.getUserById(userId);
     
     if (!user) {
       return NextResponse.json(
@@ -32,11 +33,12 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
+    const { userId } = await params;
     const body = await request.json();
-    const user = await SupabaseService.updateUser(params.userId, body);
+    const user = await SupabaseService.updateUser(userId, body);
     return NextResponse.json(user);
   } catch (error: any) {
     return NextResponse.json(
@@ -51,10 +53,11 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
-    await SupabaseService.deleteUser(params.userId);
+    const { userId } = await params;
+    await SupabaseService.deleteUser(userId);
     return NextResponse.json({ message: 'User deleted successfully' });
   } catch (error: any) {
     return NextResponse.json(

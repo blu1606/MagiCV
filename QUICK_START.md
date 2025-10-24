@@ -56,14 +56,17 @@ YOUTUBE_API_KEY=your-youtube-key
 
 ```bash
 # Terminal 1
+nvm use 22.21.0
 pnpm run dev:agent
 
 # Terminal 2  
+nvm use 22.21.0
 pnpm run dev:ui
 ```
 
 Hoặc:
 ```bash
+nvm use 22.21.0
 pnpm run dev
 ```
 

@@ -6,10 +6,11 @@ import { SupabaseService } from '@/services/supabase-service';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
-    const jobDescriptions = await SupabaseService.getJobDescriptions(params.userId);
+    const { userId } = await params;
+    const jobDescriptions = await SupabaseService.getJobDescriptions(userId);
     return NextResponse.json(jobDescriptions);
   } catch (error: any) {
     return NextResponse.json(
