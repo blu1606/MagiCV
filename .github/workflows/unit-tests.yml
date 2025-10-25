@@ -1,0 +1,105 @@
+name: Unit Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/unit-tests.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+
+jobs:
+  unit-tests:
+    name: Run Unit Tests
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+      # Step 1: Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better analysis
+      
+      # Step 2: Setup Node.js
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+      
+      # Step 3: Setup pnpm
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      
+      # Step 4: Install dependencies
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      
+      # Step 5: Lint check
+      - name: Run ESLint
+        run: pnpm run lint
+        continue-on-error: true
+      
+      # Step 6: Run unit tests
+      - name: Run unit tests
+        run: pnpm test -- --coverage --testPathIgnorePatterns=integration
+        env:
+          NODE_ENV: test
+      
+      # Step 7: Upload coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage/coverage-final.json
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+      
+      # Step 8: Comment PR with test results
+      - name: Comment PR with test results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const coverage = JSON.parse(fs.readFileSync('./coverage/coverage-summary.json', 'utf8'));
+            const total = coverage.total;
+            
+            const comment = `## ✅ Unit Tests Results
+            
+            | Metric | Coverage |
+            |--------|----------|
+            | Statements | ${total.statements.pct}% |
+            | Branches | ${total.branches.pct}% |
+            | Functions | ${total.functions.pct}% |
+            | Lines | ${total.lines.pct}% |
+            
+            ✨ All unit tests passed on Node.js ${{ matrix.node-version }}
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+      
+      # Step 9: Notify on failure
+      - name: Notify on test failure
+        if: failure()
+        run: |
+          echo "❌ Unit tests failed!"
+          exit 1
