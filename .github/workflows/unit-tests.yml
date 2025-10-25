@@ -72,9 +72,10 @@ jobs:
       
       # Step 8: Run unit tests
       - name: Run unit tests
-        run: pnpm test -- --coverage --testPathIgnorePatterns=integration
+        run: pnpm test -- --coverage --passWithNoTests=false
         env:
           NODE_ENV: test
+          ENABLE_INTEGRATION_TESTS: false
       
       # Step 9: Upload coverage
       - name: Upload coverage to Codecov
