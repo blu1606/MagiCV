@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CVGeneratorService } from '@/services/cv-generator-service';
 import { SupabaseService } from '@/services/supabase-service';
+import { createClient } from '@supabase/supabase-js';
 
 /**
  * POST /api/cv/generate - Generate CV PDF from template
  * 
+ * Authentication: Uses Supabase session from cookies
+ * 
  * Body:
  * {
- *   userId: string,
  *   jobDescription: string,
+ *   cvData?: object, // Optional: if provided, use this instead of querying components
  *   includeProjects?: boolean,
  *   useOnlineCompiler?: boolean,
  *   saveToDatabase?: boolean
@@ -16,35 +19,62 @@ import { SupabaseService } from '@/services/supabase-service';
  */
 export async function POST(request: NextRequest) {
   try {
+    // 1. Authenticate user from Supabase session
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: request.headers.get('Authorization') || '',
+          }
+        }
+      }
+    );
+    
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      console.error('❌ Authentication failed:', authError?.message);
+      return NextResponse.json(
+        { error: 'Unauthorized - Please login first' },
+        { status: 401 }
+      );
+    }
+    
+    const userId = user.id;
+    console.log('✅ Authenticated user:', userId, user.email);
+    
+    // 2. Parse request body
     const body = await request.json();
     const { 
-      userId, 
-      jobDescription, 
+      jobDescription,
+      cvData: providedCvData, // Optional: direct CV data from frontend
       includeProjects = true,
       useOnlineCompiler = false,
       saveToDatabase = true 
     } = body;
 
-    if (!userId || !jobDescription) {
+    if (!jobDescription) {
       return NextResponse.json(
-        { error: 'userId and jobDescription are required' },
+        { error: 'jobDescription is required' },
         { status: 400 }
       );
     }
 
-    // Verify user exists
+    // 3. Verify user profile exists
     const profile = await SupabaseService.getProfileById(userId);
     if (!profile) {
       return NextResponse.json(
-        { error: 'User not found' },
+        { error: 'User profile not found' },
         { status: 404 }
       );
     }
 
     console.log('📝 Generating CV for user:', userId);
 
-    // Generate CV PDF
-    const { pdfBuffer, cvData } = await CVGeneratorService.generateCVPDF(
+    // 4. Generate CV PDF
+    const { pdfBuffer, cvData: generatedCvData } = await CVGeneratorService.generateCVPDF(
       userId,
       jobDescription,
       {
@@ -53,7 +83,7 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    // Calculate match score
+    // 5. Calculate match score
     const matchScore = await CVGeneratorService.calculateMatchScore(
       userId,
       jobDescription
@@ -66,10 +96,10 @@ export async function POST(request: NextRequest) {
       // Save CV to database
       cvRecord = await SupabaseService.createCV({
         user_id: userId,
-        title: `CV for ${cvData.profile.name}`,
+        title: `CV for ${generatedCvData.profile.name}`,
         job_description: jobDescription,
         match_score: matchScore.score,
-        content: cvData,
+        content: generatedCvData,
       });
 
       // Upload PDF to Supabase Storage
@@ -94,8 +124,8 @@ export async function POST(request: NextRequest) {
       console.log('✅ CV saved to database:', cvRecord.id);
     }
 
-    // Return PDF as response
-    return new NextResponse(pdfBuffer, {
+    // 6. Return PDF as response
+    return new NextResponse(Buffer.from(pdfBuffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
