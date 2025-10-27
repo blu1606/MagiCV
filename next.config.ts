@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
+  turbopack: {}, // Enable Turbopack with default config
   serverExternalPackages: ["@mastra/core", "@mastra/libsql"],
 };
 
