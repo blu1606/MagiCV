@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button"
 import { ArrowRight, Zap, Target, Sparkles, FileText, BarChart3, Brain } from "lucide-react"
 import Link from "next/link"
 import { LinkedInSignIn } from "@/components/linkedin-signin"
+import { NumberTicker } from "@/components/ui/number-ticker"
+import { AnimatedShinyText } from "@/components/ui/animated-shiny-text"
+import { ShimmerButton } from "@/components/ui/shimmer-button"
 
 export function LandingPage() {
   return (
@@ -50,9 +53,25 @@ export function LandingPage() {
               AI VIẾT CV GIÚP BẠN.
               <div className="absolute bottom-0 left-0 w-3/4 h-1 bg-white border-dashed border-t-2 border-white"></div>
             </h2>
-            <p className="text-lg text-gray-300 max-w-2xl font-mono">
+            <AnimatedShinyText className="text-lg text-gray-300 max-w-2xl font-mono">
               From PiX.stdio | Da Nang, Vietnam
-            </p>
+            </AnimatedShinyText>
+          </div>
+
+          {/* Statistics */}
+          <div className="flex gap-8 pt-4">
+            <div className="text-left">
+              <div className="text-4xl font-bold text-white">
+                <NumberTicker value={10000} />
+              </div>
+              <p className="text-sm text-gray-400">CVs Generated</p>
+            </div>
+            <div className="text-left">
+              <div className="text-4xl font-bold text-white">
+                <NumberTicker value={95} />%
+              </div>
+              <p className="text-sm text-gray-400">Match Score</p>
+            </div>
           </div>
 
           {/* CTA Buttons */}

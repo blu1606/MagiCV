@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { CopilotKit } from "@copilotkit/react-core";
+import { ScrollProgress } from "@/components/ui/scroll-progress";
 import "./globals.css";
 import "@copilotkit/react-ui/styles.css";
 
@@ -27,6 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <ScrollProgress />
         <CopilotKit
           runtimeUrl="/api/copilotkit"
           agent="weatherAgent"
