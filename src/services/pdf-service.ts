@@ -113,6 +113,7 @@ Return ONLY valid JSON without any markdown formatting or code blocks.`;
     filename: string
   ): Promise<{
     cvId: string;
+    jobDescriptionId: string;
     pdfId: string;
     componentsCreated: number;
   }> {
