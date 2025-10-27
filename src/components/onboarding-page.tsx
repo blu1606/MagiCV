@@ -2,12 +2,12 @@
 
 import { Card } from "@/components/ui/card"
 import { Loader2 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { apiService } from "@/lib/api-service"
 import { errorHandler } from "@/lib/error-handler"
 
-export function OnboardingPage() {
+function OnboardingContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [status, setStatus] = useState<"syncing" | "success" | "error">("syncing")
@@ -110,5 +110,13 @@ export function OnboardingPage() {
         )}
       </Card>
     </div>
+  )
+}
+
+export function OnboardingPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="animate-spin" /></div>}>
+      <OnboardingContent />
+    </Suspense>
   )
 }
