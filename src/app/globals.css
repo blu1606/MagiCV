@@ -1,31 +1,443 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Dark theme - Pixelated glitch aesthetic */
+  --background: oklch(0.05 0 0); /* Pure black */
+  --foreground: oklch(0.95 0 0); /* Pure white */
+  --card: oklch(0.08 0 0);
+  --card-foreground: oklch(0.95 0 0);
+  --popover: oklch(0.08 0 0);
+  --popover-foreground: oklch(0.95 0 0);
+  --primary: oklch(0.7 0.25 320); /* Hot pink */
+  --primary-foreground: oklch(0.05 0 0);
+  --secondary: oklch(0.15 0 0);
+  --secondary-foreground: oklch(0.95 0 0);
+  --muted: oklch(0.15 0 0);
+  --muted-foreground: oklch(0.6 0 0);
+  --accent: oklch(0.8 0.3 320); /* Bright pink */
+  --accent-foreground: oklch(0.05 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.95 0 0);
+  --border: oklch(0.2 0 0);
+  --input: oklch(0.1 0 0);
+  --ring: oklch(0.7 0.25 320);
+  --chart-1: oklch(0.7 0.25 320);
+  --chart-2: oklch(0.8 0.3 320);
+  --chart-3: oklch(0.6 0.2 320);
+  --chart-4: oklch(0.5 0.15 320);
+  --chart-5: oklch(0.9 0.35 320);
+  --radius: 0px; /* Sharp corners for pixelated look */
+  --sidebar: oklch(0.08 0 0);
+  --sidebar-foreground: oklch(0.95 0 0);
+  --sidebar-primary: oklch(0.7 0.25 320);
+  --sidebar-primary-foreground: oklch(0.05 0 0);
+  --sidebar-accent: oklch(0.15 0 0);
+  --sidebar-accent-foreground: oklch(0.95 0 0);
+  --sidebar-border: oklch(0.2 0 0);
+  --sidebar-ring: oklch(0.7 0.25 320);
+}
+
+.dark {
+  /* Same as root - pure dark theme */
+  --background: oklch(0.05 0 0);
+  --foreground: oklch(0.95 0 0);
+  --card: oklch(0.08 0 0);
+  --card-foreground: oklch(0.95 0 0);
+  --popover: oklch(0.08 0 0);
+  --popover-foreground: oklch(0.95 0 0);
+  --primary: oklch(0.7 0.25 320);
+  --primary-foreground: oklch(0.05 0 0);
+  --secondary: oklch(0.15 0 0);
+  --secondary-foreground: oklch(0.95 0 0);
+  --muted: oklch(0.15 0 0);
+  --muted-foreground: oklch(0.6 0 0);
+  --accent: oklch(0.8 0.3 320);
+  --accent-foreground: oklch(0.05 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.95 0 0);
+  --border: oklch(0.2 0 0);
+  --input: oklch(0.1 0 0);
+  --ring: oklch(0.7 0.25 320);
+  --chart-1: oklch(0.7 0.25 320);
+  --chart-2: oklch(0.8 0.3 320);
+  --chart-3: oklch(0.6 0.2 320);
+  --chart-4: oklch(0.5 0.15 320);
+  --chart-5: oklch(0.9 0.35 320);
+  --sidebar: oklch(0.08 0 0);
+  --sidebar-foreground: oklch(0.95 0 0);
+  --sidebar-primary: oklch(0.7 0.25 320);
+  --sidebar-primary-foreground: oklch(0.05 0 0);
+  --sidebar-accent: oklch(0.15 0 0);
+  --sidebar-accent-foreground: oklch(0.95 0 0);
+  --sidebar-border: oklch(0.2 0 0);
+  --sidebar-ring: oklch(0.7 0.25 320);
 }
 
 @theme inline {
+  --font-sans: "Space Mono", monospace;
+  --font-mono: "Space Mono", monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Smooth transitions for theme switching */
+* {
+  @apply transition-colors duration-200;
 }
 
-body,
-html {
+/* Pixelated and glitch effects */
+.pixelated {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+.glitch-button {
+  position: relative;
+  background: white;
+  color: black;
+  border: none;
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+}
+
+.glitch-button::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  background: black;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+}
+
+.glitch-text-box {
+  position: relative;
+  background: white;
+  color: black;
+  border: 2px solid black;
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+}
+
+.glitch-text-box::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  background: black;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+}
+
+.pixel-plus {
+  position: relative;
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+}
+
+.pixel-plus::before,
+.pixel-plus::after {
+  content: '';
+  position: absolute;
+  background: white;
+}
+
+.pixel-plus::before {
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  transform: translateY(-50%);
+}
+
+.pixel-plus::after {
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  transform: translateX(-50%);
+}
+
+.pixel-x {
+  position: relative;
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+}
+
+.pixel-x::before,
+.pixel-x::after {
+  content: '';
+  position: absolute;
+  background: white;
+  width: 2px;
+  height: 16px;
+  top: 0;
+  left: 50%;
+}
+
+.pixel-x::before {
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.pixel-x::after {
+  transform: translateX(-50%) rotate(-45deg);
+}
+
+.pixel-arrow {
+  position: relative;
+  display: inline-block;
+  width: 20px;
+  height: 16px;
+}
+
+.pixel-arrow::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: white;
+  transform: translateY(-50%);
+}
+
+.pixel-arrow::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-left: 8px solid white;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  transform: translateY(-50%);
+}
+
+.pixel-heart {
+  position: relative;
+  display: inline-block;
+  width: 20px;
+  height: 18px;
+}
+
+.pixel-heart::before,
+.pixel-heart::after {
+  content: '';
+  position: absolute;
+  background: #ff69b4;
+  width: 8px;
+  height: 12px;
+  border-radius: 4px 4px 0 0;
+  transform: rotate(-45deg);
+  transform-origin: 0 100%;
+}
+
+.pixel-heart::after {
+  left: 8px;
+  transform: rotate(45deg);
+  transform-origin: 100% 100%;
+}
+
+/* Scattered pixelated elements */
+.pixel-scatter {
+  position: absolute;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.pixel-scatter-1 {
+  top: 10%;
+  left: 5%;
+  transform: rotate(15deg);
+}
+
+.pixel-scatter-2 {
+  top: 20%;
+  right: 10%;
+  transform: rotate(-30deg);
+}
+
+.pixel-scatter-3 {
+  bottom: 30%;
+  left: 15%;
+  transform: rotate(45deg);
+}
+
+.pixel-scatter-4 {
+  bottom: 20%;
+  right: 20%;
+  transform: rotate(-15deg);
+}
+
+.pixel-scatter-5 {
+  top: 50%;
+  left: 2%;
+  transform: rotate(60deg);
+}
+
+.pixel-scatter-6 {
+  top: 60%;
+  right: 5%;
+  transform: rotate(-45deg);
+}
+
+/* Glitch text effect */
+.glitch-text {
+  position: relative;
+  display: inline-block;
+}
+
+.glitch-text::before,
+.glitch-text::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
   height: 100%;
+}
+
+.glitch-text::before {
+  animation: glitch-1 0.5s infinite;
+  color: #ff69b4;
+  z-index: -1;
+}
+
+.glitch-text::after {
+  animation: glitch-2 0.5s infinite;
+  color: #00ffff;
+  z-index: -2;
+}
+
+@keyframes glitch-1 {
+  0%, 14%, 15%, 49%, 50%, 99%, 100% {
+    transform: translate(0);
+  }
+  15%, 49% {
+    transform: translate(-2px, 2px);
+  }
+}
+
+@keyframes glitch-2 {
+  0%, 20%, 21%, 62%, 63%, 99%, 100% {
+    transform: translate(0);
+  }
+  21%, 62% {
+    transform: translate(2px, -2px);
+  }
+}
+
+/* Video Background Styles */
+.video-background-container {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+  background: transparent;
+}
+
+.video-background-container video {
+  position: absolute;
+  min-width: 100%;
+  min-height: 100%;
+  width: auto;
+  height: auto;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  object-fit: cover;
+  filter: brightness(0.8);
+  pointer-events: none;
+}
+
+.video-content {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  background: transparent;
+}
+
+/* Ensure content has proper spacing for scroll scrub effect */
+.video-content-with-scroll {
+  min-height: 500vh;
+}
+
+/* Progress bar for video scrub */
+.video-progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 0;
+  background: linear-gradient(90deg, #9ae6b4, #63b3ed);
+  box-shadow: 0 0 10px rgba(99,179,237,0.6);
+  z-index: 10;
+}
+
+/* Loading notice */
+.video-loading-notice {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #111;
+  background: rgba(255,255,255,0.9);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+  z-index: 10;
+}
+
+.video-loading-notice.hidden {
+  display: none;
 }
