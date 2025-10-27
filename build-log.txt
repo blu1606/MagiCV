@@ -1,0 +1,145 @@
+﻿
+> starter@0.1.0 build D:\Project\magiCV-master\MagicCV
+> mastra build && next build
+
+[32mINFO[39m [2025-10-28 03:35:38.227 +0700] (Mastra CLI): [36mAnalyzing dependencies...[39m
+[32mINFO[39m [2025-10-28 03:35:40.052 +0700] (Mastra CLI): [36mOptimizing dependencies...[39m
+[32mINFO[39m [2025-10-28 03:35:51.013 +0700] (Mastra CLI): [36mBundling Mastra application[39m
+[32mINFO[39m [2025-10-28 03:35:54.707 +0700] (Mastra CLI): [36mBundling Mastra done[39m
+[32mINFO[39m [2025-10-28 03:35:54.707 +0700] (Mastra CLI): [36mCopying public files[39m
+[32mINFO[39m [2025-10-28 03:35:54.707 +0700] (Mastra CLI): [36mDone copying public files[39m
+[32mINFO[39m [2025-10-28 03:35:54.708 +0700] (Mastra CLI): [36mCopying .npmrc file[39m
+[32mINFO[39m [2025-10-28 03:35:54.708 +0700] (Mastra CLI): [36mDone copying .npmrc file[39m
+[32mINFO[39m [2025-10-28 03:35:54.708 +0700] (Mastra CLI): [36mInstalling dependencies[39m
+[32mINFO[39m [2025-10-28 03:36:16.008 +0700] (Mastra CLI): [36mDone installing dependencies[39m
+[32mINFO[39m [2025-10-28 03:36:16.008 +0700] (Mastra CLI): [36mBuild successful, you can now deploy the .mastra/output directory to your target platform.[39m
+[32mINFO[39m [2025-10-28 03:36:16.008 +0700] (Mastra CLI): [36mTo start the server, run: node --import=./.mastra/output/instrumentation.mjs .mastra/output/index.mjs[39m
+   ▲ Next.js 16.0.0 (Turbopack)
+   - Environments: .env
+
+   Creating an optimized production build ...
+node.exe : 
+At C:\Users\LENOVO\AppData\Roaming\npm\pnpm.ps1:24 char:5
++     & "node$exe"  "$basedir/node_modules/pnpm/bin/pnpm.cjs" $args
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+> Build error occurred
+Error: Turbopack build failed with 3 errors:
+./src/components/dashboard-page.tsx:20:1
+Module not found: Can't resolve '@/hooks/use-data'
+[0m [90m 18 |[39m } [36mfrom[39m [32m"@/components/ui/dialog"[39m
+ [90m 19 |[39m [36mimport[39m { [33mBadge[39m } [36mfrom[39m [32m"@/components/ui/badge"[39m
+[31m[1m>[22m[39m[90m 20 |[39m [36mimport[39m { useCVs[33m,[39m useDashboardStats } [36mfrom[39m 
+[32m"@/hooks/use-data"[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[
+31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39
+m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[3
+9m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[
+39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m
+[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m
+[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22
+m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[2
+2m[39m[31m[1m^[22m[39m
+ [90m 21 |[39m [36mimport[39m { [33mSignOutButton[39m } [36mfrom[39m [32m"@/components/signout-button"[39m
+ [90m 22 |[39m
+ [90m 23 |[39m [36minterface[39m [33mCV[39m {[0m
+
+Import map: aliased to relative './src/hooks/use-data' inside of [project]/
+
+
+Import traces:
+  Server Component:
+    ./src/components/dashboard-page.tsx
+    ./src/app/dashboard/page.tsx
+
+  App Route:
+    ./src/components/dashboard-page.tsx
+    ./src/services/latex-service.ts
+    ./src/services/cv-generator-service.ts
+    ./src/app/api/cv/generate/route.ts
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/components/library-page.tsx:19:1
+Module not found: Can't resolve '@/hooks/use-data'
+[0m [90m 17 |[39m } [36mfrom[39m [32m"@/components/ui/dialog"[39m
+ [90m 18 |[39m [36mimport[39m { [33mTextarea[39m } [36mfrom[39m [32m"@/components/ui/textarea"[39m
+[31m[1m>[22m[39m[90m 19 |[39m [36mimport[39m { useComponents } [36mfrom[39m [32m"@/hooks/use-data"[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[
+31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39
+m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[3
+9m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[
+39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m
+[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m
+[39m[31m[1m^[22m[39m
+ [90m 20 |[39m [36mimport[39m { [33mSignOutButton[39m } [36mfrom[39m [32m"@/components/signout-button"[39m
+ [90m 21 |[39m
+ [90m 22 |[39m [36minterface[39m [33mComponent[39m {[0m
+
+Import map: aliased to relative './src/hooks/use-data' inside of [project]/
+
+
+Import traces:
+  Server Component:
+    ./src/components/library-page.tsx
+    ./src/app/library/page.tsx
+
+  App Route:
+    ./src/components/library-page.tsx
+    ./src/services/latex-service.ts
+    ./src/services/cv-generator-service.ts
+    ./src/app/api/cv/generate/route.ts
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/components/cv-editor-page.tsx:13:1
+Module not found: Can't resolve '@/hooks/use-toast'
+[0m [90m 11 |[39m [36mimport[39m { [33mDropdownMenu[39m[33m,[39m [33mDropdownMenuContent[39m[33m,[39m 
+[33mDropdownMenuItem[39m[33m,[39m [33mDropdownMenuTrigger[39m } [36mfrom[39m 
+[32m"@/components/ui/dropdown-menu"[39m
+ [90m 12 |[39m [36mimport[39m { useDebouncedCallback } [36mfrom[39m [32m'use-debounce'[39m
+[31m[1m>[22m[39m[90m 13 |[39m [36mimport[39m { useToast } [36mfrom[39m [32m"@/hooks/use-toast"[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[
+31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39
+m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[3
+9m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[
+39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m
+[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 14 |[39m
+ [90m 15 |[39m [36minterface[39m [33mCVData[39m {
+ [90m 16 |[39m   name[33m:[39m string[0m
+
+Import map: aliased to relative './src/hooks/use-toast' inside of [project]/
+
+
+Import traces:
+  Server Component:
+    ./src/components/cv-editor-page.tsx
+    ./src/app/editor/[id]/page.tsx
+
+  App Route:
+    ./src/components/cv-editor-page.tsx
+    ./src/services/latex-service.ts
+    ./src/services/cv-generator-service.ts
+    ./src/app/api/cv/generate/route.ts
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at <unknown> (./src/components/dashboard-page.tsx:20:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/components/library-page.tsx:19:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/components/cv-editor-page.tsx:13:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+ ELIFECYCLE  Command failed with exit code 1.
