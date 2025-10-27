@@ -186,6 +186,7 @@ Return ONLY valid JSON without any markdown formatting or code blocks.`;
 
       return {
         cvId: cv.id,
+        jobDescriptionId: cv.id, // Alias for backward compatibility
         pdfId: cvPdf.id,
         componentsCreated,
       };
