@@ -1,4 +1,4 @@
-import pdf from 'pdf-parse';
+import pdfParse from 'pdf-parse';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { SupabaseService } from './supabase-service';
 import { EmbeddingService } from './embedding-service';
@@ -26,7 +26,7 @@ export class PDFService {
    */
   static async parsePDF(buffer: Buffer): Promise<string> {
     try {
-      const data = await pdf(buffer);
+      const data = await pdfParse(buffer);
       return data.text;
     } catch (error: any) {
       console.error('❌ PDF parsing error:', error.message);
