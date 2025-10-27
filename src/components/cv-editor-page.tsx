@@ -209,7 +209,7 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
     setIsGenerating(true)
     
     try {
-      const response = await fetch('/api/magiccv/generate', {
+      const response = await fetch('/api/cv/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
