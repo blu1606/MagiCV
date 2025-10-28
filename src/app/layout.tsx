@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { CopilotKit } from "@copilotkit/react-core";
+// import { CopilotKit } from "@copilotkit/react-core";
 import { ScrollProgress } from "@/components/ui/scroll-progress";
 import "./globals.css";
-import "@copilotkit/react-ui/styles.css";
+// import "@copilotkit/react-ui/styles.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Nosana Mastra Agent Kit",
-  description: "An example of using CopilotKit with Mastra agents.",
+  title: "magiCV - AI-Powered CV Generator",
+  description: "Generate tailored CVs in under 10 seconds with AI. Perfect for digital nomads and remote professionals.",
 };
 
 export default function RootLayout({
@@ -29,13 +29,14 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ScrollProgress />
-        <CopilotKit
+        {/* Temporarily disabled CopilotKit to avoid Mastra integration issues */}
+        {/* <CopilotKit
           runtimeUrl="/api/copilotkit"
           agent="weatherAgent"
           publicApiKey="ck_pub_ddccb58c6c87ae6d3bf709669ab0fb97"
-        >
+        > */}
           {children}
-        </CopilotKit>
+        {/* </CopilotKit> */}
       </body>
     </html>
   );
