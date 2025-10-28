@@ -12,6 +12,10 @@ node_modules
 
 # testing
 /coverage
+test-results/
+playwright-report/
+e2e-results.json
+e2e-results.xml
 
 # next.js
 .next
@@ -32,6 +36,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env
+.env.test
+.env.local
+.env.*.local
 
 # vercel
 .vercel
@@ -88,5 +95,4 @@ next-env.d.ts
 # lock files
 package-lock.json
 yarn.lock
-pnpm-lock.yaml
 bun.lockb
