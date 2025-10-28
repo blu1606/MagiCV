@@ -10,6 +10,10 @@ import { AnimatedGradientText } from "@/components/ui/animated-gradient-text"
 import { MorphingText } from "@/components/ui/morphing-text"
 import { Particles } from "@/components/ui/particles"
 import { GridPattern } from "@/components/ui/grid-pattern"
+import { BentoGrid } from "@/components/ui/bento-grid"
+import { MagicCard } from "@/components/ui/magic-card"
+import { BorderBeam } from "@/components/ui/border-beam"
+import { AnimatedList } from "@/components/ui/animated-list"
 
 export function LandingPage() {
   return (
@@ -101,33 +105,80 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-            <div className="p-8 border border-white/20 bg-white/5 backdrop-blur-sm rounded-xl hover:bg-white/10 transition-all relative group">
-              <FileText className="mb-4 w-12 h-12 text-primary" />
-              <h3 className="font-bold mb-4 text-white text-xl">One-Click Generation</h3>
-              <p className="text-gray-300">Paste a job description and get a tailored CV in seconds</p>
-              <div className="mt-4 text-sm text-primary">
-                Avg: 8.5s • Success Rate: 98%
-              </div>
+      {/* Features Section - BentoGrid */}
+      <section className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 relative z-10 py-20">
+        <div className="max-w-7xl mx-auto w-full">
+          <div className="mb-12 text-center">
+            <h2 className="text-4xl sm:text-6xl font-bold text-white mb-4">
+              How It Works
+            </h2>
+            <p className="text-xl text-gray-400">
+              Three simple steps to your perfect CV
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="col-span-1">
+              <MagicCard gradientColor="#0ea5e9">
+                <div className="p-6">
+                  <div className="mb-4 flex items-center gap-3">
+                    <FileText className="w-10 h-10 text-primary" />
+                    <div className="text-3xl font-bold text-white">1</div>
+                  </div>
+                  <h3 className="font-bold mb-3 text-white text-2xl">
+                    Paste Job Description
+                  </h3>
+                  <p className="text-gray-300 mb-4">
+                    Just paste the JD. Our AI analyzes keywords, skills, and requirements instantly.
+                  </p>
+                  <div className="mt-4 text-sm text-primary font-mono">
+                    Avg: 2s • 100% Accurate
+                  </div>
+                </div>
+                <BorderBeam className="rounded-lg" />
+              </MagicCard>
             </div>
-            <div className="p-8 border border-white/20 bg-white/5 backdrop-blur-sm rounded-xl hover:bg-white/10 transition-all relative group">
-              <BarChart3 className="mb-4 w-12 h-12 text-accent" />
-              <h3 className="font-bold mb-4 text-white text-xl">Real-Time Match Score</h3>
-              <p className="text-gray-300">See how well your CV matches job requirements</p>
-              <div className="mt-4 text-sm text-accent">
-                Updates in &lt;500ms
-              </div>
+
+            <div className="col-span-1">
+              <MagicCard gradientColor="#f97316">
+                <div className="p-6">
+                  <div className="mb-4 flex items-center gap-3">
+                    <Zap className="w-10 h-10 text-accent" />
+                    <div className="text-3xl font-bold text-white">2</div>
+                  </div>
+                  <h3 className="font-bold mb-3 text-white text-2xl">
+                    AI Generates CV
+                  </h3>
+                  <p className="text-gray-300 mb-4">
+                    AI creates a tailored CV matching your profile to the job description perfectly.
+                  </p>
+                  <div className="mt-4 text-sm text-accent font-mono">
+                    &lt;10s • 98% Success Rate
+                  </div>
+                </div>
+                <BorderBeam className="rounded-lg" />
+              </MagicCard>
             </div>
-            <div className="p-8 border border-white/20 bg-white/5 backdrop-blur-sm rounded-xl hover:bg-white/10 transition-all relative group">
-              <Brain className="mb-4 w-12 h-12 text-purple-400" />
-              <h3 className="font-bold mb-4 text-white text-xl">AI-Powered</h3>
-              <p className="text-gray-300">Advanced AI highlights your best qualities</p>
-              <div className="mt-4 text-sm text-purple-400">
-                Powered by GPT-4
-              </div>
+
+            <div className="col-span-1">
+              <MagicCard gradientColor="#22d3ee">
+                <div className="p-6">
+                  <div className="mb-4 flex items-center gap-3">
+                    <BarChart3 className="w-10 h-10 text-cyan-400" />
+                    <div className="text-3xl font-bold text-white">3</div>
+                  </div>
+                  <h3 className="font-bold mb-3 text-white text-2xl">
+                    Edit & Match Score
+                  </h3>
+                  <p className="text-gray-300 mb-4">
+                    Drag & drop to customize. See real-time match score updates as you edit.
+                  </p>
+                  <div className="mt-4 text-sm text-cyan-400 font-mono">
+                    Updates in &lt;500ms
+                  </div>
+                </div>
+                <BorderBeam className="rounded-lg" />
+              </MagicCard>
             </div>
           </div>
         </div>
