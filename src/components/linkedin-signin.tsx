@@ -36,12 +36,12 @@ export function LinkedInSignIn() {
     <Button
       onClick={handleSignIn}
       disabled={isLoading}
-      size="lg"
-      className="w-full font-mono"
+      size="sm"
+      className="font-mono text-white border-white/20 hover:bg-white/10"
       variant="outline"
     >
-      <Linkedin className="mr-2 h-5 w-5" />
-      {isLoading ? 'Connecting...' : '> SIGN IN WITH LINKEDIN'}
+      <Linkedin className="mr-2 h-4 w-4" />
+      {isLoading ? 'Connecting...' : 'Sign In'}
     </Button>
   )
 }

@@ -19,6 +19,10 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { useCVs, useDashboardStats } from "@/hooks/use-data"
 import { SignOutButton } from "@/components/signout-button"
+import { GridPattern } from "@/components/ui/grid-pattern"
+import { NumberTicker } from "@/components/ui/number-ticker"
+import { AnimatedGradientText } from "@/components/ui/animated-gradient-text"
+import { ShimmerButton } from "@/components/ui/shimmer-button"
 
 interface CV {
   id: string
@@ -105,36 +109,34 @@ export function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      {/* Scattered pixelated elements */}
-      <div className="pixel-scatter pixel-scatter-1">
-        <div className="pixel-plus"></div>
-      </div>
-      <div className="pixel-scatter pixel-scatter-2">
-        <div className="pixel-x"></div>
-      </div>
-      <div className="pixel-scatter pixel-scatter-3">
-        <div className="pixel-arrow"></div>
-      </div>
-      <div className="pixel-scatter pixel-scatter-4">
-        <div className="pixel-heart"></div>
-      </div>
+    <div className="min-h-screen bg-[#0f172a] relative overflow-hidden">
+      {/* Grid Pattern Background */}
+      <GridPattern 
+        className="absolute inset-0 opacity-10" 
+        width={40} 
+        height={40} 
+        x={0}
+        y={0}
+        strokeDasharray="0"
+      />
 
       {/* Navigation */}
-      <nav className="border-b border-white/20 backdrop-blur-sm sticky top-0 z-50 bg-black/80">
+      <nav className="border-b border-white/20 backdrop-blur-sm sticky top-0 z-50 bg-[#0f172a]/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="pixel-plus"></div>
-            <span className="font-bold text-xl text-white transform -rotate-1">magiCV</span>
+            <div className="w-8 h-8 bg-gradient-to-br from-[#0ea5e9] to-[#22d3ee] rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">M</span>
+            </div>
+            <span className="font-bold text-xl text-white">MagicCV</span>
           </div>
           <div className="flex items-center gap-4">
             <Link href="/library">
-              <Button variant="ghost" size="sm" className="text-white hover:bg-white/10 font-mono">
+              <Button variant="ghost" size="sm" className="text-white hover:bg-white/10 border-white/20">
                 Library
               </Button>
             </Link>
             <Link href="/settings">
-              <Button variant="ghost" size="sm" className="text-white hover:bg-white/10 font-mono">
+              <Button variant="ghost" size="sm" className="text-white hover:bg-white/10 border-white/20">
                 Profile
               </Button>
             </Link>
@@ -144,52 +146,52 @@ export function DashboardPage() {
       </nav>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
         {/* Welcome Section */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
-            <h1 className="text-4xl font-bold text-white font-mono">Welcome back</h1>
+            <h1 className="text-4xl font-bold text-white">Welcome back</h1>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button size="lg" className="gap-2 glitch-button text-black font-bold">
-                  <Plus className="w-4 h-4" />
+                <ShimmerButton className="bg-gradient-to-r from-[#0ea5e9] to-[#22d3ee] text-white">
+                  <Plus className="w-4 h-4 mr-2" />
                   Generate CV
-                </Button>
+                </ShimmerButton>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-md bg-white text-black">
+              <DialogContent className="sm:max-w-md bg-[#0f172a]/95 backdrop-blur-sm border-white/20 text-white">
                 <DialogHeader>
-                  <DialogTitle className="text-black font-mono">Generate New CV</DialogTitle>
-                  <DialogDescription className="text-gray-600 font-mono">Paste a job description to generate an optimized CV</DialogDescription>
+                  <DialogTitle className="text-white">Generate New CV</DialogTitle>
+                  <DialogDescription className="text-gray-300">Paste a job description to generate an optimized CV</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <Textarea
                     placeholder="Paste the job description here..."
                     value={jobDescription}
                     onChange={(e) => setJobDescription(e.target.value)}
-                    className="min-h-40 resize-none font-mono"
+                    className="min-h-40 resize-none bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
                   />
-                  <Button
+                  <ShimmerButton
                     onClick={handleGenerateCV}
                     disabled={!jobDescription.trim() || isGenerating}
-                    className="w-full gap-2 glitch-button text-black font-bold"
+                    className="w-full bg-gradient-to-r from-[#0ea5e9] to-[#22d3ee] text-white"
                   >
                     {isGenerating ? (
                       <>
-                        <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
                         Building your draft...
                       </>
                     ) : (
                       <>
-                        <Plus className="w-4 h-4" />
+                        <Plus className="w-4 h-4 mr-2" />
                         Generate CV
                       </>
                     )}
-                  </Button>
+                  </ShimmerButton>
                 </div>
               </DialogContent>
             </Dialog>
           </div>
-          <p className="text-gray-300 font-mono">Create a new CV or manage your existing ones</p>
+          <p className="text-gray-300">Create a new CV or manage your existing ones</p>
         </div>
 
         {/* Search and Filter Section */}
@@ -197,35 +199,35 @@ export function DashboardPage() {
           <div className="mb-8 space-y-4">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
                   placeholder="Search CVs..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
                 />
               </div>
 
               <Select value={filterStatus} onValueChange={(value: any) => setFilterStatus(value)}>
-                <SelectTrigger className="w-full sm:w-40">
+                <SelectTrigger className="w-full sm:w-40 bg-[#0f172a]/80 border-white/20 text-white">
                   <Filter className="w-4 h-4 mr-2" />
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All CVs</SelectItem>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="archived">Archived</SelectItem>
+                <SelectContent className="bg-[#0f172a] border-white/20">
+                  <SelectItem value="all" className="text-white hover:bg-white/10">All CVs</SelectItem>
+                  <SelectItem value="draft" className="text-white hover:bg-white/10">Draft</SelectItem>
+                  <SelectItem value="completed" className="text-white hover:bg-white/10">Completed</SelectItem>
+                  <SelectItem value="archived" className="text-white hover:bg-white/10">Archived</SelectItem>
                 </SelectContent>
               </Select>
 
               <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
-                <SelectTrigger className="w-full sm:w-40">
+                <SelectTrigger className="w-full sm:w-40 bg-[#0f172a]/80 border-white/20 text-white">
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="recent">Most Recent</SelectItem>
-                  <SelectItem value="score">Highest Score</SelectItem>
+                <SelectContent className="bg-[#0f172a] border-white/20">
+                  <SelectItem value="recent" className="text-white hover:bg-white/10">Most Recent</SelectItem>
+                  <SelectItem value="score" className="text-white hover:bg-white/10">Highest Score</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -235,19 +237,19 @@ export function DashboardPage() {
         {/* CVs List */}
         <div>
           {cvsLoading ? (
-            <Card className="p-12 text-center bg-black/60 backdrop-blur-sm border-2 border-white">
-              <div className="w-12 h-12 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-gray-300 font-mono">Loading CVs...</p>
+            <Card className="p-12 text-center bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
+              <div className="w-12 h-12 border-2 border-[#0ea5e9] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-gray-300">Loading CVs...</p>
             </Card>
           ) : cvsError ? (
-            <Card className="p-12 text-center bg-black/60 backdrop-blur-sm border-2 border-white">
+            <Card className="p-12 text-center bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
               <FileText className="w-12 h-12 text-red-400 mx-auto mb-4 opacity-50" />
-              <p className="text-red-400 mb-4 font-mono">Error loading CVs: {cvsError}</p>
+              <p className="text-red-400 mb-4">Error loading CVs: {cvsError}</p>
             </Card>
           ) : filteredCVs.length === 0 ? (
-            <Card className="p-12 text-center bg-black/60 backdrop-blur-sm border-2 border-white">
+            <Card className="p-12 text-center bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
               <FileText className="w-12 h-12 text-white mx-auto mb-4 opacity-50" />
-              <p className="text-gray-300 mb-4 font-mono">
+              <p className="text-gray-300 mb-4">
                 {cvs.length === 0 ? "No CVs yet. Create one to get started!" : "No CVs match your search."}
               </p>
             </Card>
@@ -255,25 +257,27 @@ export function DashboardPage() {
             <div className="grid gap-4">
               {filteredCVs.map((cv) => (
                 <Link key={cv.id} href={`/editor/${cv.id}`}>
-                  <Card className="p-6 hover:border-pink-500 hover:bg-black/80 transition-all cursor-pointer group bg-black/60 backdrop-blur-sm border-2 border-white">
+                  <Card className="p-6 hover:border-[#0ea5e9]/50 hover:bg-[#0f172a]/90 transition-all cursor-pointer group bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-bold group-hover:text-pink-400 transition-colors truncate text-white font-mono">
+                          <h3 className="font-bold group-hover:text-[#0ea5e9] transition-colors truncate text-white">
                             {cv.title}
                           </h3>
-                          <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 text-xs font-mono">draft</Badge>
+                          <Badge className="bg-[#0ea5e9]/10 border-[#0ea5e9]/20 text-[#0ea5e9] text-xs">draft</Badge>
                         </div>
-                        <p className="text-sm text-gray-300 mt-1 truncate font-mono">{cv.job_description || 'No description'}</p>
-                        <div className="flex items-center gap-4 mt-3 text-xs text-gray-400 font-mono">
+                        <p className="text-sm text-gray-300 mt-1 truncate">{cv.job_description || 'No description'}</p>
+                        <div className="flex items-center gap-4 mt-3 text-xs text-gray-400">
                           <span>{new Date(cv.created_at).toLocaleDateString()}</span>
                           <span className="capitalize">modern template</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-3 flex-shrink-0">
                         <div className="text-right">
-                          <div className="text-2xl font-bold text-pink-400 font-mono">{cv.match_score || 0}%</div>
-                          <p className="text-xs text-gray-400 font-mono">Match</p>
+                          <div className="text-2xl font-bold text-[#0ea5e9]">
+                            <NumberTicker value={cv.match_score || 0} />%
+                          </div>
+                          <p className="text-xs text-gray-400">Match</p>
                         </div>
                         <div className="flex gap-1">
                           <Button
@@ -324,21 +328,29 @@ export function DashboardPage() {
         {/* Stats Section */}
         {!statsLoading && stats.totalCVs > 0 && (
           <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Card className="p-6 text-center bg-black/60 backdrop-blur-sm border-2 border-white">
-              <div className="text-3xl font-bold text-pink-400 font-mono">{stats.totalCVs}</div>
-              <p className="text-sm text-gray-300 mt-2 font-mono">Total CVs</p>
-            </Card>
-            <Card className="p-6 text-center bg-black/60 backdrop-blur-sm border-2 border-white">
-              <div className="text-3xl font-bold text-pink-400 font-mono">
-                {cvs.length > 0 ? Math.round(cvs.reduce((sum, cv) => sum + (cv.match_score || 0), 0) / cvs.length) : 0}%
+            <Card className="p-6 text-center bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
+              <div className="text-3xl font-bold text-[#0ea5e9]">
+                <NumberTicker value={stats.totalCVs} />
               </div>
-              <p className="text-sm text-gray-300 mt-2 font-mono">Average Match Score</p>
+              <AnimatedGradientText className="text-sm mt-2">
+                Total CVs
+              </AnimatedGradientText>
             </Card>
-            <Card className="p-6 text-center bg-black/60 backdrop-blur-sm border-2 border-white">
-              <div className="text-3xl font-bold text-pink-400 font-mono">
-                {stats.totalComponents}
+            <Card className="p-6 text-center bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
+              <div className="text-3xl font-bold text-[#f97316]">
+                <NumberTicker value={cvs.length > 0 ? Math.round(cvs.reduce((sum, cv) => sum + (cv.match_score || 0), 0) / cvs.length) : 0} />%
               </div>
-              <p className="text-sm text-gray-300 mt-2 font-mono">Total Components</p>
+              <AnimatedGradientText className="text-sm mt-2">
+                Average Match Score
+              </AnimatedGradientText>
+            </Card>
+            <Card className="p-6 text-center bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
+              <div className="text-3xl font-bold text-[#22d3ee]">
+                <NumberTicker value={stats.totalComponents} />
+              </div>
+              <AnimatedGradientText className="text-sm mt-2">
+                Total Components
+              </AnimatedGradientText>
             </Card>
           </div>
         )}

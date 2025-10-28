@@ -1,11 +1,15 @@
 "use client"
 
 import { Card } from "@/components/ui/card"
-import { Loader2 } from "lucide-react"
+import { Loader2, CheckCircle, XCircle } from "lucide-react"
 import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { apiService } from "@/lib/api-service"
 import { errorHandler } from "@/lib/error-handler"
+import { GridPattern } from "@/components/ui/grid-pattern"
+import { ShimmerButton } from "@/components/ui/shimmer-button"
+import { BorderBeam } from "@/components/ui/border-beam"
+import { AnimatedGradientText } from "@/components/ui/animated-gradient-text"
 
 function OnboardingContent() {
   const router = useRouter()
@@ -61,28 +65,41 @@ function OnboardingContent() {
   }, [router, searchParams])
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <Card className="w-full max-w-md p-8 text-center space-y-6 bg-black/60 backdrop-blur-sm border-white/20">
+    <div className="min-h-screen bg-[#0f172a] relative overflow-hidden flex items-center justify-center p-4">
+      {/* Grid Pattern Background */}
+      <GridPattern 
+        className="absolute inset-0 opacity-10" 
+        width={40} 
+        height={40} 
+        x={0}
+        y={0}
+        strokeDasharray="0"
+      />
+      
+      <Card className="w-full max-w-md p-8 text-center space-y-6 bg-[#0f172a]/80 backdrop-blur-sm border-white/20 relative z-10">
+        <BorderBeam className="opacity-0 group-hover:opacity-100" />
         {status === "syncing" && (
           <>
-            <Loader2 className="w-12 h-12 animate-spin text-pink-400 mx-auto" />
+            <Loader2 className="w-12 h-12 animate-spin text-[#0ea5e9] mx-auto" />
             <div className="space-y-2">
               <h2 className="text-xl font-semibold text-white">Syncing your profile</h2>
-              <p className="text-sm text-gray-300">We're pulling your data from LinkedIn...</p>
+              <AnimatedGradientText className="text-sm">
+                We're pulling your data from LinkedIn...
+              </AnimatedGradientText>
             </div>
           </>
         )}
 
         {status === "success" && (
           <>
-            <div className="w-12 h-12 rounded-full bg-pink-400/20 flex items-center justify-center mx-auto">
-              <svg className="w-6 h-6 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+            <div className="w-12 h-12 rounded-full bg-[#22d3ee]/20 flex items-center justify-center mx-auto">
+              <CheckCircle className="w-6 h-6 text-[#22d3ee]" />
             </div>
             <div className="space-y-2">
               <h2 className="text-xl font-semibold text-white">All set!</h2>
-              <p className="text-sm text-gray-300">Your profile is ready. Redirecting...</p>
+              <AnimatedGradientText className="text-sm">
+                Your profile is ready. Redirecting...
+              </AnimatedGradientText>
             </div>
           </>
         )}
@@ -90,21 +107,19 @@ function OnboardingContent() {
         {status === "error" && (
           <>
             <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center mx-auto">
-              <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <XCircle className="w-6 h-6 text-red-500" />
             </div>
             <div className="space-y-2">
               <h2 className="text-xl font-semibold text-white">Sync failed</h2>
               <p className="text-sm text-gray-300">
                 {errorMessage || "Please try again or contact support"}
               </p>
-              <button 
-                onClick={() => window.location.href = '/auth'}
-                className="text-pink-400 hover:underline text-sm"
+              <ShimmerButton 
+                onClick={() => router.push("/auth")}
+                className="bg-gradient-to-r from-[#0ea5e9] to-[#22d3ee] text-white"
               >
-                Try again
-              </button>
+                Try Again
+              </ShimmerButton>
             </div>
           </>
         )}

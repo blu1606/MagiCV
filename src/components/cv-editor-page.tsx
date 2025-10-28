@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
-import { Download, ChevronLeft, Plus, Trash2 } from "lucide-react"
+import { Download, ChevronLeft, Plus, Trash2, Sparkles } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 import { Input } from "@/components/ui/input"
@@ -11,6 +11,9 @@ import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useDebouncedCallback } from 'use-debounce'
 import { useToast } from "@/components/ui/use-toast"
+import { GridPattern } from "@/components/ui/grid-pattern"
+import { ShimmerButton } from "@/components/ui/shimmer-button"
+import { NumberTicker } from "@/components/ui/number-ticker"
 
 interface CVData {
   name: string
@@ -255,71 +258,95 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[#0f172a] relative overflow-hidden">
+      {/* Grid Pattern Background */}
+      <GridPattern 
+        className="absolute inset-0 opacity-10" 
+        width={40} 
+        height={40} 
+        x={0}
+        y={0}
+        strokeDasharray="0"
+      />
+      
+      {/* Background Effect during AI generation */}
+      {isGenerating && (
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0ea5e9]/10 to-[#22d3ee]/10 animate-pulse" />
+      )}
       {/* Header */}
-      <div className="border-b border-white/20 backdrop-blur-sm sticky top-0 z-50 bg-black/80">
+      <div className="border-b border-white/20 backdrop-blur-sm sticky top-0 z-50 bg-[#0f172a]/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link href="/dashboard">
-            <Button variant="ghost" size="sm" className="gap-2 text-white hover:bg-white/10">
+            <Button variant="ghost" size="sm" className="gap-2 text-white hover:bg-white/10 border-white/20">
               <ChevronLeft className="w-4 h-4" />
               Back
             </Button>
           </Link>
           <div className="flex items-center gap-4">
             {matchScore !== null && (
-              <div className="text-right">
-                <div className={`text-sm font-semibold ${
-                  matchScore > 75 ? 'text-green-400' : 
-                  matchScore > 50 ? 'text-yellow-400' : 
-                  'text-red-400'
-                }`}>
-                  {matchScore}%
+              <div className="flex items-center gap-3">
+                <div className="relative w-12 h-12">
+                  <div className="w-12 h-12 rounded-full border-4 border-gray-700 flex items-center justify-center">
+                    <div 
+                      className="absolute inset-0 rounded-full border-4 border-transparent"
+                      style={{
+                        borderTopColor: matchScore > 75 ? "#22d3ee" : matchScore > 50 ? "#f97316" : "#ef4444",
+                        transform: `rotate(${(matchScore / 100) * 360 - 90}deg)`,
+                        transition: 'transform 0.5s ease-in-out'
+                      }}
+                    />
+                    <span className="text-xs font-bold text-white">
+                      <NumberTicker value={matchScore} />
+                    </span>
+                  </div>
                 </div>
-                <p className="text-xs text-gray-300">Match Score</p>
+                <div className="text-right">
+                  <p className="text-xs text-gray-300">Match Score</p>
+                </div>
               </div>
             )}
             {isCalculating && (
-              <div className="text-xs text-gray-400 animate-pulse">
-                Calculating...
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-[#0ea5e9] border-t-transparent rounded-full animate-spin" />
+                <div className="text-xs text-gray-400">Calculating...</div>
               </div>
             )}
-            <Button 
+            <ShimmerButton 
               onClick={handleGeneratePDF}
               disabled={isGenerating || !jobDescription.trim()}
-              size="sm" 
-              className="gap-2 glitch-button text-black font-bold"
+              className="bg-gradient-to-r from-[#0ea5e9] to-[#22d3ee] text-white"
             >
               {isGenerating ? (
                 <>
-                  <div className="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
                   Generating...
                 </>
               ) : (
                 <>
-                  <Download className="w-4 h-4" />
+                  <Sparkles className="w-4 h-4 mr-2" />
                   Generate CV
                 </>
               )}
-            </Button>
+            </ShimmerButton>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Editor Panel */}
-          <div className="space-y-6 overflow-y-auto max-h-[calc(100vh-120px)] bg-white p-6 rounded-lg">
+          <div className="space-y-6 overflow-y-auto max-h-[calc(100vh-120px)] bg-[#0f172a]/80 backdrop-blur-sm p-6 rounded-lg border border-white/20">
             {/* Job Description Section */}
-            <div className="space-y-4 border-b pb-6">
-              <h3 className="text-lg font-semibold text-black flex items-center gap-2">
+            <div className="space-y-4 border-b border-white/20 pb-6 relative">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                 <span>Job Description</span>
                 {isCalculating && (
-                  <div className="w-4 h-4 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-[#0ea5e9] border-t-transparent rounded-full animate-spin" />
                 )}
               </h3>
               <div>
-                <label className="text-sm font-semibold mb-2 block text-gray-700">
+                <label className="text-sm font-semibold mb-2 block text-gray-300">
                   Paste the job description to get AI-optimized CV match
                 </label>
                 <textarea
@@ -330,34 +357,34 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
                     debouncedCalculateMatch(value);
                   }}
                   placeholder="Paste job description here... AI will automatically calculate match score and optimize your CV for this position."
-                  className="w-full min-h-[120px] p-3 border border-gray-300 rounded-lg resize-y focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent text-black bg-white"
+                  className="w-full min-h-[120px] p-3 border border-white/20 rounded-lg resize-y focus:outline-none focus:ring-2 focus:ring-[#0ea5e9] focus:border-transparent text-white bg-[#0f172a]/60 placeholder:text-gray-400"
                 />
               </div>
               
               {matchScore !== null && matchDetails && (
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-semibold text-gray-700">Match Score</span>
+                    <span className="text-sm font-semibold text-gray-300">Match Score</span>
                     <span className={`text-lg font-bold ${
-                      matchScore > 75 ? 'text-green-600' : 
-                      matchScore > 50 ? 'text-yellow-600' : 
-                      'text-red-600'
+                      matchScore > 75 ? 'text-[#22d3ee]' : 
+                      matchScore > 50 ? 'text-[#f97316]' : 
+                      'text-red-400'
                     }`}>
-                      {matchScore}%
+                      <NumberTicker value={matchScore} />%
                     </span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                  <div className="w-full bg-gray-700 rounded-full h-2.5 overflow-hidden">
                     <div 
                       className={`h-full transition-all duration-500 ${
-                        matchScore > 75 ? 'bg-green-500' : 
-                        matchScore > 50 ? 'bg-yellow-500' : 
+                        matchScore > 75 ? 'bg-[#22d3ee]' : 
+                        matchScore > 50 ? 'bg-[#f97316]' : 
                         'bg-red-500'
                       }`}
                       style={{ width: `${matchScore}%` }}
                     />
                   </div>
                   {matchDetails.summary && (
-                    <p className="text-sm text-gray-600 mt-2">{matchDetails.summary}</p>
+                    <p className="text-sm text-gray-300 mt-2">{matchDetails.summary}</p>
                   )}
                 </div>
               )}
@@ -365,47 +392,47 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
 
             {/* Personal Info */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-black">Personal Information</h3>
+              <h3 className="text-lg font-semibold text-white">Personal Information</h3>
               <div>
-                <label className="text-sm font-semibold mb-2 block text-black">Full Name</label>
+                <label className="text-sm font-semibold mb-2 block text-white">Full Name</label>
                 <Input
                   value={cvData.name}
                   onChange={(e) => setCvData({ ...cvData, name: e.target.value })}
                   placeholder="Your full name"
-                  className="bg-white border-gray-300 text-black"
+                  className="bg-[#0f172a]/60 border-white/20 text-white placeholder:text-gray-400"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-semibold mb-2 block text-black">Email</label>
+                  <label className="text-sm font-semibold mb-2 block text-white">Email</label>
                   <Input
                     type="email"
                     value={cvData.email}
                     onChange={(e) => setCvData({ ...cvData, email: e.target.value })}
                     placeholder="your@email.com"
-                    className="bg-white border-gray-300 text-black"
+                    className="bg-[#0f172a]/60 border-white/20 text-white placeholder:text-gray-400"
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-semibold mb-2 block text-black">Phone</label>
+                  <label className="text-sm font-semibold mb-2 block text-white">Phone</label>
                   <Input
                     type="tel"
                     value={cvData.phone}
                     onChange={(e) => setCvData({ ...cvData, phone: e.target.value })}
                     placeholder="+1 (555) 000-0000"
-                    className="bg-white border-gray-300 text-black"
+                    className="bg-[#0f172a]/60 border-white/20 text-white placeholder:text-gray-400"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-sm font-semibold mb-2 block text-black">Professional Summary</label>
+                <label className="text-sm font-semibold mb-2 block text-white">Professional Summary</label>
                 <Textarea
                   value={cvData.summary}
                   onChange={(e) => setCvData({ ...cvData, summary: e.target.value })}
                   placeholder="Brief overview of your professional background..."
-                  className="min-h-24 resize-none bg-white border-gray-300 text-black"
+                  className="min-h-24 resize-none bg-[#0f172a]/60 border-white/20 text-white placeholder:text-gray-400"
                 />
               </div>
             </div>
@@ -413,55 +440,55 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
             {/* Experience Section */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-black">Experience</h3>
-                <Button variant="outline" size="sm" onClick={addExperience} className="gap-1 bg-white border-gray-300 text-black hover:bg-gray-50">
+                <h3 className="text-lg font-semibold text-white">Experience</h3>
+                <ShimmerButton onClick={addExperience} className="gap-1 bg-[#0f172a]/60 border-white/20 text-white hover:bg-white/10 px-3 py-1 text-sm">
                   <Plus className="w-4 h-4" />
                   Add
-                </Button>
+                </ShimmerButton>
               </div>
               <div className="space-y-4">
                 {cvData.experience.map((exp) => (
-                  <Card key={exp.id} className="p-4 space-y-3 bg-white border-gray-300">
+                  <Card key={exp.id} className="p-4 space-y-3 bg-[#0f172a]/60 border-white/20">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 space-y-3">
                         <Input
                           value={exp.title}
                           onChange={(e) => updateExperience(exp.id, "title", e.target.value)}
                           placeholder="Job Title"
-                          className="text-sm font-semibold bg-white border-gray-300 text-black"
+                          className="text-sm font-semibold bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
                         />
                         <Input
                           value={exp.company}
                           onChange={(e) => updateExperience(exp.id, "company", e.target.value)}
                           placeholder="Company Name"
-                          className="text-sm bg-white border-gray-300 text-black"
+                          className="text-sm bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
                         />
                         <div className="grid grid-cols-2 gap-2">
                           <Input
                             value={exp.startDate}
                             onChange={(e) => updateExperience(exp.id, "startDate", e.target.value)}
                             placeholder="Start Date"
-                            className="text-xs bg-white border-gray-300 text-black"
+                            className="text-xs bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
                           />
                           <Input
                             value={exp.endDate}
                             onChange={(e) => updateExperience(exp.id, "endDate", e.target.value)}
                             placeholder="End Date"
-                            className="text-xs bg-white border-gray-300 text-black"
+                            className="text-xs bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
                           />
                         </div>
                         <Textarea
                           value={exp.description}
                           onChange={(e) => updateExperience(exp.id, "description", e.target.value)}
                           placeholder="Job description and achievements..."
-                          className="min-h-16 resize-none text-sm bg-white border-gray-300 text-black"
+                          className="min-h-16 resize-none text-sm bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
                         />
                       </div>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => removeExperience(exp.id)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        className="text-red-400 hover:bg-red-400/10"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -520,7 +547,7 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
 
             {/* Skills Section */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-black">Skills</h3>
+              <h3 className="text-lg font-semibold text-white">Skills</h3>
               <div className="flex gap-2">
                 <Input
                   value={skillInput}
@@ -531,18 +558,33 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
                     }
                   }}
                   placeholder="Add a skill..."
-                  className="text-sm bg-white border-gray-300 text-black"
+                  className="text-sm bg-[#0f172a]/60 border-white/20 text-white placeholder:text-gray-400"
                 />
-                <Button onClick={addSkill} variant="outline" size="sm" className="bg-white border-gray-300 text-black hover:bg-gray-50">
+                <ShimmerButton onClick={addSkill} className="bg-[#0f172a]/60 border-white/20 text-white hover:bg-white/10 px-3 py-1">
                   <Plus className="w-4 h-4" />
-                </Button>
+                </ShimmerButton>
               </div>
+              
+              {/* Skills Grid Visualization */}
+              {cvData.skills.length > 0 && (
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  {cvData.skills.slice(0, 6).map((skill, index) => (
+                    <div 
+                      key={skill}
+                      className="aspect-square bg-gradient-to-br from-[#0ea5e9]/20 to-[#22d3ee]/20 rounded-lg flex items-center justify-center text-xs font-medium text-[#0ea5e9] border border-[#0ea5e9]/30"
+                    >
+                      {skill}
+                    </div>
+                  ))}
+                </div>
+              )}
+              
               <div className="flex flex-wrap gap-2">
                 {cvData.skills.map((skill) => (
                   <Badge
                     key={skill}
                     variant="secondary"
-                    className="gap-1 cursor-pointer hover:bg-red-100 bg-gray-100 text-black border-gray-300"
+                    className="gap-1 cursor-pointer hover:bg-red-400/20 bg-[#0ea5e9]/10 text-[#0ea5e9] border-[#0ea5e9]/20"
                     onClick={() => removeSkill(skill)}
                   >
                     {skill}
@@ -555,7 +597,7 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
 
           {/* Preview Panel */}
           <div className="lg:sticky lg:top-20 lg:h-fit">
-            <Card className="p-8 bg-black/60 backdrop-blur-sm border-white/20">
+            <Card className="p-8 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
               <div className="space-y-6 text-sm">
                 {/* Header */}
                 <div>
@@ -622,10 +664,10 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
                 {/* Skills */}
                 {cvData.skills.length > 0 && (
                   <div>
-                    <h2 className="text-xs font-semibold text-pink-400 mb-2 uppercase tracking-wide">Skills</h2>
+                    <h2 className="text-xs font-semibold text-[#0ea5e9] mb-2 uppercase tracking-wide">Skills</h2>
                     <div className="flex flex-wrap gap-1">
                       {cvData.skills.map((skill) => (
-                        <span key={skill} className="text-xs px-2 py-1 rounded-full bg-pink-400/20 text-pink-400">
+                        <span key={skill} className="text-xs px-2 py-1 rounded-full bg-[#0ea5e9]/20 text-[#0ea5e9]">
                           {skill}
                         </span>
                       ))}

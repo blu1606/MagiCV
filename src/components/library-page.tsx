@@ -18,6 +18,9 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { useComponents } from "@/hooks/use-data"
 import { SignOutButton } from "@/components/signout-button"
+import { GridPattern } from "@/components/ui/grid-pattern"
+import { ShimmerButton } from "@/components/ui/shimmer-button"
+import { AnimatedGradientText } from "@/components/ui/animated-gradient-text"
 
 interface Component {
   id: string
@@ -123,25 +126,34 @@ export function LibraryPage() {
   const getTypeColor = (type: Component["type"]) => {
     switch (type) {
       case "experience":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+        return "bg-[#0ea5e9]/10 border-[#0ea5e9]/20 text-[#0ea5e9]"
       case "education":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+        return "bg-[#22d3ee]/10 border-[#22d3ee]/20 text-[#22d3ee]"
       case "skill":
-        return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+        return "bg-[#f97316]/10 border-[#f97316]/20 text-[#f97316]"
       case "project":
-        return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
+        return "bg-[#8b5cf6]/10 border-[#8b5cf6]/20 text-[#8b5cf6]"
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
+        return "bg-gray-500/10 border-gray-500/20 text-gray-500"
     }
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[#0f172a] relative overflow-hidden">
+      {/* Grid Pattern Background */}
+      <GridPattern 
+        className="absolute inset-0 opacity-10" 
+        width={40} 
+        height={40} 
+        x={0}
+        y={0}
+        strokeDasharray="0"
+      />
       {/* Header */}
-      <div className="border-b border-white/20 backdrop-blur-sm sticky top-0 z-50 bg-black/80">
+      <div className="border-b border-white/20 backdrop-blur-sm sticky top-0 z-50 bg-[#0f172a]/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link href="/dashboard">
-            <Button variant="ghost" size="sm" className="gap-2 text-white hover:bg-white/10">
+            <Button variant="ghost" size="sm" className="gap-2 text-white hover:bg-white/10 border-white/20">
               <ChevronLeft className="w-4 h-4" />
               Back
             </Button>
@@ -150,32 +162,33 @@ export function LibraryPage() {
           <div className="flex items-center gap-2">
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button size="sm" className="gap-2 glitch-button text-black font-bold">
-                  <Plus className="w-4 h-4" />
+                <ShimmerButton className="bg-gradient-to-r from-[#0ea5e9] to-[#22d3ee] text-white">
+                  <Plus className="w-4 h-4 mr-2" />
                   Add Component
-                </Button>
+                </ShimmerButton>
               </DialogTrigger>
 
-              <DialogContent className="sm:max-w-md">
+              <DialogContent className="sm:max-w-md bg-[#0f172a]/95 backdrop-blur-sm border-white/20 text-white">
                 <DialogHeader>
-                  <DialogTitle>Add New Component</DialogTitle>
-                  <DialogDescription>Create a reusable component for your CVs</DialogDescription>
+                  <DialogTitle className="text-white">Add New Component</DialogTitle>
+                  <DialogDescription className="text-gray-300">Create a reusable component for your CVs</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-semibold mb-2 block">Component Title</label>
+                    <label className="text-sm font-semibold mb-2 block text-white">Component Title</label>
                     <Input
                       value={newComponent.title}
                       onChange={(e) => setNewComponent({ ...newComponent, title: e.target.value })}
                       placeholder="e.g., Senior Engineer at TechCorp"
+                      className="bg-[#0f172a]/60 border-white/20 text-white placeholder:text-gray-400"
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-semibold mb-2 block">Type</label>
+                    <label className="text-sm font-semibold mb-2 block text-white">Type</label>
                     <select
                       value={newComponent.type}
                       onChange={(e) => setNewComponent({ ...newComponent, type: e.target.value as any })}
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className="w-full px-3 py-2 rounded-lg border border-white/20 bg-[#0f172a]/60 text-white focus:outline-none focus:ring-2 focus:ring-[#0ea5e9]/50"
                     >
                       <option value="experience">Experience</option>
                       <option value="education">Education</option>
@@ -184,17 +197,22 @@ export function LibraryPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-sm font-semibold mb-2 block">Description</label>
+                    <label className="text-sm font-semibold mb-2 block text-white">Description</label>
                     <Textarea
                       value={newComponent.description}
                       onChange={(e) => setNewComponent({ ...newComponent, description: e.target.value })}
                       placeholder="Describe this component..."
-                      className="min-h-24 resize-none"
+                      className="min-h-24 resize-none bg-[#0f172a]/60 border-white/20 text-white placeholder:text-gray-400"
                     />
                   </div>
-                  <Button onClick={handleAddComponent} className="w-full">
+                  <ShimmerButton
+                    onClick={handleAddComponent}
+                    disabled={!newComponent.title.trim() || !newComponent.description.trim()}
+                    className="w-full bg-gradient-to-r from-[#0ea5e9] to-[#22d3ee] text-white"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
                     Add Component
-                  </Button>
+                  </ShimmerButton>
                 </div>
               </DialogContent>
             </Dialog>
@@ -205,16 +223,16 @@ export function LibraryPage() {
       </div>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         {/* Search and Filter */}
         <div className="mb-6 space-y-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
               placeholder="Search components..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
             />
           </div>
 
@@ -225,7 +243,11 @@ export function LibraryPage() {
                 variant={filterType === type ? "default" : "outline"}
                 size="sm"
                 onClick={() => setFilterType(type)}
-                className="capitalize"
+                className={`capitalize ${
+                  filterType === type 
+                    ? "bg-[#0ea5e9] hover:bg-[#0ea5e9]/90 text-white" 
+                    : "bg-[#0f172a]/60 border-white/20 text-white hover:bg-white/10"
+                }`}
               >
                 {type}
               </Button>
@@ -235,16 +257,16 @@ export function LibraryPage() {
 
         {/* Components Grid */}
         {componentsLoading ? (
-          <Card className="p-12 text-center bg-black/60 backdrop-blur-sm border-white/20">
-            <div className="w-12 h-12 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <Card className="p-12 text-center bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
+            <div className="w-12 h-12 border-2 border-[#0ea5e9] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
             <p className="text-gray-300">Loading components...</p>
           </Card>
         ) : componentsError ? (
-          <Card className="p-12 text-center bg-black/60 backdrop-blur-sm border-white/20">
+          <Card className="p-12 text-center bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
             <p className="text-red-400 mb-4">Error loading components: {componentsError}</p>
           </Card>
         ) : filteredComponents.length === 0 ? (
-          <Card className="p-12 text-center bg-black/60 backdrop-blur-sm border-white/20">
+          <Card className="p-12 text-center bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
             <p className="text-gray-300 mb-4">
               {components.length === 0
                 ? "No components yet. Create one to get started!"
@@ -254,13 +276,17 @@ export function LibraryPage() {
         ) : (
           <div className="grid gap-4">
             {filteredComponents.map((component) => (
-              <Card key={component.id} className="p-4 hover:border-pink-500 transition-colors bg-black/60 backdrop-blur-sm border-white/20">
+              <Card key={component.id} className="p-4 hover:border-[#0ea5e9]/50 hover:bg-[#0f172a]/90 transition-all bg-[#0f172a]/80 backdrop-blur-sm border-white/20 group">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
-                      <Badge className={`${getTypeColor(component.type)} text-xs capitalize`}>{component.type}</Badge>
+                      <Badge className={`${getTypeColor(component.type)} text-xs capitalize`}>
+                        <AnimatedGradientText className="text-xs">
+                          {component.type}
+                        </AnimatedGradientText>
+                      </Badge>
                     </div>
-                    <h3 className="font-semibold truncate text-white">{component.title}</h3>
+                    <h3 className="font-semibold truncate text-white group-hover:text-[#0ea5e9] transition-colors">{component.title}</h3>
                     {component.organization && (
                       <p className="text-sm text-gray-400 mt-1">{component.organization}</p>
                     )}
@@ -299,21 +325,21 @@ export function LibraryPage() {
         {/* Stats */}
         {!componentsLoading && components.length > 0 && (
           <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Card className="p-6 text-center bg-black/60 backdrop-blur-sm border-white/20">
-              <div className="text-3xl font-bold text-pink-400">{components.length}</div>
-              <p className="text-sm text-gray-300 mt-2">Total Components</p>
+            <Card className="p-6 text-center bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
+              <div className="text-3xl font-bold text-[#0ea5e9]">{components.length}</div>
+              <AnimatedGradientText className="text-sm mt-2">Total Components</AnimatedGradientText>
             </Card>
-            <Card className="p-6 text-center bg-black/60 backdrop-blur-sm border-white/20">
-              <div className="text-3xl font-bold text-pink-400">
+            <Card className="p-6 text-center bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
+              <div className="text-3xl font-bold text-[#f97316]">
                 {components.filter(c => c.type === 'experience').length}
               </div>
-              <p className="text-sm text-gray-300 mt-2">Experience</p>
+              <AnimatedGradientText className="text-sm mt-2">Experience</AnimatedGradientText>
             </Card>
-            <Card className="p-6 text-center bg-black/60 backdrop-blur-sm border-white/20">
-              <div className="text-3xl font-bold text-pink-400">
+            <Card className="p-6 text-center bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
+              <div className="text-3xl font-bold text-[#22d3ee]">
                 {components.filter(c => c.type === 'skill').length}
               </div>
-              <p className="text-sm text-gray-300 mt-2">Skills</p>
+              <AnimatedGradientText className="text-sm mt-2">Skills</AnimatedGradientText>
             </Card>
           </div>
         )}

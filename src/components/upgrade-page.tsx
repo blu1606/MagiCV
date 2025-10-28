@@ -8,6 +8,11 @@ import { Check, ChevronLeft, Zap, Star, Crown } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
+import { GridPattern } from "@/components/ui/grid-pattern"
+import { ShimmerButton } from "@/components/ui/shimmer-button"
+import { AnimatedGradientText } from "@/components/ui/animated-gradient-text"
+import { BorderBeam } from "@/components/ui/border-beam"
+import { Particles } from "@/components/ui/particles"
 
 interface Plan {
   id: string
@@ -82,12 +87,24 @@ export function UpgradePage() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[#0f172a] relative overflow-hidden">
+      {/* Grid Pattern Background */}
+      <GridPattern 
+        className="absolute inset-0 opacity-10" 
+        width={40} 
+        height={40} 
+        x={0}
+        y={0}
+        strokeDasharray="0"
+      />
+      
+      {/* Particles Effect */}
+      <Particles className="absolute inset-0 opacity-30" />
       {/* Header */}
-      <div className="border-b border-white/20 backdrop-blur-sm sticky top-0 z-50 bg-black/80">
+      <div className="border-b border-white/20 backdrop-blur-sm sticky top-0 z-50 bg-[#0f172a]/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center">
           <Link href="/dashboard">
-            <Button variant="ghost" size="sm" className="gap-2 text-white hover:bg-white/10">
+            <Button variant="ghost" size="sm" className="gap-2 text-white hover:bg-white/10 border-white/20">
               <ChevronLeft className="w-4 h-4" />
               Back
             </Button>
@@ -96,13 +113,13 @@ export function UpgradePage() {
       </div>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
         {/* Hero Section */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4 text-white">Simple, Transparent Pricing</h1>
-          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+          <AnimatedGradientText className="text-xl max-w-2xl mx-auto">
             Choose the perfect plan to accelerate your job search and land your dream role
-          </p>
+          </AnimatedGradientText>
         </div>
 
         {/* Pricing Cards */}
@@ -110,18 +127,21 @@ export function UpgradePage() {
           {plans.map((plan) => (
             <Card
               key={plan.id}
-              className={`p-8 flex flex-col transition-all bg-black/60 backdrop-blur-sm border-white/20 ${
+              className={`p-8 flex flex-col transition-all bg-[#0f172a]/80 backdrop-blur-sm border-white/20 relative ${
                 plan.highlighted
-                  ? "border-pink-400/50 bg-pink-400/5 ring-2 ring-pink-400/20 md:scale-105"
-                  : "hover:border-pink-400/30"
+                  ? "border-[#0ea5e9]/50 bg-[#0ea5e9]/5 ring-2 ring-[#0ea5e9]/20 md:scale-105"
+                  : "hover:border-[#0ea5e9]/30"
               }`}
             >
               {plan.highlighted && (
-                <Badge className="w-fit mb-4 bg-pink-400 text-black">Most Popular</Badge>
+                <>
+                  <BorderBeam className="opacity-100" />
+                  <Badge className="w-fit mb-4 bg-gradient-to-r from-[#0ea5e9] to-[#22d3ee] text-white">Most Popular</Badge>
+                </>
               )}
 
               <div className="flex items-center gap-3 mb-4">
-                <div className="text-pink-400">{plan.icon}</div>
+                <div className={`${plan.highlighted ? 'text-[#0ea5e9]' : 'text-[#f97316]'}`}>{plan.icon}</div>
                 <h2 className="text-2xl font-bold text-white">{plan.name}</h2>
               </div>
 
@@ -135,19 +155,22 @@ export function UpgradePage() {
                 {plan.price === 0 && <p className="text-sm text-gray-300 mt-1">Forever free</p>}
               </div>
 
-              <Button
+              <ShimmerButton
                 onClick={() => handleUpgrade(plan.id)}
                 disabled={isProcessing && selectedPlan === plan.id}
-                variant={plan.highlighted ? "default" : "outline"}
-                className={`w-full mb-8 ${plan.highlighted ? "glitch-button text-black font-bold" : "text-white border-white/20 hover:bg-white/10"}`}
+                className={`w-full mb-8 ${
+                  plan.highlighted 
+                    ? "bg-gradient-to-r from-[#0ea5e9] to-[#22d3ee] text-white" 
+                    : "bg-[#f97316] text-white"
+                }`}
               >
                 {isProcessing && selectedPlan === plan.id ? "Processing..." : plan.cta}
-              </Button>
+              </ShimmerButton>
 
               <div className="space-y-3 flex-1">
                 {plan.features.map((feature) => (
                   <div key={feature} className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-pink-400 flex-shrink-0 mt-0.5" />
+                    <Check className={`w-5 h-5 flex-shrink-0 mt-0.5 ${plan.highlighted ? 'text-[#0ea5e9]' : 'text-[#f97316]'}`} />
                     <span className="text-sm text-white">{feature}</span>
                   </div>
                 ))}
@@ -160,25 +183,25 @@ export function UpgradePage() {
         <div className="max-w-2xl mx-auto">
           <h2 className="text-2xl font-bold mb-8 text-center text-white">Frequently Asked Questions</h2>
           <div className="space-y-4">
-            <Card className="p-6 bg-black/60 backdrop-blur-sm border-white/20">
+            <Card className="p-6 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
               <h3 className="font-semibold mb-2 text-white">Can I cancel anytime?</h3>
               <p className="text-sm text-gray-300">
                 Yes, you can cancel your subscription at any time. No questions asked, no hidden fees.
               </p>
             </Card>
-            <Card className="p-6 bg-black/60 backdrop-blur-sm border-white/20">
+            <Card className="p-6 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
               <h3 className="font-semibold mb-2 text-white">Do you offer refunds?</h3>
               <p className="text-sm text-gray-300">
                 We offer a 30-day money-back guarantee if you're not satisfied with your purchase.
               </p>
             </Card>
-            <Card className="p-6 bg-black/60 backdrop-blur-sm border-white/20">
+            <Card className="p-6 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
               <h3 className="font-semibold mb-2 text-white">Can I switch plans?</h3>
               <p className="text-sm text-gray-300">
                 You can upgrade or downgrade your plan at any time. Changes take effect immediately.
               </p>
             </Card>
-            <Card className="p-6 bg-black/60 backdrop-blur-sm border-white/20">
+            <Card className="p-6 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
               <h3 className="font-semibold mb-2 text-white">What payment methods do you accept?</h3>
               <p className="text-sm text-gray-300">
                 We accept all major credit cards, PayPal, and Apple Pay for your convenience.

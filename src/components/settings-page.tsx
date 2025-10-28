@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { ChevronLeft, LogOut, Bell, Lock } from "lucide-react"
+import { ChevronLeft, LogOut, Bell, Lock, Crown } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 import { Input } from "@/components/ui/input"
@@ -18,6 +18,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { GridPattern } from "@/components/ui/grid-pattern"
+import { ShimmerButton } from "@/components/ui/shimmer-button"
+import { AnimatedGradientText } from "@/components/ui/animated-gradient-text"
+import { Badge } from "@/components/ui/badge"
 
 export function SettingsPage() {
   const [user, setUser] = useState({
@@ -45,12 +49,21 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[#0f172a] relative overflow-hidden">
+      {/* Grid Pattern Background */}
+      <GridPattern 
+        className="absolute inset-0 opacity-10" 
+        width={40} 
+        height={40} 
+        x={0}
+        y={0}
+        strokeDasharray="0"
+      />
       {/* Header */}
-      <div className="border-b border-white/20 backdrop-blur-sm sticky top-0 z-50 bg-black/80">
+      <div className="border-b border-white/20 backdrop-blur-sm sticky top-0 z-50 bg-[#0f172a]/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link href="/dashboard">
-            <Button variant="ghost" size="sm" className="gap-2 text-white hover:bg-white/10">
+            <Button variant="ghost" size="sm" className="gap-2 text-white hover:bg-white/10 border-white/20">
               <ChevronLeft className="w-4 h-4" />
               Back
             </Button>
@@ -61,9 +74,9 @@ export function SettingsPage() {
       </div>
 
       {/* Main Content */}
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         {/* Profile Section */}
-        <Card className="p-6 mb-6 bg-black/60 backdrop-blur-sm border-white/20">
+        <Card className="p-6 mb-6 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
           <h2 className="text-lg font-semibold mb-4 text-white">Profile</h2>
           <div className="space-y-4">
             <div>
@@ -72,6 +85,7 @@ export function SettingsPage() {
                 value={user.name}
                 onChange={(e) => setUser({ ...user, name: e.target.value })}
                 placeholder="Your full name"
+                className="bg-[#0f172a]/60 border-white/20 text-white placeholder:text-gray-400"
               />
             </div>
             <div>
@@ -81,16 +95,17 @@ export function SettingsPage() {
                 value={user.email}
                 onChange={(e) => setUser({ ...user, email: e.target.value })}
                 placeholder="your@email.com"
+                className="bg-[#0f172a]/60 border-white/20 text-white placeholder:text-gray-400"
               />
             </div>
-            <Button onClick={handleSaveProfile} disabled={isSaving} className="glitch-button text-black font-bold">
+            <ShimmerButton onClick={handleSaveProfile} disabled={isSaving} className="bg-gradient-to-r from-[#0ea5e9] to-[#22d3ee] text-white">
               {isSaving ? "Saving..." : "Save Changes"}
-            </Button>
+            </ShimmerButton>
           </div>
         </Card>
 
         {/* Preferences Section */}
-        <Card className="p-6 mb-6 bg-black/60 backdrop-blur-sm border-white/20">
+        <Card className="p-6 mb-6 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
           <h2 className="text-lg font-semibold mb-4 text-white">Preferences</h2>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -99,34 +114,34 @@ export function SettingsPage() {
                 <p className="text-xs text-gray-300">Choose your preferred color scheme</p>
               </div>
               <Select value={settings.theme} onValueChange={(value) => setSettings({ ...settings, theme: value })}>
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="w-32 bg-[#0f172a]/60 border-white/20 text-white">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="light">Light</SelectItem>
-                  <SelectItem value="dark">Dark</SelectItem>
-                  <SelectItem value="system">System</SelectItem>
+                <SelectContent className="bg-[#0f172a] border-white/20">
+                  <SelectItem value="light" className="text-white">Light</SelectItem>
+                  <SelectItem value="dark" className="text-white">Dark</SelectItem>
+                  <SelectItem value="system" className="text-white">System</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="border-t border-border/50 pt-4">
+            <div className="border-t border-white/20 pt-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-semibold text-sm">Default Template</p>
-                  <p className="text-xs text-muted-foreground">Template for new CVs</p>
+                  <p className="font-semibold text-sm text-white">Default Template</p>
+                  <p className="text-xs text-gray-300">Template for new CVs</p>
                 </div>
                 <Select
                   value={settings.defaultTemplate}
                   onValueChange={(value) => setSettings({ ...settings, defaultTemplate: value })}
                 >
-                  <SelectTrigger className="w-32">
+                  <SelectTrigger className="w-32 bg-[#0f172a]/60 border-white/20 text-white">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="modern">Modern</SelectItem>
-                    <SelectItem value="classic">Classic</SelectItem>
-                    <SelectItem value="minimal">Minimal</SelectItem>
+                  <SelectContent className="bg-[#0f172a] border-white/20">
+                    <SelectItem value="modern" className="text-white">Modern</SelectItem>
+                    <SelectItem value="classic" className="text-white">Classic</SelectItem>
+                    <SelectItem value="minimal" className="text-white">Minimal</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -135,9 +150,9 @@ export function SettingsPage() {
         </Card>
 
         {/* Notifications Section */}
-        <Card className="p-6 mb-6 bg-black/60 backdrop-blur-sm border-white/20">
+        <Card className="p-6 mb-6 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-white">
-            <Bell className="w-5 h-5" />
+            <Bell className="w-5 h-5 text-[#0ea5e9]" />
             Notifications
           </h2>
           <div className="space-y-4">
@@ -152,11 +167,11 @@ export function SettingsPage() {
               />
             </div>
 
-            <div className="border-t border-border/50 pt-4">
+            <div className="border-t border-white/20 pt-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-semibold text-sm">CV Reminders</p>
-                  <p className="text-xs text-muted-foreground">Get reminded to update your CVs</p>
+                  <p className="font-semibold text-sm text-white">CV Reminders</p>
+                  <p className="text-xs text-gray-300">Get reminded to update your CVs</p>
                 </div>
                 <Switch
                   checked={settings.cvReminders}
@@ -168,9 +183,9 @@ export function SettingsPage() {
         </Card>
 
         {/* Security Section */}
-        <Card className="p-6 mb-6 bg-black/60 backdrop-blur-sm border-white/20">
+        <Card className="p-6 mb-6 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-white">
-            <Lock className="w-5 h-5" />
+            <Lock className="w-5 h-5 text-[#f97316]" />
             Security
           </h2>
           <div className="space-y-4">
@@ -185,8 +200,8 @@ export function SettingsPage() {
               />
             </div>
 
-            <div className="border-t border-border/50 pt-4">
-              <Button variant="outline" className="w-full bg-transparent">
+            <div className="border-t border-white/20 pt-4">
+              <Button variant="outline" className="w-full bg-transparent border-white/20 text-white hover:bg-white/10">
                 Change Password
               </Button>
             </div>
@@ -194,15 +209,22 @@ export function SettingsPage() {
         </Card>
 
         {/* Plan Section */}
-        <Card className="p-6 mb-6 border-pink-400/20 bg-pink-400/5">
-          <h2 className="text-lg font-semibold mb-4 text-white">Current Plan</h2>
+        <Card className="p-6 mb-6 border-[#0ea5e9]/20 bg-[#0ea5e9]/5">
+          <h2 className="text-lg font-semibold mb-4 text-white flex items-center gap-2">
+            <Crown className="w-5 h-5 text-[#0ea5e9]" />
+            Current Plan
+          </h2>
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="font-semibold text-white">{user.plan} Plan</p>
-              <p className="text-sm text-gray-300">1 CV per month • Basic templates</p>
+              <AnimatedGradientText className="text-sm">
+                1 CV per month • Basic templates
+              </AnimatedGradientText>
             </div>
             <Link href="/upgrade">
-              <Button className="glitch-button text-black font-bold">Upgrade Plan</Button>
+              <ShimmerButton className="bg-gradient-to-r from-[#0ea5e9] to-[#22d3ee] text-white">
+                Upgrade Plan
+              </ShimmerButton>
             </Link>
           </div>
         </Card>
@@ -215,20 +237,20 @@ export function SettingsPage() {
               <AlertDialogTrigger asChild>
                 <Button
                   variant="outline"
-                  className="gap-2 text-destructive hover:text-destructive bg-transparent w-full"
+                  className="gap-2 text-red-400 hover:text-red-300 bg-transparent w-full border-red-500/20 hover:bg-red-500/10"
                 >
                   <LogOut className="w-4 h-4" />
                   Sign Out
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
+              <AlertDialogContent className="bg-[#0f172a] border-white/20">
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Sign Out</AlertDialogTitle>
-                  <AlertDialogDescription>Are you sure you want to sign out of your account?</AlertDialogDescription>
+                  <AlertDialogTitle className="text-white">Sign Out</AlertDialogTitle>
+                  <AlertDialogDescription className="text-gray-300">Are you sure you want to sign out of your account?</AlertDialogDescription>
                 </AlertDialogHeader>
                 <div className="flex gap-3 justify-end">
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  <AlertDialogCancel className="bg-[#0f172a] border-white/20 text-white">Cancel</AlertDialogCancel>
+                  <AlertDialogAction className="bg-red-500 text-white hover:bg-red-600">
                     Sign Out
                   </AlertDialogAction>
                 </div>
@@ -239,21 +261,21 @@ export function SettingsPage() {
               <AlertDialogTrigger asChild>
                 <Button
                   variant="outline"
-                  className="gap-2 text-destructive hover:text-destructive bg-transparent w-full"
+                  className="gap-2 text-red-400 hover:text-red-300 bg-transparent w-full border-red-500/20 hover:bg-red-500/10"
                 >
                   Delete Account
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
+              <AlertDialogContent className="bg-[#0f172a] border-white/20">
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Delete Account</AlertDialogTitle>
-                  <AlertDialogDescription>
+                  <AlertDialogTitle className="text-white">Delete Account</AlertDialogTitle>
+                  <AlertDialogDescription className="text-gray-300">
                     This action cannot be undone. All your CVs and data will be permanently deleted.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <div className="flex gap-3 justify-end">
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  <AlertDialogCancel className="bg-[#0f172a] border-white/20 text-white">Cancel</AlertDialogCancel>
+                  <AlertDialogAction className="bg-red-500 text-white hover:bg-red-600">
                     Delete Account
                   </AlertDialogAction>
                 </div>

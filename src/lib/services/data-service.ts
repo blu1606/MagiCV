@@ -70,6 +70,11 @@ const MOCK_CVS: CVData[] = [
  */
 export async function getComponents(): Promise<ComponentData[]> {
   console.log('🔍 getComponents called - USE_MOCK_DATA:', USE_MOCK_DATA)
+  console.log('🔍 Environment check:', {
+    NODE_ENV: process.env.NODE_ENV,
+    NEXT_PUBLIC_USE_MOCK_DATA: process.env.NEXT_PUBLIC_USE_MOCK_DATA,
+    USE_MOCK_DATA: USE_MOCK_DATA
+  })
   
   if (USE_MOCK_DATA) {
     console.log('📦 Using MOCK component data due to environment variable')
@@ -79,9 +84,10 @@ export async function getComponents(): Promise<ComponentData[]> {
   try {
     console.log('🔗 Creating Supabase client...')
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
 
     console.log('👤 User status:', user ? `Authenticated (${user.email})` : 'Not authenticated')
+    console.log('👤 User error:', userError)
 
     if (!user) {
       console.log('⚠️ No user authenticated, returning mock data')
