@@ -7,6 +7,7 @@ import { LinkedInSignIn } from "@/components/linkedin-signin"
 import { NumberTicker } from "@/components/ui/number-ticker"
 import { AnimatedShinyText } from "@/components/ui/animated-shiny-text"
 import { AnimatedGradientText } from "@/components/ui/animated-gradient-text"
+import { MorphingText } from "@/components/ui/morphing-text"
 import { Particles } from "@/components/ui/particles"
 import { GridPattern } from "@/components/ui/grid-pattern"
 
@@ -42,13 +43,21 @@ export function LandingPage() {
       <section className="h-screen flex items-center px-8 sm:px-12 lg:px-16 relative z-10">
         <div className="max-w-7xl text-left space-y-8 py-12">
           <div className="space-y-6">
-            <h1 className="text-5xl sm:text-7xl font-bold tracking-tight text-white leading-tight">
-              AI Writes Your CV
-              <br />
-              <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-                In Under 10 Seconds
-              </span>
-            </h1>
+            <div className="space-y-4">
+              <MorphingText 
+                texts={[
+                  "AI writes your CV",
+                  "Tailored to the job",
+                  "In under 10 seconds",
+                  "Match score updates live"
+                ]}
+                className="text-5xl sm:text-7xl font-bold tracking-tight text-white leading-tight"
+              />
+              
+              <div className="text-xl text-gray-400 font-mono">
+                For digital nomads • Remote professionals • Career changers
+              </div>
+            </div>
             
             <AnimatedGradientText className="text-2xl">
               ✨ <span className="inline bg-gradient-to-r from-[#ffaa40] to-[#9c40ff] bg-clip-text text-transparent">
