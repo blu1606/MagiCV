@@ -129,7 +129,7 @@ const Page = () => {
             }}
           />
           <div className="form-container sign-in-container h-full z-10">
-            <form className='text-center py-10 md:py-20 grid gap-2 h-full' onSubmit={()=>{e.preventDefault();}}>
+            <form className='text-center py-10 md:py-20 grid gap-2 h-full' onSubmit={(e) => {e.preventDefault();}}>
               <div className='grid gap-4 md:gap-6 mb-2'>
                 <h1 className='text-3xl md:text-4xl font-extrabold' onClick={(e) => {e.preventDefault()}}>Sign in</h1>
                 <div className="social-container">

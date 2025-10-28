@@ -38,6 +38,15 @@
     ".next\\dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "archive/**/*",
+    "**/*.test.ts",
+    "**/*.test.tsx", 
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/*.bench.ts",
+    "jest.config.js",
+    "jest.setup.js",
+    "jest.setup.env.js"
   ]
 }
