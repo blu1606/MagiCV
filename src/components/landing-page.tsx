@@ -14,6 +14,9 @@ import { BentoGrid } from "@/components/ui/bento-grid"
 import { MagicCard } from "@/components/ui/magic-card"
 import { BorderBeam } from "@/components/ui/border-beam"
 import { AnimatedList } from "@/components/ui/animated-list"
+import { HeroVideoDialog } from "@/components/ui/hero-video-dialog"
+import { OrbitingCircles } from "@/components/ui/orbiting-circles"
+import { Globe } from "@/components/ui/globe"
 
 export function LandingPage() {
   return (
@@ -101,6 +104,11 @@ export function LandingPage() {
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-6 pt-8">
             <LinkedInSignIn />
+            <HeroVideoDialog 
+              videoSrc="/your-video.mp4"
+              thumbnailSrc="/placeholder.jpg"
+              className="inline-block"
+            />
           </div>
         </div>
       </section>
@@ -179,6 +187,66 @@ export function LandingPage() {
                 </div>
                 <BorderBeam className="rounded-lg" />
               </MagicCard>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Tech Stack & Global Reach Section */}
+      <section className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 relative z-10 py-20">
+        <div className="max-w-7xl mx-auto w-full">
+          <div className="mb-12 text-center">
+            <h2 className="text-4xl sm:text-6xl font-bold text-white mb-4">
+              Built for Digital Nomads
+            </h2>
+            <p className="text-xl text-gray-400">
+              Trusted by remote professionals worldwide
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* Tech Stack */}
+            <div className="text-center">
+              <h3 className="text-2xl font-bold text-white mb-6">Powered by</h3>
+              <OrbitingCircles
+                className="h-[30rem] w-[30rem]"
+                duration={20}
+                delay={20}
+                radius={80}
+              >
+                <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-white/5 backdrop-blur-sm">
+                  <Brain className="h-8 w-8 text-primary" />
+                </div>
+                <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-white/5 backdrop-blur-sm">
+                  <Zap className="h-8 w-8 text-accent" />
+                </div>
+                <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-white/5 backdrop-blur-sm">
+                  <Target className="h-8 w-8 text-cyan-400" />
+                </div>
+                <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-white/5 backdrop-blur-sm">
+                  <Sparkles className="h-8 w-8 text-purple-400" />
+                </div>
+              </OrbitingCircles>
+            </div>
+
+            {/* Global Reach */}
+            <div className="text-center">
+              <h3 className="text-2xl font-bold text-white mb-6">Global Community</h3>
+              <div className="relative">
+                <Globe 
+                  className="mx-auto"
+                />
+                <div className="mt-6 space-y-2">
+                  <div className="text-3xl font-bold text-white">
+                    <NumberTicker value={50} />+
+                  </div>
+                  <p className="text-gray-400">Countries</p>
+                  <div className="text-3xl font-bold text-white">
+                    <NumberTicker value={5000} />+
+                  </div>
+                  <p className="text-gray-400">Digital Nomads</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
