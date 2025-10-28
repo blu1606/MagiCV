@@ -163,6 +163,23 @@ export class SupabaseService {
     return data;
   }
 
+  /**
+   * Upsert account - Create or update if exists
+   */
+  static async upsertAccount(account: Omit<Account, 'id' | 'created_at' | 'updated_at'>): Promise<Account> {
+    const { data, error } = await this.supabase
+      .from('accounts')
+      .upsert(account, {
+        onConflict: 'provider,provider_account_id',
+        ignoreDuplicates: false,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
   static async getAccountsByUserId(userId: string): Promise<Account[]> {
     const { data, error } = await this.supabase
       .from('accounts')
@@ -515,15 +532,12 @@ export class SupabaseService {
   static async saveGitHubData(userId: string, githubData: any) {
     const results = [];
     
-    // Get or create GitHub account
-    let account = await this.getAccountByProvider(userId, 'github');
-    if (!account) {
-      account = await this.createAccount({
-        user_id: userId,
-        provider: 'github',
-        provider_account_id: githubData.profile.login,
-      });
-    }
+    // Upsert GitHub account (create or update if exists)
+    const account = await this.upsertAccount({
+      user_id: userId,
+      provider: 'github',
+      provider_account_id: githubData.profile.login,
+    });
 
     // Save profile as a skill component
     const profileComponent = await this.createComponent({
@@ -690,6 +704,7 @@ export class SupabaseService {
     embedding: number[],
     limit: number = 10
   ): Promise<Component[]> {
+    // Try using SQL function first
     const { data, error } = await this.supabase.rpc('match_components', {
       query_embedding: embedding,
       match_threshold: 0.7,
@@ -697,8 +712,68 @@ export class SupabaseService {
       user_id_param: userId,
     });
 
+    // If SQL function doesn't exist, use fallback
+    if (error && error.message.includes('function match_components')) {
+      console.warn('⚠️ match_components function not found, using fallback search');
+      return this.fallbackComponentSearch(userId, embedding, limit);
+    }
+
     if (error) throw error;
     return data || [];
+  }
+
+  /**
+   * Fallback search when SQL function is not available
+   * Fetches all components and calculates similarity in JavaScript
+   */
+  private static async fallbackComponentSearch(
+    userId: string,
+    queryEmbedding: number[],
+    limit: number
+  ): Promise<Component[]> {
+    // Get all components for user
+    const { data: components, error } = await this.supabase
+      .from('components')
+      .select()
+      .eq('user_id', userId)
+      .not('embedding', 'is', null);
+
+    if (error) throw error;
+    if (!components || components.length === 0) return [];
+
+    // Calculate similarity for each component
+    const withSimilarity = components.map((comp: any) => {
+      const similarity = comp.embedding 
+        ? this.calculateCosineSimilarity(queryEmbedding, comp.embedding)
+        : 0;
+      return { ...comp, similarity };
+    });
+
+    // Sort by similarity and return top N
+    return withSimilarity
+      .filter(c => c.similarity > 0.7)
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, limit);
+  }
+
+  /**
+   * Calculate cosine similarity between two vectors
+   */
+  private static calculateCosineSimilarity(a: number[], b: number[]): number {
+    if (!a || !b || a.length !== b.length) return 0;
+
+    let dotProduct = 0;
+    let normA = 0;
+    let normB = 0;
+
+    for (let i = 0; i < a.length; i++) {
+      dotProduct += a[i] * b[i];
+      normA += a[i] * a[i];
+      normB += b[i] * b[i];
+    }
+
+    const denominator = Math.sqrt(normA) * Math.sqrt(normB);
+    return denominator === 0 ? 0 : dotProduct / denominator;
   }
 
   static async similaritySearchJobDescriptions(
@@ -706,12 +781,29 @@ export class SupabaseService {
     embedding: number[],
     limit: number = 5
   ): Promise<any[]> {
+    // Try using SQL function first
     const { data, error } = await this.supabase.rpc('match_cvs', {
       query_embedding: embedding,
       match_threshold: 0.7,
       match_count: limit,
       user_id_param: userId,
     });
+
+    // If SQL function doesn't exist, use fallback
+    if (error && error.message.includes('function match_cvs')) {
+      console.warn('⚠️ match_cvs function not found, using fallback search');
+      const cvs = await this.getCVsByUserId(userId);
+      return cvs.slice(0, limit).map((cv: any) => ({
+        id: cv.id,
+        user_id: cv.user_id,
+        title: cv.title,
+        raw_text: cv.job_description,
+        parsed_data: cv.content,
+        created_at: cv.created_at,
+        updated_at: cv.updated_at,
+        similarity: 0.5, // Default similarity when no embedding search
+      }));
+    }
 
     if (error) throw error;
     return (data || []).map((cv: any) => ({

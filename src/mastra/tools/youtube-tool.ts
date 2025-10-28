@@ -58,10 +58,11 @@ export const youtubeTool = createTool({
 
   execute: async ({ context }) => {
     try {
-      const apiKey = process.env.YOUTUBE_API_KEY;
+      // Try GOOGLE_YOUTUBE_AI_API_KEY first, then fallback to YOUTUBE_API_KEY
+      const apiKey = process.env.GOOGLE_YOUTUBE_AI_API_KEY || process.env.YOUTUBE_API_KEY;
       
       if (!apiKey) {
-        throw new Error('YOUTUBE_API_KEY not found in environment variables');
+        throw new Error('GOOGLE_YOUTUBE_AI_API_KEY or YOUTUBE_API_KEY not found in environment variables');
       }
 
       // Extract channel handle or ID from URL

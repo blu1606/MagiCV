@@ -33,6 +33,13 @@ export class CVGeneratorService {
     try {
       console.log('🔍 Finding relevant components...');
       
+      // If no job description, get all user components
+      if (!jobDescription || jobDescription.trim() === '') {
+        console.log('⚠️ No job description provided, getting all components');
+        const result = await SupabaseService.getUserComponents(userId);
+        return result.components.slice(0, limit);
+      }
+      
       // Generate embedding cho JD
       const jdEmbedding = await EmbeddingService.embed(jobDescription);
       
@@ -43,11 +50,28 @@ export class CVGeneratorService {
         limit
       );
 
+      // Fallback: nếu không tìm thấy component nào (có thể do embedding chưa có)
+      // thì lấy tất cả components của user
+      if (components.length === 0) {
+        console.warn('⚠️ No components found via vector search, getting all user components');
+        const result = await SupabaseService.getUserComponents(userId);
+        return result.components.slice(0, limit);
+      }
+
       console.log(`✅ Found ${components.length} relevant components`);
       return components;
     } catch (error: any) {
       console.error('❌ Error finding components:', error.message);
-      throw error;
+      
+      // Last resort fallback: get all user components
+      console.warn('⚠️ Error in vector search, falling back to all components');
+      try {
+        const result = await SupabaseService.getUserComponents(userId);
+        return result.components.slice(0, limit);
+      } catch (fallbackError: any) {
+        console.error('❌ Fallback also failed:', fallbackError.message);
+        throw error; // Throw original error
+      }
     }
   }
 

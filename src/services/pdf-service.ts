@@ -1,4 +1,3 @@
-// import pdfParse from 'pdf-parse'; // Module has ESM export issue
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { SupabaseService } from './supabase-service';
 import { EmbeddingService } from './embedding-service';
@@ -22,12 +21,43 @@ export class PDFService {
   }
 
   /**
-   * Parse PDF buffer and extract text
+   * Parse PDF buffer and extract text using pdf2json
    */
   static async parsePDF(buffer: Buffer): Promise<string> {
-    // TODO: Fix pdf-parse import issue with ESM modules
-    // For now, return placeholder text
-    return 'PDF parsing temporarily disabled due to ESM module compatibility';
+    return new Promise((resolve, reject) => {
+      try {
+        const PDFParser = require('pdf2json');
+        const pdfParser = new PDFParser();
+
+        pdfParser.on('pdfParser_dataReady', (pdfData: any) => {
+          try {
+            // Extract text from all pages
+            const text = pdfData.Pages
+              .map((page: any) => 
+                page.Texts.map((text: any) => 
+                  decodeURIComponent(text.R.map((r: any) => r.T).join(' '))
+                ).join(' ')
+              )
+              .join('\n\n');
+            
+            resolve(text);
+          } catch (err: any) {
+            reject(new Error(`Failed to extract text: ${err.message}`));
+          }
+        });
+
+        pdfParser.on('pdfParser_dataError', (error: any) => {
+          console.error('❌ PDF parsing error:', error.parserError);
+          reject(new Error(`Failed to parse PDF: ${error.parserError}`));
+        });
+
+        // Parse buffer
+        pdfParser.parseBuffer(buffer);
+      } catch (error: any) {
+        console.error('❌ PDF initialization error:', error.message);
+        reject(new Error(`Failed to initialize PDF parser: ${error.message}`));
+      }
+    });
   }
 
   /**
@@ -113,7 +143,6 @@ Return ONLY valid JSON without any markdown formatting or code blocks.`;
     filename: string
   ): Promise<{
     cvId: string;
-    jobDescriptionId: string;
     pdfId: string;
     componentsCreated: number;
   }> {
@@ -187,7 +216,6 @@ Return ONLY valid JSON without any markdown formatting or code blocks.`;
 
       return {
         cvId: cv.id,
-        jobDescriptionId: cv.id, // Alias for backward compatibility
         pdfId: cvPdf.id,
         componentsCreated,
       };
