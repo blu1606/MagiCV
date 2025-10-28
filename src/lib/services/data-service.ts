@@ -208,5 +208,47 @@ export async function getDashboardStats() {
   }
 }
 
+/**
+ * Create a new component
+ */
+export async function createComponent(componentData: Partial<ComponentData>) {
+  if (USE_MOCK_DATA) {
+    console.log('📦 Using MOCK data for createComponent')
+    return {
+      id: `mock-${Date.now()}`,
+      ...componentData,
+      created_at: new Date().toISOString(),
+    }
+  }
 
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      console.log('⚠️ No user authenticated')
+      return null
+    }
+
+    const { data, error } = await supabase
+      .from('components')
+      .insert({
+        ...componentData,
+        user_id: user.id,
+      } as any)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('❌ Error creating component:', error)
+      return null
+    }
+
+    console.log('✅ Component created:', (data as any)?.id)
+    return data as ComponentData
+  } catch (error) {
+    console.error('❌ Exception creating component:', error)
+    return null
+  }
+}
 
