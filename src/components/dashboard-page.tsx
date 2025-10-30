@@ -257,7 +257,7 @@ export function DashboardPage() {
             <div className="grid gap-4">
               {filteredCVs.map((cv) => (
                 <Link key={cv.id} href={`/editor/${cv.id}`}>
-                  <Card className="p-6 hover:border-[#0ea5e9]/50 hover:bg-[#0f172a]/90 transition-all cursor-pointer group bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
+                  <Card className="p-8 hover:border-[#0ea5e9]/50 hover:bg-[#0f172a]/90 transition-all cursor-pointer group bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2">
@@ -328,7 +328,7 @@ export function DashboardPage() {
         {/* Stats Section */}
         {!statsLoading && stats.totalCVs > 0 && (
           <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Card className="p-6 text-center bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
+            <Card className="p-8 text-center bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
               <div className="text-3xl font-bold text-[#0ea5e9]">
                 <NumberTicker value={stats.totalCVs} />
               </div>
@@ -336,7 +336,7 @@ export function DashboardPage() {
                 Total CVs
               </AnimatedGradientText>
             </Card>
-            <Card className="p-6 text-center bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
+            <Card className="p-8 text-center bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
               <div className="text-3xl font-bold text-[#f97316]">
                 <NumberTicker value={cvs.length > 0 ? Math.round(cvs.reduce((sum, cv) => sum + (cv.match_score || 0), 0) / cvs.length) : 0} />%
               </div>
@@ -344,7 +344,7 @@ export function DashboardPage() {
                 Average Match Score
               </AnimatedGradientText>
             </Card>
-            <Card className="p-6 text-center bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
+            <Card className="p-8 text-center bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
               <div className="text-3xl font-bold text-[#22d3ee]">
                 <NumberTicker value={stats.totalComponents} />
               </div>

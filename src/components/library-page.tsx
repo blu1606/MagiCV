@@ -162,7 +162,7 @@ export function LibraryPage() {
           <div className="flex items-center gap-2">
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <ShimmerButton className="bg-gradient-to-r from-[#0ea5e9] to-[#22d3ee] text-white">
+                <ShimmerButton className="bg-gradient-to-r from-[#0ea5e9] to-[#22d3ee] text-white px-10 py-4">
                   <Plus className="w-4 h-4 mr-2" />
                   Add Component
                 </ShimmerButton>
@@ -225,7 +225,7 @@ export function LibraryPage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         {/* Search and Filter */}
-        <div className="mb-6 space-y-4">
+        <div className="mb-10 space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
@@ -276,7 +276,7 @@ export function LibraryPage() {
         ) : (
           <div className="grid gap-4">
             {filteredComponents.map((component) => (
-              <Card key={component.id} className="p-4 hover:border-[#0ea5e9]/50 hover:bg-[#0f172a]/90 transition-all bg-[#0f172a]/80 backdrop-blur-sm border-white/20 group">
+              <Card key={component.id} className="p-8 hover:border-[#0ea5e9]/50 hover:bg-[#0f172a]/90 transition-all bg-[#0f172a]/80 backdrop-blur-sm border-white/20 group">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
@@ -325,17 +325,17 @@ export function LibraryPage() {
         {/* Stats */}
         {!componentsLoading && components.length > 0 && (
           <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Card className="p-6 text-center bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
+            <Card className="p-8 text-center bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
               <div className="text-3xl font-bold text-[#0ea5e9]">{components.length}</div>
               <AnimatedGradientText className="text-sm mt-2">Total Components</AnimatedGradientText>
             </Card>
-            <Card className="p-6 text-center bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
+            <Card className="p-8 text-center bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
               <div className="text-3xl font-bold text-[#f97316]">
                 {components.filter(c => c.type === 'experience').length}
               </div>
               <AnimatedGradientText className="text-sm mt-2">Experience</AnimatedGradientText>
             </Card>
-            <Card className="p-6 text-center bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
+            <Card className="p-8 text-center bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
               <div className="text-3xl font-bold text-[#22d3ee]">
                 {components.filter(c => c.type === 'skill').length}
               </div>

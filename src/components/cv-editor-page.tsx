@@ -448,7 +448,7 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
               </div>
               <div className="space-y-4">
                 {cvData.experience.map((exp) => (
-                  <Card key={exp.id} className="p-4 space-y-3 bg-[#0f172a]/60 border-white/20">
+                  <Card key={exp.id} className="p-6 space-y-3 bg-[#0f172a]/60 border-white/20">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 space-y-3">
                         <Input
@@ -509,7 +509,7 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
               </div>
               <div className="space-y-4">
                 {cvData.education.map((edu) => (
-                  <Card key={edu.id} className="p-4 space-y-3 bg-white border-gray-300">
+                  <Card key={edu.id} className="p-6 space-y-3 bg-white border-gray-300">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 space-y-3">
                         <Input

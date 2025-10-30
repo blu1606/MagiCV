@@ -76,7 +76,7 @@ export function SettingsPage() {
       {/* Main Content */}
       <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         {/* Profile Section */}
-        <Card className="p-6 mb-6 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
+        <Card className="p-8 mb-6 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
           <h2 className="text-lg font-semibold mb-4 text-white">Profile</h2>
           <div className="space-y-4">
             <div>
@@ -105,7 +105,7 @@ export function SettingsPage() {
         </Card>
 
         {/* Preferences Section */}
-        <Card className="p-6 mb-6 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
+        <Card className="p-8 mb-6 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
           <h2 className="text-lg font-semibold mb-4 text-white">Preferences</h2>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -150,7 +150,7 @@ export function SettingsPage() {
         </Card>
 
         {/* Notifications Section */}
-        <Card className="p-6 mb-6 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
+        <Card className="p-8 mb-6 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-white">
             <Bell className="w-5 h-5 text-[#0ea5e9]" />
             Notifications
@@ -183,7 +183,7 @@ export function SettingsPage() {
         </Card>
 
         {/* Security Section */}
-        <Card className="p-6 mb-6 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
+        <Card className="p-8 mb-6 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-white">
             <Lock className="w-5 h-5 text-[#f97316]" />
             Security
@@ -209,7 +209,7 @@ export function SettingsPage() {
         </Card>
 
         {/* Plan Section */}
-        <Card className="p-6 mb-6 border-[#0ea5e9]/20 bg-[#0ea5e9]/5">
+        <Card className="p-8 mb-6 border-[#0ea5e9]/20 bg-[#0ea5e9]/5">
           <h2 className="text-lg font-semibold mb-4 text-white flex items-center gap-2">
             <Crown className="w-5 h-5 text-[#0ea5e9]" />
             Current Plan
@@ -230,7 +230,7 @@ export function SettingsPage() {
         </Card>
 
         {/* Danger Zone */}
-        <Card className="p-6 border-red-500/20 bg-red-500/5">
+        <Card className="p-8 border-red-500/20 bg-red-500/5">
           <h2 className="text-lg font-semibold mb-4 text-red-400">Danger Zone</h2>
           <div className="space-y-3">
             <AlertDialog>

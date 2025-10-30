@@ -183,25 +183,25 @@ export function UpgradePage() {
         <div className="max-w-2xl mx-auto">
           <h2 className="text-2xl font-bold mb-8 text-center text-white">Frequently Asked Questions</h2>
           <div className="space-y-4">
-            <Card className="p-6 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
+            <Card className="p-8 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
               <h3 className="font-semibold mb-2 text-white">Can I cancel anytime?</h3>
               <p className="text-sm text-gray-300">
                 Yes, you can cancel your subscription at any time. No questions asked, no hidden fees.
               </p>
             </Card>
-            <Card className="p-6 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
+            <Card className="p-8 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
               <h3 className="font-semibold mb-2 text-white">Do you offer refunds?</h3>
               <p className="text-sm text-gray-300">
                 We offer a 30-day money-back guarantee if you're not satisfied with your purchase.
               </p>
             </Card>
-            <Card className="p-6 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
+            <Card className="p-8 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
               <h3 className="font-semibold mb-2 text-white">Can I switch plans?</h3>
               <p className="text-sm text-gray-300">
                 You can upgrade or downgrade your plan at any time. Changes take effect immediately.
               </p>
             </Card>
-            <Card className="p-6 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
+            <Card className="p-8 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
               <h3 className="font-semibold mb-2 text-white">What payment methods do you accept?</h3>
               <p className="text-sm text-gray-300">
                 We accept all major credit cards, PayPal, and Apple Pay for your convenience.
