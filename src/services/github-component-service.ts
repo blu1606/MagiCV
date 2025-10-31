@@ -1,4 +1,5 @@
 import { githubTool } from '@/mastra/tools/github-tool';
+import { RuntimeContext } from '@mastra/core/runtime-context';
 import { EmbeddingService } from './embedding-service';
 import { SupabaseService } from './supabase-service';
 import type { Component } from '@/lib/supabase';
@@ -34,12 +35,14 @@ export class GitHubComponentService {
       onProgress?.('Fetching GitHub data...', 0, 100);
 
       // Call GitHub tool
+      const runtimeContext = new RuntimeContext();
       const result = await githubTool.execute({
         context: {
           username: githubUsername,
           includeReadme,
           maxRepos,
         },
+        runtimeContext,
       });
 
       if (!result.success || !result.data) {
