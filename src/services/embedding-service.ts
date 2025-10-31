@@ -22,22 +22,43 @@ export class EmbeddingService {
    * Returns 768-dimensional vector
    */
   static async embed(text: string): Promise<number[]> {
-    try {
-      const genAI = this.getClient();
-      const model = genAI.getGenerativeModel({ model: 'text-embedding-004' });
+    const genAI = this.getClient();
+    const model = genAI.getGenerativeModel({ model: 'text-embedding-004' });
 
-      const result = await model.embedContent(text);
-      const embedding = result.embedding;
+    const maxRetries = 3;
+    let attempt = 0;
+    let lastError: any = null;
 
-      if (!embedding.values || embedding.values.length === 0) {
-        throw new Error('No embedding values returned');
+    while (attempt < maxRetries) {
+      try {
+        const result = await model.embedContent(text);
+        const embedding = result.embedding;
+
+        if (!embedding.values || embedding.values.length === 0) {
+          throw new Error('No embedding values returned');
+        }
+
+        return embedding.values;
+      } catch (error: any) {
+        lastError = error;
+        const isRetriable =
+          error?.status === 500 ||
+          /Internal Server Error/i.test(error?.message || '') ||
+          /ECONNRESET|ETIMEDOUT|ENETUNREACH|EAI_AGAIN/i.test(error?.message || '');
+
+        if (!isRetriable || attempt === maxRetries - 1) {
+          console.error('❌ Embedding error:', error.message);
+          throw new Error(`Failed to generate embedding: ${error.message}`);
+        }
+
+        const backoffMs = 300 * Math.pow(2, attempt); // 300, 600, 1200
+        await new Promise(res => setTimeout(res, backoffMs));
+        attempt++;
       }
-
-      return embedding.values;
-    } catch (error: any) {
-      console.error('❌ Embedding error:', error.message);
-      throw new Error(`Failed to generate embedding: ${error.message}`);
     }
+
+    // Should never reach here
+    throw new Error(`Failed to generate embedding after ${maxRetries} attempts: ${lastError?.message || 'Unknown error'}`);
   }
 
   /**

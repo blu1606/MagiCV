@@ -303,7 +303,7 @@ export function SettingsPage() {
                   Sign Out
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent className="bg-[#0f172a] border-white/20">
+              <AlertDialogContent className="bg-[#0f172a]/95 backdrop-blur-sm border-white/20 text-white">
                 <AlertDialogHeader>
                   <AlertDialogTitle className="text-white">Sign Out</AlertDialogTitle>
                   <AlertDialogDescription className="text-gray-300">Are you sure you want to sign out of your account?</AlertDialogDescription>
@@ -331,7 +331,7 @@ export function SettingsPage() {
                   Delete Account
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent className="bg-[#0f172a] border-white/20">
+              <AlertDialogContent className="bg-[#0f172a]/95 backdrop-blur-sm border-white/20 text-white">
                 <AlertDialogHeader>
                   <AlertDialogTitle className="text-white">Delete Account</AlertDialogTitle>
                   <AlertDialogDescription className="text-gray-300">

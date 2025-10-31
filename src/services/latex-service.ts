@@ -152,28 +152,41 @@ export class LaTeXService {
   ): Promise<Buffer> {
     try {
       console.log('🌐 Compiling LaTeX using online service...');
-      
-      const FormData = require('form-data');
-      const fetch = (await import('node-fetch')).default;
-      
+      const fetch = (await import('node-fetch')).default as any;
+
+      // Strategy 1: POST raw text to /compile (preferred, simpler)
+      const resp1 = await fetch('https://latexonline.cc/compile?command=pdflatex', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+        body: latexContent,
+      });
+
+      if (resp1.ok) {
+        const buf = await resp1.buffer();
+        console.log('✅ PDF compiled successfully (online, text)');
+        return buf;
+      }
+
+      // Strategy 2: multipart/form-data with file field (fallback)
+      const FormData = (await import('form-data')).default as any;
       const form = new FormData();
       form.append('file', Buffer.from(latexContent), {
         filename: 'document.tex',
         contentType: 'text/plain',
       });
 
-      const response = await fetch('https://latexonline.cc/compile?command=pdflatex', {
+      const resp2 = await fetch('https://latexonline.cc/compile?command=pdflatex', {
         method: 'POST',
         body: form,
+        headers: form.getHeaders ? form.getHeaders() : undefined,
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      if (!resp2.ok) {
+        throw new Error(`HTTP ${resp2.status}: ${resp2.statusText}`);
       }
 
-      const pdfBuffer = await response.buffer();
-      console.log('✅ PDF compiled successfully (online)');
-      
+      const pdfBuffer = await resp2.buffer();
+      console.log('✅ PDF compiled successfully (online, multipart)');
       return pdfBuffer;
     } catch (error: any) {
       console.error('❌ Online LaTeX compilation error:', error.message);

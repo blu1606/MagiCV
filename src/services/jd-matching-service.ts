@@ -140,34 +140,35 @@ export class JDMatchingService {
       const jdDim = jdComponent.embedding.length;
 
       // Calculate similarity scores with all CV components
-      const scoredComponents = await Promise.all(
-        cvComponents
-          .filter(c => !!c)
-          .map(async (cvComponent) => {
-            try {
-              // Prefer existing embedding if present and same dimension
-              let cvEmbedding = Array.isArray(cvComponent.embedding)
-                ? (cvComponent.embedding as unknown as number[])
-                : null;
+      const scoredComponents = (
+        await Promise.all(
+          cvComponents
+            .filter(c => !!c)
+            .map(async (cvComponent) => {
+              try {
+                // Prefer existing embedding if present and same dimension
+                let cvEmbedding = Array.isArray(cvComponent.embedding)
+                  ? (cvComponent.embedding as unknown as number[])
+                  : null;
 
-              if (!cvEmbedding || cvEmbedding.length !== jdDim) {
-                // Re-embed on the fly to ensure same dimension as JD (Gemini 768)
-                cvEmbedding = await EmbeddingService.embedComponentObject(cvComponent);
+                if (!cvEmbedding || cvEmbedding.length !== jdDim) {
+                  // Re-embed on the fly to ensure same dimension as JD (Gemini 768)
+                  cvEmbedding = await EmbeddingService.embedComponentObject(cvComponent);
+                }
+
+                const score = EmbeddingService.cosineSimilarity(
+                  jdComponent.embedding!,
+                  cvEmbedding
+                );
+
+                return { component: cvComponent, score };
+              } catch (e: any) {
+                // Skip components that fail embedding/similarity
+                return { component: cvComponent, score: -1 };
               }
-
-              const score = EmbeddingService.cosineSimilarity(
-                jdComponent.embedding!,
-                cvEmbedding
-              );
-
-              return { component: cvComponent, score };
-            } catch (e: any) {
-              // Skip components that fail embedding/similarity
-              return { component: cvComponent, score: -1 };
-            }
-          })
-      )
-        .sort((a, b) => b.score - a.score);
+            })
+        )
+      ).sort((a, b) => b.score - a.score);
 
       // Get best match
       const bestMatch = scoredComponents[0];
