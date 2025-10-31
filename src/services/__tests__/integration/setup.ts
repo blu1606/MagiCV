@@ -45,12 +45,24 @@ export function getTestSupabase(): SupabaseClient {
  */
 export async function createTestUser(email?: string): Promise<string> {
   const supabase = getTestSupabase();
+  
+  // First, create auth user
   const testEmail = email || `test-${Date.now()}@example.com`;
+  const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+    email: testEmail,
+    password: 'test-password-123',
+    email_confirm: true,
+  });
 
+  if (authError || !authData.user) {
+    throw new Error(`Failed to create auth user: ${authError?.message}`);
+  }
+
+  // Then create profile with the auth user's id
   const { data, error } = await supabase
     .from('profiles')
     .insert({
-      email: testEmail,
+      id: authData.user.id,
       full_name: 'Test User',
       profession: 'Software Engineer',
     })
@@ -58,7 +70,9 @@ export async function createTestUser(email?: string): Promise<string> {
     .single();
 
   if (error) {
-    throw new Error(`Failed to create test user: ${error.message}`);
+    // Cleanup auth user if profile creation fails
+    await supabase.auth.admin.deleteUser(authData.user.id);
+    throw new Error(`Failed to create test profile: ${error.message}`);
   }
 
   return data.id;
@@ -78,6 +92,9 @@ export async function deleteTestUser(userId: string): Promise<void> {
 
   // Delete profile
   await supabase.from('profiles').delete().eq('id', userId);
+
+  // Delete auth user
+  await supabase.auth.admin.deleteUser(userId);
 }
 
 /**
@@ -97,8 +114,8 @@ export async function createTestComponent(
     description: 'Test description',
     organization: 'Test Org',
     highlights: ['Test highlight'],
-    start_date: '2020-01',
-    end_date: '2023-12',
+    start_date: '2020-01-01',
+    end_date: '2023-12-31',
     ...overrides,
   };
 
