@@ -85,28 +85,69 @@ export async function GET(request: Request) {
     const providerToken = session.provider_token
     const providerRefreshToken = session.provider_refresh_token
     
+    // Check for provider in multiple places
+    const appMetadataProvider = user.app_metadata?.provider
+    const userMetadataProvider = user.user_metadata?.provider
+    const providersList = user.app_metadata?.providers || []
+    
     console.log('🔑 Has provider_token:', !!providerToken)
     console.log('🔑 Has provider_refresh_token:', !!providerRefreshToken)
-    console.log('🔑 User app_metadata provider:', user.app_metadata?.provider)
-    console.log('🔑 User user_metadata provider:', user.user_metadata?.provider)
+    console.log('🔑 User app_metadata provider:', appMetadataProvider)
+    console.log('🔑 User app_metadata providers:', providersList)
+    console.log('🔑 User user_metadata provider:', userMetadataProvider)
+    console.log('🔑 Session user id:', user.id)
+    console.log('🔑 Session user email:', user.email)
     
-    if (providerToken) {
-      // Determine provider from user metadata or session
-      // LinkedIn usually has refresh_token, GitHub may or may not
-      let detectedProvider: 'github' | 'linkedin' = 'github'
-      
-      // Check user metadata first
-      const userProvider = user.app_metadata?.provider || user.user_metadata?.provider
-      if (userProvider === 'linkedin_oidc' || userProvider === 'linkedin') {
-        detectedProvider = 'linkedin'
-      } else if (userProvider === 'github') {
+    // Determine provider - check multiple sources
+    let detectedProvider: 'github' | 'linkedin' | null = null
+    
+    // Priority 1: Check app_metadata provider (most reliable)
+    if (appMetadataProvider) {
+      if (appMetadataProvider === 'github') {
         detectedProvider = 'github'
-      } else {
-        // Fallback: LinkedIn usually has refresh_token in session
-        // GitHub tokens might not always have refresh_token
-        // This is a heuristic - in practice, check the actual provider from metadata
+      } else if (appMetadataProvider === 'linkedin_oidc' || appMetadataProvider === 'linkedin') {
+        detectedProvider = 'linkedin'
+      }
+    }
+    
+    // Priority 2: Check providers list
+    if (!detectedProvider && Array.isArray(providersList) && providersList.length > 0) {
+      const lastProvider = providersList[providersList.length - 1]
+      if (lastProvider === 'github') {
+        detectedProvider = 'github'
+      } else if (lastProvider === 'linkedin_oidc' || lastProvider === 'linkedin') {
+        detectedProvider = 'linkedin'
+      }
+    }
+    
+    // Priority 3: Check user_metadata
+    if (!detectedProvider && userMetadataProvider) {
+      if (userMetadataProvider === 'github') {
+        detectedProvider = 'github'
+      } else if (userMetadataProvider === 'linkedin_oidc' || userMetadataProvider === 'linkedin') {
+        detectedProvider = 'linkedin'
+      }
+    }
+    
+    console.log('🔍 Detected provider:', detectedProvider || 'UNKNOWN')
+    
+    // Only save if we have provider_token OR if we detected a provider
+    // If no provider_token but provider detected, still save (token might not be available)
+    if (providerToken || detectedProvider) {
+      // If no provider detected but have token, try to infer from token presence
+      // LinkedIn usually has refresh_token, GitHub may not
+      if (!detectedProvider) {
+        console.warn('⚠️ No provider detected from metadata, inferring from token presence')
         detectedProvider = providerRefreshToken ? 'linkedin' : 'github'
       }
+      
+      // Get provider account ID from user metadata
+      // GitHub uses preferred_username or user_name, LinkedIn uses sub
+      const providerAccountId = detectedProvider === 'github' 
+        ? (user.user_metadata?.preferred_username || user.user_metadata?.user_name || user.user_metadata?.login || user.id)
+        : (user.user_metadata?.sub || user.id)
+      
+      console.log('🔑 Provider account ID:', providerAccountId)
       
       // Calculate token expiry
       const expiresAt = new Date()
@@ -118,28 +159,41 @@ export async function GET(request: Request) {
         expiresAt.setFullYear(expiresAt.getFullYear() + 10)
       }
       
+      const accountData = {
+        user_id: user.id,
+        provider: detectedProvider,
+        provider_account_id: providerAccountId,
+        access_token: providerToken || null, // Allow null if no token
+        refresh_token: providerRefreshToken || null,
+        token_expires_at: expiresAt.toISOString(),
+        scopes: detectedProvider === 'linkedin' ? ['openid', 'profile', 'email'] : ['user:email', 'read:user'],
+        last_synced_at: new Date().toISOString()
+      }
+      
+      console.log('💾 Saving account:', {
+        provider: accountData.provider,
+        provider_account_id: accountData.provider_account_id,
+        has_access_token: !!accountData.access_token,
+        has_refresh_token: !!accountData.refresh_token
+      })
+      
       const { error: accountError } = await supabase
         .from('accounts')
         .upsert(
-          {
-            user_id: user.id,
-            provider: detectedProvider,
-            provider_account_id: user.user_metadata?.sub || user.user_metadata?.preferred_username || user.id,
-            access_token: providerToken,
-            refresh_token: providerRefreshToken || null,
-            token_expires_at: expiresAt.toISOString(),
-            scopes: detectedProvider === 'linkedin' ? ['openid', 'profile', 'email'] : ['user:email', 'read:user'],
-            last_synced_at: new Date().toISOString()
-          } as any,
+          accountData as any,
           { onConflict: 'provider,provider_account_id' }
         )
       
       if (accountError) {
         console.error('⚠️ Error saving account:', accountError)
+        console.error('⚠️ Account data:', accountData)
         // Don't fail the auth flow if account save fails
       } else {
-        console.log(`✅ Saved ${detectedProvider} account and token`)
+        console.log(`✅ Saved ${detectedProvider} account and token to database`)
       }
+    } else {
+      console.warn('⚠️ No provider_token and no provider detected - account not saved')
+      console.warn('⚠️ This might mean OAuth flow did not complete properly')
     }
     
     // Build redirect URL

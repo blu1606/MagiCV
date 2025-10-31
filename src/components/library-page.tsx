@@ -21,6 +21,8 @@ import { SignOutButton } from "@/components/signout-button"
 import { GridPattern } from "@/components/ui/grid-pattern"
 import { ShimmerButton } from "@/components/ui/shimmer-button"
 import { AnimatedGradientText } from "@/components/ui/animated-gradient-text"
+import { GenerateEmbeddingsButton } from "@/components/generate-embeddings-button"
+import { GitHubImportButton } from "@/components/github-import-button"
 
 interface Component {
   id: string
@@ -160,6 +162,8 @@ export function LibraryPage() {
           </Link>
           <h1 className="text-lg font-semibold text-white">Component Library</h1>
           <div className="flex items-center gap-2">
+            <GitHubImportButton />
+            <GenerateEmbeddingsButton />
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <ShimmerButton className="bg-gradient-to-r from-[#0ea5e9] to-[#22d3ee] text-white px-10 py-4">

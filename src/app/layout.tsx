@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 // import { CopilotKit } from "@copilotkit/react-core";
 import { ScrollProgress } from "@/components/ui/scroll-progress";
+import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 // import "@copilotkit/react-ui/styles.css";
 
@@ -37,6 +38,7 @@ export default function RootLayout({
         > */}
           {children}
         {/* </CopilotKit> */}
+        <Toaster />
       </body>
     </html>
   );
