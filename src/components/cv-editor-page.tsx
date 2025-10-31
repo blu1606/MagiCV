@@ -336,10 +336,10 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Editor Panel */}
-          <div className="space-y-6 overflow-y-auto max-h-[calc(100vh-120px)] bg-[#0f172a]/80 backdrop-blur-sm p-6 rounded-lg border border-white/20">
+          <div className="space-y-6 overflow-y-auto max-h-[calc(100vh-120px)] bg-[#0f172a]/80 backdrop-blur-sm p-8 rounded-lg border border-white/20">
             {/* Job Description Section */}
             <div className="space-y-4 border-b border-white/20 pb-6 relative">
-              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2 pt-2">
                 <span>Job Description</span>
                 {isCalculating && (
                   <div className="w-4 h-4 border-2 border-[#0ea5e9] border-t-transparent rounded-full animate-spin" />
@@ -392,7 +392,7 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
 
             {/* Personal Info */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white">Personal Information</h3>
+              <h3 className="text-lg font-semibold text-white pt-2">Personal Information</h3>
               <div>
                 <label className="text-sm font-semibold mb-2 block text-white">Full Name</label>
                 <Input
@@ -440,7 +440,7 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
             {/* Experience Section */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-white">Experience</h3>
+                <h3 className="text-lg font-semibold text-white pt-2">Experience</h3>
                 <ShimmerButton onClick={addExperience} className="gap-1 bg-[#0f172a]/60 border-white/20 text-white hover:bg-white/10 px-3 py-1 text-sm">
                   <Plus className="w-4 h-4" />
                   Add
@@ -501,41 +501,41 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
             {/* Education Section */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-black">Education</h3>
-                <Button variant="outline" size="sm" onClick={addEducation} className="gap-1 bg-white border-gray-300 text-black hover:bg-gray-50">
+                <h3 className="text-lg font-semibold text-white pt-2">Education</h3>
+                <ShimmerButton onClick={addEducation} className="gap-1 bg-[#0f172a]/60 border-white/20 text-white hover:bg-white/10 px-3 py-1 text-sm">
                   <Plus className="w-4 h-4" />
                   Add
-                </Button>
+                </ShimmerButton>
               </div>
               <div className="space-y-4">
                 {cvData.education.map((edu) => (
-                  <Card key={edu.id} className="p-6 space-y-3 bg-white border-gray-300">
+                  <Card key={edu.id} className="p-6 space-y-3 bg-[#0f172a]/60 border-white/20">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 space-y-3">
                         <Input
                           value={edu.school}
                           onChange={(e) => updateEducation(edu.id, "school", e.target.value)}
                           placeholder="School/University"
-                          className="text-sm font-semibold bg-white border-gray-300 text-black"
+                          className="text-sm font-semibold bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
                         />
                         <Input
                           value={edu.degree}
                           onChange={(e) => updateEducation(edu.id, "degree", e.target.value)}
                           placeholder="Degree"
-                          className="text-sm bg-white border-gray-300 text-black"
+                          className="text-sm bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
                         />
                         <Input
                           value={edu.field}
                           onChange={(e) => updateEducation(edu.id, "field", e.target.value)}
                           placeholder="Field of Study"
-                          className="text-sm bg-white border-gray-300 text-black"
+                          className="text-sm bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
                         />
                       </div>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => removeEducation(edu.id)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        className="text-red-400 hover:bg-red-400/10"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -571,7 +571,7 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
                   {cvData.skills.slice(0, 6).map((skill, index) => (
                     <div 
                       key={skill}
-                      className="aspect-square bg-gradient-to-br from-[#0ea5e9]/20 to-[#22d3ee]/20 rounded-lg flex items-center justify-center text-xs font-medium text-[#0ea5e9] border border-[#0ea5e9]/30"
+                      className="h-18 px-3 bg-gradient-to-br from-[#0ea5e9]/20 to-[#22d3ee]/20 rounded-lg flex items-center justify-center text-xs font-medium text-[#0ea5e9] border border-[#0ea5e9]/30"
                     >
                       {skill}
                     </div>
@@ -597,7 +597,7 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
 
           {/* Preview Panel */}
           <div className="lg:sticky lg:top-20 lg:h-fit">
-            <Card className="p-8 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
+            <Card className="p-10 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
               <div className="space-y-6 text-sm">
                 {/* Header */}
                 <div>
