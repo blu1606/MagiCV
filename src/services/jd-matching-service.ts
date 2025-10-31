@@ -12,6 +12,30 @@ import type {
 } from '@/lib/types/jd-matching';
 import { getMatchQuality } from '@/lib/types/jd-matching';
 
+type GroupedSkillInput = {
+  category: string;
+  summary?: string;
+  technologies?: string[];
+};
+
+type FlatSkillInput = {
+  skill: string;
+  level?: string;
+  required?: boolean;
+};
+
+type SkillCategoryGroup = {
+  name: string;
+  summary: string;
+  technologies: string[];
+  weight?: number;
+};
+
+type SpecialRequirement = {
+  text: string;
+  weight: number;
+};
+
 /**
  * JD Matching Service
  * Matches Job Description components with CV components
@@ -56,73 +80,369 @@ export class JDMatchingService {
         description: rawText.substring(0, 500),
       };
 
-      // Convert to JDComponent format with embeddings
       const components: JDComponent[] = [];
 
-      // Add requirements
-      for (const req of jdData.requirements || []) {
-        const embedding = await EmbeddingService.embed(req);
-        components.push({
-          id: randomUUID(),
-          type: 'requirement',
-          title: 'Requirement',
-          description: req,
-          required: true,
-          embedding,
-        });
+      const skillCategories = this.selectSkillCategories(
+        jdData.groupedSkills as GroupedSkillInput[] | undefined,
+        jdData.skills as FlatSkillInput[] | undefined
+      );
+
+      for (const category of skillCategories.slice(0, 5)) {
+        const component = await this.createSkillCategoryComponent(category);
+        components.push(component);
       }
 
-      // Add skills
-      for (const skill of jdData.skills || []) {
-        const skillText = `${skill.skill} ${skill.level || ''} ${skill.required ? '(Required)' : '(Optional)'}`;
-        const embedding = await EmbeddingService.embed(skillText);
-        components.push({
-          id: randomUUID(),
-          type: 'skill',
-          title: skill.skill,
-          description: skillText,
-          required: skill.required || false,
-          level: skill.level,
-          embedding,
-        });
+      const specialRequirements = this.extractSpecialRequirements(
+        jdData.requirements || [],
+        jdData.qualifications || []
+      );
+
+      const requirementSlots = Math.max(0, 10 - components.length);
+      const usedRequirementTexts = new Set<string>();
+      for (const requirement of specialRequirements.slice(0, Math.min(3, requirementSlots))) {
+        const component = await this.createSpecialRequirementComponent(requirement.text);
+        components.push(component);
+        usedRequirementTexts.add(requirement.text.toLowerCase());
       }
 
-      // Add responsibilities
-      for (const resp of jdData.responsibilities || []) {
-        const embedding = await EmbeddingService.embed(resp);
-        components.push({
-          id: randomUUID(),
-          type: 'responsibility',
-          title: 'Responsibility',
-          description: resp,
-          required: false,
-          embedding,
-        });
+      if (components.length < 5) {
+        const responsibilitiesComponent = await this.createResponsibilitiesComponent(
+          jdData.responsibilities || []
+        );
+        if (responsibilitiesComponent) {
+          components.push(responsibilitiesComponent);
+        }
       }
 
-      // Add qualifications
-      for (const qual of jdData.qualifications || []) {
-        const embedding = await EmbeddingService.embed(qual);
-        components.push({
-          id: randomUUID(),
-          type: 'qualification',
-          title: 'Qualification',
-          description: qual,
-          required: true,
-          embedding,
+      if (components.length < 5) {
+        const remainingRequirements = (jdData.requirements || []).filter((req) => {
+          if (!req) return false;
+          return !usedRequirementTexts.has(req.trim().toLowerCase());
         });
+        const requirementsSummary = await this.createRequirementSummaryComponent(
+          remainingRequirements
+        );
+        if (requirementsSummary) {
+          components.push(requirementsSummary);
+        }
       }
 
-      console.log(`✅ Extracted ${components.length} JD components`);
+      const limitedComponents = components.slice(0, 10);
+      console.log(`✅ Extracted ${limitedComponents.length} JD components`);
 
       return {
         jdMetadata,
-        components,
+        components: limitedComponents,
       };
     } catch (error: any) {
       console.error('❌ Error extracting JD components:', error.message);
       throw error;
     }
+  }
+
+  private static selectSkillCategories(
+    groupedSkills?: GroupedSkillInput[],
+    skills?: FlatSkillInput[]
+  ): SkillCategoryGroup[] {
+    if (groupedSkills && groupedSkills.length > 0) {
+      const unique = new Map<string, SkillCategoryGroup>();
+      for (const item of groupedSkills) {
+        if (!item || !item.category) continue;
+        const name = this.titleCase(item.category.trim());
+        if (!name) continue;
+        const key = name.toLowerCase();
+        const existing = unique.get(key);
+        const technologies = new Set<string>(existing?.technologies || []);
+        for (const tech of item.technologies || []) {
+          if (!tech) continue;
+          technologies.add(this.titleCase(tech));
+        }
+        unique.set(key, {
+          name,
+          summary: item.summary?.trim() || 'Core capabilities for this competency area.',
+          technologies: Array.from(technologies),
+        });
+      }
+      const sorted = Array.from(unique.values()).sort(
+        (a, b) => (b.technologies.length || 0) - (a.technologies.length || 0)
+      );
+      if (sorted.length >= 3) {
+        return sorted.slice(0, 5);
+      }
+      const fallback = this.fallbackSkillCategories(skills || []);
+      const merged = [...sorted, ...fallback];
+      const deduped = new Map<string, SkillCategoryGroup>();
+      for (const entry of merged) {
+        if (!entry) continue;
+        const key = entry.name.toLowerCase();
+        if (!deduped.has(key)) {
+          deduped.set(key, entry);
+        }
+      }
+      return Array.from(deduped.values()).slice(0, 5);
+    }
+    return this.fallbackSkillCategories(skills || []);
+  }
+
+  private static fallbackSkillCategories(skills: FlatSkillInput[]): SkillCategoryGroup[] {
+    const definitions = [
+      {
+        id: 'software',
+        name: 'Software Engineering',
+        summary: 'Hands-on software development across services, APIs, and user experiences.',
+        keywords: ['software', 'engineer', 'developer', 'development', 'code', 'programming', 'full', 'backend', 'frontend', 'api', 'web', 'service'],
+      },
+      {
+        id: 'frontend',
+        name: 'Product & Frontend Experience',
+        summary: 'Crafting user interfaces, design systems, and web application experiences.',
+        keywords: ['frontend', 'ui', 'ux', 'react', 'angular', 'vue', 'next', 'design', 'javascript', 'typescript', 'html', 'css'],
+      },
+      {
+        id: 'backend',
+        name: 'Platform & Backend Services',
+        summary: 'Designing scalable services, data models, and integration surfaces.',
+        keywords: ['backend', 'api', 'service', 'node', 'python', 'java', 'go', 'database', 'sql', 'microservice'],
+      },
+      {
+        id: 'data',
+        name: 'AI, Data & Analytics',
+        summary: 'Data analysis, machine learning, and insight generation.',
+        keywords: ['data', 'analytics', 'ml', 'ai', 'model', 'sql', 'warehouse', 'pytorch', 'tensorflow', 'hadoop'],
+      },
+      {
+        id: 'cloud',
+        name: 'Cloud & DevOps',
+        summary: 'Infrastructure automation, deployment pipelines, and reliability.',
+        keywords: ['devops', 'cloud', 'aws', 'azure', 'gcp', 'kubernetes', 'docker', 'terraform', 'ci', 'cd', 'infrastructure'],
+      },
+      {
+        id: 'quality',
+        name: 'Quality & Process Excellence',
+        summary: 'Testing strategies, QA practices, and continuous improvement.',
+        keywords: ['test', 'qa', 'quality', 'automation', 'selenium', 'cypress', 'jest', 'process', 'agile', 'scrum'],
+      },
+    ];
+
+    const buckets = new Map<
+      string,
+      { definition: (typeof definitions)[number]; technologies: Set<string>; weight: number }
+    >();
+
+    const ensureBucket = (definition: (typeof definitions)[number]) => {
+      let bucket = buckets.get(definition.id);
+      if (!bucket) {
+        bucket = { definition, technologies: new Set<string>(), weight: 0 };
+        buckets.set(definition.id, bucket);
+      }
+      return bucket;
+    };
+
+    for (const item of skills || []) {
+      const name = item?.skill?.trim();
+      if (!name) continue;
+      const lower = name.toLowerCase();
+      const matches = definitions.filter((definition) =>
+        definition.keywords.some((keyword) => lower.includes(keyword))
+      );
+      const targets = matches.length > 0 ? matches : [definitions[0]];
+      for (const target of targets) {
+        const bucket = ensureBucket(target);
+        bucket.technologies.add(this.titleCase(name));
+        bucket.weight += item?.required ? 3 : 1;
+        if (item?.level) {
+          bucket.weight += 1;
+        }
+      }
+    }
+
+    const categories = Array.from(buckets.values())
+      .map((bucket) => ({
+        name: bucket.definition.name,
+        summary: bucket.definition.summary,
+        technologies: Array.from(bucket.technologies),
+        weight: bucket.weight,
+      }))
+      .sort((a, b) => (b.weight || 0) - (a.weight || 0));
+
+    if (categories.length === 0) {
+      return [
+        {
+          name: 'Software Engineering',
+          summary: 'Hands-on software development across services, APIs, and user experiences.',
+          technologies: skills
+            .map((item) => this.titleCase(item.skill || ''))
+            .filter(Boolean)
+            .slice(0, 8),
+        },
+      ];
+    }
+
+    const trimmed = categories.slice(0, 5).map(({ weight, ...rest }) => rest);
+
+    if (trimmed.length < 3) {
+      const supplemental = [
+        {
+          name: 'Product Delivery & Collaboration',
+          summary: 'Partnering with product, design, and stakeholders to deliver user-facing value.',
+        },
+        {
+          name: 'Operational Excellence',
+          summary: 'Improving reliability, quality, and execution across the engineering lifecycle.',
+        },
+      ];
+      const existingNames = new Set(trimmed.map((item) => item.name.toLowerCase()));
+      for (const supplementalEntry of supplemental) {
+        if (trimmed.length >= 3) break;
+        if (existingNames.has(supplementalEntry.name.toLowerCase())) continue;
+        trimmed.push({
+          name: supplementalEntry.name,
+          summary: supplementalEntry.summary,
+          technologies: [],
+        });
+      }
+    }
+
+    return trimmed;
+  }
+
+  private static async createSkillCategoryComponent(
+    category: SkillCategoryGroup
+  ): Promise<JDComponent> {
+    const technologies = category.technologies.slice(0, 8);
+    const descriptionParts = [
+      category.summary,
+      technologies.length > 0 ? `Core technologies: ${technologies.join(', ')}.` : null,
+    ].filter(Boolean);
+    const description = descriptionParts.join(' ');
+    const embedding = await EmbeddingService.embed(
+      `${category.name}: ${category.summary}. Technologies: ${technologies.join(', ')}`
+    );
+
+    return {
+      id: randomUUID(),
+      type: 'skill',
+      title: category.name,
+      description,
+      required: true,
+      embedding,
+    };
+  }
+
+  private static extractSpecialRequirements(
+    requirements: string[],
+    qualifications: string[]
+  ): SpecialRequirement[] {
+    const combined = [...(requirements || []), ...(qualifications || [])].filter(Boolean);
+    const seen = new Set<string>();
+    const results: SpecialRequirement[] = [];
+
+    for (const entry of combined) {
+      const text = entry.trim();
+      if (!text) continue;
+      const key = text.toLowerCase();
+      if (seen.has(key)) continue;
+      const weight = this.computeRequirementWeight(text);
+      if (weight <= 0) continue;
+      seen.add(key);
+      results.push({ text, weight });
+    }
+
+    return results.sort((a, b) => b.weight - a.weight);
+  }
+
+  private static computeRequirementWeight(text: string): number {
+    let weight = 0;
+    if (/\b(must|required|required to|need to|shall)\b/i.test(text)) weight += 3;
+    if (/\b(at least|min(?:imum)?|[0-9]+\+?\s+years|[0-9]+\s+yrs)\b/i.test(text)) weight += 2;
+    if (/\b(certified|certification|license|clearance|visa|work authorization|eligib|accreditation)\b/i.test(text)) weight += 3;
+    if (/\b(bachelor|master|phd|degree)\b/i.test(text)) weight += 1;
+    if (/\b(travel|on[-\s]?site|security)\b/i.test(text)) weight += 1;
+    if (/\b(preferred|nice to have)\b/i.test(text)) weight -= 1;
+    return weight;
+  }
+
+  private static async createSpecialRequirementComponent(text: string): Promise<JDComponent> {
+    const cleaned = text.replace(/\s+/g, ' ').trim();
+    const embedding = await EmbeddingService.embed(cleaned);
+    return {
+      id: randomUUID(),
+      type: 'requirement',
+      title: this.buildRequirementTitle(cleaned),
+      description: cleaned,
+      required: true,
+      embedding,
+    };
+  }
+
+  private static async createResponsibilitiesComponent(
+    responsibilities: string[]
+  ): Promise<JDComponent | null> {
+    const cleaned = (responsibilities || []).map((item) => item?.trim()).filter(Boolean);
+    if (cleaned.length === 0) return null;
+    const limited = cleaned.slice(0, 6);
+    const description = `Key responsibilities include: ${limited.join('; ')}.`;
+    const embedding = await EmbeddingService.embed(description);
+    return {
+      id: randomUUID(),
+      type: 'responsibility',
+      title: 'Key Responsibilities',
+      description,
+      required: false,
+      embedding,
+    };
+  }
+
+  private static async createRequirementSummaryComponent(
+    requirements: string[]
+  ): Promise<JDComponent | null> {
+    const cleaned = (requirements || []).map((item) => item?.trim()).filter(Boolean);
+    if (cleaned.length === 0) return null;
+    const limited = cleaned.slice(0, 5);
+    const description = `Core expectations: ${limited.join('; ')}.`;
+    const embedding = await EmbeddingService.embed(description);
+    return {
+      id: randomUUID(),
+      type: 'requirement',
+      title: 'Core Expectations',
+      description,
+      required: true,
+      embedding,
+    };
+  }
+
+  private static titleCase(value: string): string {
+    if (!value) return value;
+    const abbreviations = new Set(['ai', 'ml', 'ui', 'ux', 'qa', 'api', 'sre', 'devops']);
+    return value
+      .replace(/[_\r\n]+/g, ' ')
+      .split(' ')
+      .filter(Boolean)
+      .map((word) => {
+        const lower = word.toLowerCase();
+        if (abbreviations.has(lower)) {
+          return lower.toUpperCase();
+        }
+        if (word.toUpperCase() === word) {
+          return word.toUpperCase();
+        }
+        return lower.charAt(0).toUpperCase() + lower.slice(1);
+      })
+      .join(' ')
+      .replace(/\s&\s/g, ' & ');
+  }
+
+  private static buildRequirementTitle(text: string): string {
+    if (!text) return 'Special Requirement';
+    const firstSentence = text.split(/[.;\n]/)[0].trim();
+    const trimmed = firstSentence || text;
+    return `Requirement: ${this.truncate(trimmed, 80)}`;
+  }
+
+  private static truncate(value: string, maxLength: number): string {
+    if (!value) return value;
+    if (value.length <= maxLength) return value;
+    return `${value.slice(0, maxLength - 3).trimEnd()}...`;
   }
 
   /**
