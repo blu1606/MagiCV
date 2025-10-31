@@ -21,43 +21,56 @@ export class PDFService {
   }
 
   /**
-   * Parse PDF buffer and extract text using pdf2json
+   * Parse PDF buffer using Google Gemini Vision API
+   * More reliable than pdf-parse for demo purposes
    */
   static async parsePDF(buffer: Buffer): Promise<string> {
-    return new Promise((resolve, reject) => {
-      try {
-        const PDFParser = require('pdf2json');
-        const pdfParser = new PDFParser();
+    try {
+      console.log('📄 Starting PDF parsing with Gemini...');
 
-        pdfParser.on('pdfParser_dataReady', (pdfData: any) => {
-          try {
-            // Extract text from all pages
-            const text = pdfData.Pages
-              .map((page: any) => 
-                page.Texts.map((text: any) => 
-                  decodeURIComponent(text.R.map((r: any) => r.T).join(' '))
-                ).join(' ')
-              )
-              .join('\n\n');
-            
-            resolve(text);
-          } catch (err: any) {
-            reject(new Error(`Failed to extract text: ${err.message}`));
-          }
-        });
+      const genAI = this.getClient();
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-        pdfParser.on('pdfParser_dataError', (error: any) => {
-          console.error('❌ PDF parsing error:', error.parserError);
-          reject(new Error(`Failed to parse PDF: ${error.parserError}`));
-        });
+      console.log('📦 Converting buffer to base64...');
 
-        // Parse buffer
-        pdfParser.parseBuffer(buffer);
-      } catch (error: any) {
-        console.error('❌ PDF initialization error:', error.message);
-        reject(new Error(`Failed to initialize PDF parser: ${error.message}`));
+      // Convert buffer to base64 for Gemini API
+      const base64Data = buffer.toString('base64');
+
+      console.log('🤖 Sending to Gemini for text extraction...');
+
+      // Use Gemini to extract text from PDF
+      const result = await model.generateContent([
+        {
+          inlineData: {
+            data: base64Data,
+            mimeType: 'application/pdf',
+          },
+        },
+        {
+          text: 'Extract all text content from this PDF document. Return only the raw text, no formatting or additional commentary.',
+        },
+      ]);
+
+      const response = result.response;
+      const text = response.text();
+
+      console.log(`✅ PDF parsed: ${text.length} characters extracted`);
+
+      if (!text || text.trim().length === 0) {
+        throw new Error('PDF contains no extractable text');
       }
-    });
+
+      return text;
+    } catch (error: any) {
+      console.error('❌ PDF parsing error:', error.message);
+
+      // Provide helpful error messages
+      if (error.message.includes('API key')) {
+        throw new Error('Google Gemini API key not configured');
+      }
+
+      throw new Error(`Failed to parse PDF: ${error.message}`);
+    }
   }
 
   /**

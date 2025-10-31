@@ -34,6 +34,16 @@ const nextConfig: NextConfig = {
         process: require.resolve("process/browser"),
       };
     }
+    
+    // Fix for pdf-parse dynamic imports
+    if (isServer) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+      };
+      // Allow dynamic requires for pdf-parse
+      config.module.unknownContextCritical = false;
+    }
+    
     return config;
   },
 };

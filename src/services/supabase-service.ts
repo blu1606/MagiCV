@@ -307,6 +307,38 @@ export class SupabaseService {
     return data?.length || 0;
   }
 
+  static async getComponentById(id: string): Promise<Component | null> {
+    const { data, error } = await this.supabase
+      .from('components')
+      .select()
+      .eq('id', id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  }
+
+  static async updateComponent(id: string, updates: Partial<Component>): Promise<Component> {
+    const { data, error } = await this.supabase
+      .from('components')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  static async deleteComponent(id: string): Promise<void> {
+    const { error } = await this.supabase
+      .from('components')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  }
+
   /**
    * CV operations
    */

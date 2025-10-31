@@ -1,34 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PDFService } from '@/services/pdf-service';
 import { SupabaseService } from '@/services/supabase-service';
+import { createClient } from '@/lib/supabase/server';
 
 /**
  * POST /api/jd/extract - Extract components from Job Description PDF
- * 
+ *
  * Multipart form data:
  * - file: PDF file
- * - userId: string
  * - saveToDatabase: boolean (optional, default: true)
  */
 export async function POST(request: NextRequest) {
   try {
+    // Get authenticated user
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const userId = formData.get('userId') as string;
     const saveToDatabase = formData.get('saveToDatabase') !== 'false';
 
-    if (!file || !userId) {
+    if (!file) {
       return NextResponse.json(
-        { error: 'file and userId are required' },
+        { error: 'file is required' },
         { status: 400 }
       );
     }
 
-    // Verify user exists
-    const profile = await SupabaseService.getProfileById(userId);
+    // Verify user profile exists
+    const profile = await SupabaseService.getProfileById(user.id);
     if (!profile) {
       return NextResponse.json(
-        { error: 'User not found' },
+        { error: 'User profile not found' },
         { status: 404 }
       );
     }
@@ -50,17 +60,22 @@ export async function POST(request: NextRequest) {
     if (saveToDatabase) {
       // Use existing PDF service to parse, extract, and save
       const result = await PDFService.processPDFAndSave(
-        userId,
+        user.id,
         buffer,
         file.name
       );
 
+      // Get the CV details for response
+      const cv = await SupabaseService.getCVById(result.cvId);
+
       return NextResponse.json({
         success: true,
-        message: 'Job description processed and saved',
+        message: 'Job description processed and saved successfully',
         cvId: result.cvId,
         pdfId: result.pdfId,
         componentsCreated: result.componentsCreated,
+        title: cv?.title || 'Untitled',
+        company: cv?.content?.company || 'Unknown Company',
       });
     } else {
       // Just parse and extract without saving
@@ -87,22 +102,23 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * GET /api/jd/extract?userId=xxx - Get all extracted JDs for user
+ * GET /api/jd/extract - Get all extracted JDs for authenticated user
  */
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
+    // Get authenticated user
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (!userId) {
+    if (authError || !user) {
       return NextResponse.json(
-        { error: 'userId is required' },
-        { status: 400 }
+        { error: 'Unauthorized' },
+        { status: 401 }
       );
     }
 
     // Get all CVs (JDs) for user
-    const cvs = await SupabaseService.getCVsByUserId(userId);
+    const cvs = await SupabaseService.getCVsByUserId(user.id);
 
     // Get PDFs for each CV
     const cvsWithPdfs = await Promise.all(
