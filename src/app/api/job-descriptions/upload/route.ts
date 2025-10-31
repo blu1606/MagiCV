@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     // Get the created job description
     const jobDescription = await SupabaseService.getJobDescriptionById(
-      result.jobDescriptionId
+      result.cvId
     );
 
     return NextResponse.json({
