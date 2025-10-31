@@ -1,5 +1,6 @@
 // Mastra configuration
-import type { MastraConfig } from 'mastra';
+// The config is now handled by @mastra/core
+// This file helps resolve crypto and other Node.js module issues
 
 export default {
   // Add any Mastra-specific configuration here
@@ -17,4 +18,4 @@ export default {
     // Optimize bundling to avoid self-referencing exports
     treeshake: true,
   },
-} satisfies MastraConfig;
+} as const;
