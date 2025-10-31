@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(pnpm add @tanstack/react-query@latest)",
-      "Bash(npx tsc --noEmit)"
+      "Bash(npx tsc --noEmit)",
+      "Bash(pnpm test:*)"
     ],
     "deny": [],
     "ask": []

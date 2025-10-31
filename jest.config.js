@@ -90,6 +90,7 @@ const customJestConfig = {
     '/dist/',
     '/.vercel/',
     '/e2e/',              // Exclude Playwright E2E tests
+    '/performance/',      // Exclude performance tests
     // Conditionally exclude integration tests
     ...(process.env.ENABLE_INTEGRATION_TESTS !== 'true' ? ['/integration/'] : []),
   ],
