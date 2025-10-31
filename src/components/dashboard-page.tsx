@@ -158,7 +158,7 @@ export function DashboardPage() {
                   Generate CV
                 </ShimmerButton>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-md bg-[#0f172a]/95 backdrop-blur-sm border-white/20 text-white">
+              <DialogContent className="sm:max-w-md bg-[#0f172a]/95 backdrop-blur-sm border-white/20 text-white p-8">
                 <DialogHeader>
                   <DialogTitle className="text-white">Generate New CV</DialogTitle>
                   <DialogDescription className="text-gray-300">Paste a job description to generate an optimized CV</DialogDescription>
