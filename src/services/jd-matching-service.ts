@@ -137,22 +137,42 @@ export class JDMatchingService {
         throw new Error('JD component missing embedding');
       }
 
+      const jdDim = jdComponent.embedding.length;
+
       // Calculate similarity scores with all CV components
-      const scoredComponents = cvComponents
-        .filter(c => c.embedding && c.embedding.length > 0)
-        .map(cvComponent => ({
-          component: cvComponent,
-          score: EmbeddingService.cosineSimilarity(
-            jdComponent.embedding!,
-            cvComponent.embedding!
-          ),
-        }))
+      const scoredComponents = await Promise.all(
+        cvComponents
+          .filter(c => !!c)
+          .map(async (cvComponent) => {
+            try {
+              // Prefer existing embedding if present and same dimension
+              let cvEmbedding = Array.isArray(cvComponent.embedding)
+                ? (cvComponent.embedding as unknown as number[])
+                : null;
+
+              if (!cvEmbedding || cvEmbedding.length !== jdDim) {
+                // Re-embed on the fly to ensure same dimension as JD (Gemini 768)
+                cvEmbedding = await EmbeddingService.embedComponentObject(cvComponent);
+              }
+
+              const score = EmbeddingService.cosineSimilarity(
+                jdComponent.embedding!,
+                cvEmbedding
+              );
+
+              return { component: cvComponent, score };
+            } catch (e: any) {
+              // Skip components that fail embedding/similarity
+              return { component: cvComponent, score: -1 };
+            }
+          })
+      )
         .sort((a, b) => b.score - a.score);
 
       // Get best match
       const bestMatch = scoredComponents[0];
 
-      if (!bestMatch || bestMatch.score < 0.3) {
+      if (!bestMatch || bestMatch.score === -1 || bestMatch.score < 0.3) {
         // No good match found
         return {
           jdComponent,

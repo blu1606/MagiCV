@@ -218,15 +218,6 @@ export async function getDashboardStats() {
  * Create a new component
  */
 export async function createComponent(componentData: Partial<ComponentData>) {
-  if (USE_MOCK_DATA) {
-    console.log('📦 Using MOCK data for createComponent')
-    return {
-      id: `mock-${Date.now()}`,
-      ...componentData,
-      created_at: new Date().toISOString(),
-    }
-  }
-
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
