@@ -25,9 +25,10 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { matches, jdMetadata } = body as {
+    const { matches, jdMetadata, customizedData } = body as {
       matches: MatchResult[];
       jdMetadata: JDMatchingResults['jdMetadata'];
+      customizedData?: any;
     };
 
     if (!matches || !Array.isArray(matches)) {
@@ -69,11 +70,19 @@ export async function POST(request: NextRequest) {
     };
 
     // Use LLM to create optimized CV content
-    const cvData = await generateOptimizedCVContent(
-      profile,
-      componentsByType,
-      jdMetadata
-    );
+    // If customizedData is provided, merge it with the matched components
+    const cvData = customizedData
+      ? await generateOptimizedCVContentWithCustomizations(
+          profile,
+          componentsByType,
+          jdMetadata,
+          customizedData
+        )
+      : await generateOptimizedCVContent(
+          profile,
+          componentsByType,
+          jdMetadata
+        );
 
     console.log('✓ CV content generated');
 
@@ -223,6 +232,143 @@ Output format:
     "technical": ["Skill 1", "Skill 2", "Skill 3"],
     "languages": [{"name": "English", "level": "Native"}],
     "interests": ["Interest 1", "Interest 2"]
+  }
+}
+
+Return ONLY valid JSON without markdown formatting.`;
+
+  const result = await model.generateContent(prompt);
+  const response = result.response.text();
+
+  // Clean response
+  let cleanText = response.trim();
+  if (cleanText.startsWith('```json')) {
+    cleanText = cleanText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+  } else if (cleanText.startsWith('```')) {
+    cleanText = cleanText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+  }
+
+  const cvContent = JSON.parse(cleanText);
+
+  // Add default margins
+  cvContent.margins = LaTeXService.getDefaultMargins();
+
+  return cvContent;
+}
+
+/**
+ * Generate optimized CV content with user customizations
+ */
+async function generateOptimizedCVContentWithCustomizations(
+  profile: any,
+  componentsByType: {
+    experience: MatchResult[];
+    education: MatchResult[];
+    skill: MatchResult[];
+    project: MatchResult[];
+  },
+  jdMetadata: JDMatchingResults['jdMetadata'],
+  customizedData: any
+): Promise<any> {
+  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  if (!apiKey) {
+    throw new Error('GOOGLE_GENERATIVE_AI_API_KEY not found');
+  }
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+
+  const prompt = `You are a professional CV writer. The user has customized their CV data after AI pre-filling from job matching. Create an optimized LaTeX-ready CV content that incorporates their customizations while maintaining professional quality.
+
+Job Description:
+Title: ${jdMetadata.title}
+Company: ${jdMetadata.company}
+Location: ${jdMetadata.location || 'N/A'}
+
+User's Customized CV Data:
+Name: ${customizedData.name}
+Email: ${customizedData.email}
+Phone: ${customizedData.phone}
+Summary: ${customizedData.summary}
+
+Experiences (${customizedData.experience.length}):
+${customizedData.experience
+  .map(
+    (exp: any, i: number) =>
+      `${i + 1}. ${exp.title} at ${exp.company}
+   ${exp.startDate} - ${exp.endDate}
+   ${exp.description}`
+  )
+  .join('\n\n')}
+
+Education (${customizedData.education.length}):
+${customizedData.education
+  .map((edu: any, i: number) => `${i + 1}. ${edu.degree} from ${edu.school}\n   Field: ${edu.field}`)
+  .join('\n')}
+
+Skills (${customizedData.skills.length}):
+${customizedData.skills.join(', ')}
+
+Projects (${customizedData.projects?.length || 0}):
+${customizedData.projects && customizedData.projects.length > 0
+  ? customizedData.projects
+      .map(
+        (proj: any, i: number) =>
+          `${i + 1}. ${proj.title}
+   Technologies: ${proj.technologies}
+   ${proj.description}`
+      )
+      .join('\n\n')
+  : 'No projects provided'}
+
+Original Matched Components (for reference):
+- ${componentsByType.experience.length} experience matches
+- ${componentsByType.education.length} education matches
+- ${componentsByType.skill.length} skill matches
+- ${componentsByType.project.length} project matches
+
+Task:
+1. Use the user's customized data as the primary source
+2. Enhance and optimize the content for this specific job
+3. Keep the user's customizations but make them more impactful
+4. Format for LaTeX CV generation
+
+Output format (JSON):
+{
+  "profile": {
+    "name": "${customizedData.name}",
+    "email": "${customizedData.email}",
+    "phone": "${customizedData.phone}",
+    "address": "City, Country",
+    "city_state_zip": "City, Country"
+  },
+  "experience": [
+    {
+      "title": "Job Title",
+      "organization": "Company Name",
+      "location": "City, Country",
+      "remote": false,
+      "start": "Jan 2020",
+      "end": "Present",
+      "bullets": ["Achievement 1", "Achievement 2", "Achievement 3"]
+    }
+  ],
+  "education": [
+    {
+      "school": "University Name",
+      "degree": "Degree Name",
+      "concentration": "Field of Study",
+      "location": "City, Country",
+      "graduation_date": "May 2020",
+      "gpa": "",
+      "coursework": [],
+      "awards": []
+    }
+  ],
+  "skills": {
+    "technical": ["Skill 1", "Skill 2", "Skill 3"],
+    "languages": [{"name": "English", "level": "Native"}],
+    "interests": []
   }
 }
 
