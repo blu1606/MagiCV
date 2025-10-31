@@ -7,7 +7,8 @@ import { Children,
   useContext,
   useEffect,
   useRef,
-  useState, } from 'react'
+  useState,
+  Suspense, } from 'react'
 import Image from 'next/image';
 import { Button } from "@/components/ui/button"
 import { LinkedInSignIn } from "@/components/linkedin-signin"
@@ -346,4 +347,11 @@ const LoginPage = () => {
   )
 }
 
-export default LoginPage
+// Wrapper component with Suspense for useSearchParams
+export default function LoginPageWrapper() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <LoginPage />
+    </Suspense>
+  )
+}

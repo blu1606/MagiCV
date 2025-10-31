@@ -52,7 +52,7 @@ export class JDMatchingService {
       const jdMetadata = {
         title: jdData.title || 'Untitled Position',
         company: jdData.company || 'Unknown Company',
-        location: jdData.location || undefined,
+        location: jdData.metadata?.location || undefined,
         description: rawText.substring(0, 500),
       };
 
