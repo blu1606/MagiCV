@@ -46,6 +46,11 @@ if (fs.existsSync(envTestPath)) {
   
   // Next.js Configuration
   process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:3000';
+  
+  // Integration Tests - disabled by default unless explicitly enabled
+  if (!process.env.ENABLE_INTEGRATION_TESTS) {
+    process.env.ENABLE_INTEGRATION_TESTS = 'false';
+  }
 }
 
 // Always set NODE_ENV and TZ

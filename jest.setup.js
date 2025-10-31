@@ -144,6 +144,10 @@ global.suppressConsole = () => {
 // GLOBAL MOCKS
 // ============================================
 
+// Automatically mock @google/generative-ai for all tests
+// This prevents real API calls in unit tests
+jest.mock('@google/generative-ai');
+
 // Mock Buffer if needed (for PDF testing)
 if (typeof Buffer === 'undefined') {
   global.Buffer = require('buffer').Buffer;

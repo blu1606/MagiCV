@@ -24,7 +24,20 @@ export function getTestSupabase(): SupabaseClient {
 
     if (!url || !key) {
       throw new Error(
-        'Missing test Supabase credentials. Check .env.test file.'
+        'Missing test Supabase credentials. Check .env.test file.\n' +
+        'To run integration tests:\n' +
+        '1. Create .env.test file\n' +
+        '2. Add NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY\n' +
+        '3. Set ENABLE_INTEGRATION_TESTS=true\n' +
+        '4. Run: pnpm test:integration'
+      );
+    }
+
+    // Check if using mock values (indicates no real DB configured)
+    if (url.includes('test.supabase.co') || key.includes('test-')) {
+      throw new Error(
+        'Integration tests require real Supabase credentials.\n' +
+        'Mock values detected. Please configure .env.test with actual Supabase credentials.'
       );
     }
 
