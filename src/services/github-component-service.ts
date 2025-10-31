@@ -1,4 +1,4 @@
-import { githubTool } from '@/mastra/tools/github-tool';
+import { githubTool } from '@/mastra/tools';
 import { RuntimeContext } from '@mastra/core/runtime-context';
 import { EmbeddingService } from './embedding-service';
 import { SupabaseService } from './supabase-service';
