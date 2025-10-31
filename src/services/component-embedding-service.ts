@@ -1,5 +1,6 @@
 import { EmbeddingService } from './embedding-service';
 import { SupabaseService } from './supabase-service';
+import { getSupabaseAdmin } from '@/lib/supabase';
 import type { Component } from '@/lib/supabase';
 
 /**
@@ -17,7 +18,8 @@ export class ComponentEmbeddingService {
     try {
       console.log(`🔍 Fetching components without embeddings for user: ${userId}`);
 
-      const { data, error } = await SupabaseService.supabase
+      const supabase = getSupabaseAdmin();
+      const { data, error } = await supabase
         .from('components')
         .select('*')
         .eq('user_id', userId)
@@ -64,7 +66,8 @@ export class ComponentEmbeddingService {
     embedding: number[]
   ): Promise<void> {
     try {
-      const { error } = await SupabaseService.supabase
+      const supabase = getSupabaseAdmin();
+      const { error } = await supabase
         .from('components')
         .update({
           embedding,
@@ -228,8 +231,10 @@ export class ComponentEmbeddingService {
     percentage: number;
   }> {
     try {
+      const supabase = getSupabaseAdmin();
+      
       // Get total count
-      const { count: total, error: totalError } = await SupabaseService.supabase
+      const { count: total, error: totalError } = await supabase
         .from('components')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId);
@@ -237,7 +242,7 @@ export class ComponentEmbeddingService {
       if (totalError) throw totalError;
 
       // Get count with embeddings
-      const { count: withEmbedding, error: withError } = await SupabaseService.supabase
+      const { count: withEmbedding, error: withError } = await supabase
         .from('components')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId)
