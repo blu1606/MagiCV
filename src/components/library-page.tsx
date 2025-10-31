@@ -172,7 +172,7 @@ export function LibraryPage() {
                 </ShimmerButton>
               </DialogTrigger>
 
-              <DialogContent className="sm:max-w-md bg-[#0f172a]/95 backdrop-blur-sm border-white/20 text-white p-8">
+              <DialogContent className="sm:max-w-lg md:max-w-xl bg-[#0f172a]/95 backdrop-blur-sm border-white/20 text-white max-h-[90vh] overflow-y-auto p-8">
                 <DialogHeader>
                   <DialogTitle className="text-white">Add New Component</DialogTitle>
                   <DialogDescription className="text-gray-300">Create a reusable component for your CVs</DialogDescription>

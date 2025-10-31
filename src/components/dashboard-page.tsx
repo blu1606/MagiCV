@@ -46,7 +46,7 @@ interface CV {
 
 export function DashboardPage() {
   const { cvs, loading: cvsLoading, error: cvsError, refetch: refetchCVs } = useCVs()
-  const { stats, loading: statsLoading } = useDashboardStats()
+  const { stats, loading: statsLoading, refetch: refetchStats } = useDashboardStats()
   const { toast } = useToast()
 
   const [jobDescription, setJobDescription] = useState("")
@@ -117,8 +117,15 @@ export function DashboardPage() {
         description: `"${cvToDelete.title}" has been deleted successfully`,
       })
 
-      // Refresh CV list
-      refetchCVs()
+      // Close dialog first
+      setDeleteDialogOpen(false)
+      setCvToDelete(null)
+
+      // Refresh CV list and stats
+      await refetchCVs()
+      if (refetchStats) {
+        await refetchStats()
+      }
     } catch (error: any) {
       console.error('Error deleting CV:', error)
       toast({
@@ -127,8 +134,11 @@ export function DashboardPage() {
         description: error.message,
       })
     } finally {
-      setDeleteDialogOpen(false)
-      setCvToDelete(null)
+      // Dialog already closed in success case, only close on error
+      if (deleteDialogOpen) {
+        setDeleteDialogOpen(false)
+        setCvToDelete(null)
+      }
     }
   }
 
@@ -211,7 +221,7 @@ export function DashboardPage() {
                     Generate CV
                   </ShimmerButton>
                 </DialogTrigger>
-              <DialogContent className="sm:max-w-md bg-[#0f172a]/95 backdrop-blur-sm border-white/20 text-white">
+              <DialogContent className="sm:max-w-lg md:max-w-xl bg-[#0f172a]/95 backdrop-blur-sm border-white/20 text-white max-h-[90vh] overflow-y-auto p-8">
                 <DialogHeader>
                   <DialogTitle className="text-white">Generate New CV</DialogTitle>
                   <DialogDescription className="text-gray-300">Paste a job description to generate an optimized CV</DialogDescription>
@@ -311,19 +321,19 @@ export function DashboardPage() {
             <div className="grid gap-4">
               {filteredCVs.map((cv) => (
                 <Link key={cv.id} href={`/editor/${cv.id}`}>
-                  <Card className="p-8 hover:border-[#0ea5e9]/50 hover:bg-[#0f172a]/90 transition-all cursor-pointer group bg-[#0f172a]/80 backdrop-blur-sm border-white/20 overflow-hidden">
-                    <div className="flex items-start justify-between gap-4 min-w-0">
-                      <div className="flex-1 min-w-0 overflow-hidden">
-                        <div className="flex items-center gap-2 mb-2 min-w-0">
-                          <h3 className="font-bold group-hover:text-[#0ea5e9] transition-colors truncate text-white min-w-0">
+                  <Card className="w-full p-8 hover:border-[#0ea5e9]/50 hover:bg-[#0f172a]/90 transition-all cursor-pointer group bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0 pr-4">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          <h3 className="font-bold group-hover:text-[#0ea5e9] transition-colors text-white break-words">
                             {cv.title}
                           </h3>
                           <Badge className="bg-[#0ea5e9]/10 border-[#0ea5e9]/20 text-[#0ea5e9] text-xs shrink-0">draft</Badge>
                         </div>
-                        <p className="text-sm text-gray-300 mt-1 truncate overflow-hidden">{cv.job_description || 'No description'}</p>
+                        <p className="text-sm text-gray-300 mt-1 break-words whitespace-pre-wrap line-clamp-3">{cv.job_description || 'No description'}</p>
                         <div className="flex items-center gap-4 mt-3 text-xs text-gray-400 flex-wrap">
-                          <span className="truncate">{new Date(cv.created_at).toLocaleDateString()}</span>
-                          <span className="capitalize truncate">modern template</span>
+                          <span>{new Date(cv.created_at).toLocaleDateString()}</span>
+                          <span className="capitalize">modern template</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-3 shrink-0">
@@ -412,10 +422,10 @@ export function DashboardPage() {
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="bg-[#0f172a] border-white/20">
+        <AlertDialogContent className="bg-[#0f172a]/95 backdrop-blur-sm border-white/20 text-white p-8">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-white">Delete CV?</AlertDialogTitle>
-            <AlertDialogDescription className="text-[#94a3b8]">
+            <AlertDialogDescription className="text-gray-300">
               Are you sure you want to delete "<span className="font-medium text-white">{cvToDelete?.title}</span>"?
               This action cannot be undone and will permanently remove the CV and all associated files.
             </AlertDialogDescription>
