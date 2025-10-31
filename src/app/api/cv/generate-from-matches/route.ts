@@ -93,7 +93,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Return PDF as downloadable file
-    return new NextResponse(pdfBuffer, {
+    // Convert Buffer to Uint8Array for NextResponse (Buffer is compatible with Uint8Array)
+    return new NextResponse(new Uint8Array(pdfBuffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',

@@ -7,7 +7,8 @@ import { Children,
   useContext,
   useEffect,
   useRef,
-  useState, } from 'react'
+  useState,
+  Suspense, } from 'react'
 import Image from 'next/image';
 import { Button } from "@/components/ui/button"
 import { LinkedInSignIn } from "@/components/linkedin-signin"
@@ -158,13 +159,37 @@ const LoginPage = () => {
   }
 
   const handleGitHubSignIn = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'github',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
-    if (error) setError(error.message)
+    try {
+      console.log('🔵 Starting GitHub OAuth login...')
+      
+      // Clear any existing session to force new OAuth flow
+      const { error: signOutError } = await supabase.auth.signOut()
+      if (signOutError) {
+        console.warn('⚠️ Error signing out before GitHub login:', signOutError)
+      } else {
+        console.log('✅ Cleared existing session')
+      }
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'github',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          // Note: GitHub doesn't support queryParams like prompt/access_type
+          // The signOut above ensures we get a fresh OAuth flow
+        },
+      })
+      
+      if (error) {
+        console.error('❌ GitHub OAuth error:', error)
+        setError(error.message)
+      } else {
+        console.log('✅ GitHub OAuth redirect initiated:', data?.url)
+        // The redirect will happen automatically via data.url
+      }
+    } catch (error: any) {
+      console.error('❌ Unexpected error in GitHub login:', error)
+      setError(error.message || 'Failed to initiate GitHub login')
+    }
   }
 
   const handleLinkedInSignIn = async () => {
@@ -322,4 +347,11 @@ const LoginPage = () => {
   )
 }
 
-export default LoginPage
+// Wrapper component with Suspense for useSearchParams
+export default function LoginPageWrapper() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <LoginPage />
+    </Suspense>
+  )
+}

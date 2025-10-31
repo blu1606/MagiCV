@@ -84,13 +84,28 @@ export async function getComponents(): Promise<ComponentData[]> {
   try {
     console.log('🔗 Creating Supabase client...')
     const supabase = await createClient()
+    
+    // Check both user AND session - session must be valid
     const { data: { user }, error: userError } = await supabase.auth.getUser()
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
-    console.log('👤 User status:', user ? `Authenticated (${user.email})` : 'Not authenticated')
+    console.log('👤 User status:', user ? `User found (${user.email})` : 'No user')
+    console.log('🔐 Session status:', session ? 'Session valid' : 'No valid session')
     console.log('👤 User error:', userError)
+    console.log('🔐 Session error:', sessionError)
 
-    if (!user) {
-      console.log('⚠️ No user authenticated, returning mock data')
+    // Must have both valid user AND valid session
+    if (!user || !session) {
+      if (user && !session) {
+        console.log('⚠️ User found but no valid session - session expired or invalid')
+        // Clear invalid user data
+        try {
+          await supabase.auth.signOut()
+        } catch (e) {
+          // Ignore sign out errors
+        }
+      }
+      console.log('⚠️ No valid authentication, returning mock data')
       return MOCK_COMPONENTS
     }
 
@@ -135,9 +150,19 @@ export async function getCVs(): Promise<CVData[]> {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
+    const { data: { session } } = await supabase.auth.getSession()
 
-    if (!user) {
-      console.log('⚠️ No user, returning mock CVs')
+    // Must have both valid user AND valid session
+    if (!user || !session) {
+      if (user && !session) {
+        console.log('⚠️ User found but no valid session - clearing invalid session')
+        try {
+          await supabase.auth.signOut()
+        } catch (e) {
+          // Ignore sign out errors
+        }
+      }
+      console.log('⚠️ No valid authentication, returning mock CVs')
       return MOCK_CVS
     }
 
@@ -176,8 +201,20 @@ export async function getUserProfile() {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
+    const { data: { session } } = await supabase.auth.getSession()
 
-    if (!user) return null
+    // Must have both valid user AND valid session
+    if (!user || !session) {
+      if (user && !session) {
+        console.log('⚠️ User found but no valid session - clearing invalid session')
+        try {
+          await supabase.auth.signOut()
+        } catch (e) {
+          // Ignore sign out errors
+        }
+      }
+      return null
+    }
 
     const { data, error } = await supabase
       .from('profiles')
