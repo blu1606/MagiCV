@@ -1,5 +1,6 @@
-import { JDUploadPage } from "@/components/jd-upload-page"
+import { redirect } from 'next/navigation'
 
 export default function JDUploadRoute() {
-  return <JDUploadPage />
+  // Redirect to new matching page
+  redirect('/jd/match')
 }
