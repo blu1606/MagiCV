@@ -127,13 +127,13 @@ export function GitHubImportButton() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-md bg-[#0f172a]/95 backdrop-blur-sm border-white/20 text-white">
+      <DialogContent className="sm:max-w-lg md:max-w-xl bg-[#0f172a]/95 backdrop-blur-sm border-white/20 text-white max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-white flex items-center gap-2">
-            <Github className="w-5 h-5 text-[#0ea5e9]" />
-            Import from GitHub
+          <DialogTitle className="text-white flex items-center gap-2 break-words pr-8">
+            <Github className="w-5 h-5 text-[#0ea5e9] shrink-0" />
+            <span className="break-words">Import from GitHub</span>
           </DialogTitle>
-          <DialogDescription className="text-gray-300">
+          <DialogDescription className="text-gray-300 break-words">
             Import your GitHub repositories, skills, and projects as CV components
           </DialogDescription>
         </DialogHeader>
@@ -143,31 +143,31 @@ export function GitHubImportButton() {
             <>
               {/* Input */}
               <div className="space-y-2">
-                <label className="text-sm text-gray-400">
+                <label className="text-sm text-gray-400 break-words">
                   GitHub Username or Profile URL
                 </label>
                 <Input
                   value={githubUsername}
                   onChange={(e) => setGithubUsername(e.target.value)}
                   placeholder="e.g., octocat or github.com/octocat"
-                  className="bg-[#0f172a]/60 border-white/20 text-white placeholder:text-gray-400"
+                  className="bg-[#0f172a]/60 border-white/20 text-white placeholder:text-gray-400 w-full"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && githubUsername.trim()) {
                       handleImport()
                     }
                   }}
                 />
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-gray-400 break-words">
                   We'll import your top repositories and create components automatically
                 </p>
               </div>
 
               {/* Info */}
               <div className="p-3 bg-[#0ea5e9]/10 rounded-lg border border-[#0ea5e9]/20">
-                <p className="text-sm text-[#0ea5e9]">
+                <p className="text-sm text-[#0ea5e9] break-words">
                   <strong>What will be imported:</strong>
                 </p>
-                <ul className="text-xs text-gray-300 mt-2 space-y-1 ml-4">
+                <ul className="text-xs text-gray-300 mt-2 space-y-1 ml-4 break-words">
                   <li>• Profile information and bio</li>
                   <li>• Top 10 repositories as projects</li>
                   <li>• Programming languages as skills</li>
@@ -228,14 +228,14 @@ export function GitHubImportButton() {
                       <img
                         src={result.profile.avatar_url}
                         alt={result.profile.login}
-                        className="w-12 h-12 rounded-full"
+                        className="w-12 h-12 rounded-full shrink-0"
                       />
                     )}
-                    <div>
-                      <p className="text-white font-medium">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-white font-medium break-words">
                         {result.profile.name || result.profile.login}
                       </p>
-                      <p className="text-sm text-gray-400">
+                      <p className="text-sm text-gray-400 break-all">
                         @{result.profile.login} • {result.profile.public_repos} repos
                       </p>
                     </div>
@@ -269,14 +269,14 @@ export function GitHubImportButton() {
               {result.errors.length > 0 && (
                 <div className="p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
                   <div className="flex items-center gap-2 mb-2">
-                    <AlertCircle className="w-4 h-4 text-yellow-500" />
-                    <p className="text-sm text-yellow-500 font-medium">
+                    <AlertCircle className="w-4 h-4 text-yellow-500 shrink-0" />
+                    <p className="text-sm text-yellow-500 font-medium break-words">
                       Some items had errors
                     </p>
                   </div>
-                  <ul className="text-xs text-gray-400 space-y-1 ml-6">
+                  <ul className="text-xs text-gray-400 space-y-1 ml-6 break-words">
                     {result.errors.slice(0, 3).map((error, i) => (
-                      <li key={i}>
+                      <li key={i} className="break-words">
                         {error.type}: {error.error}
                       </li>
                     ))}

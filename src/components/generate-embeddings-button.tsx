@@ -126,13 +126,13 @@ export function GenerateEmbeddingsButton() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-md bg-[#0f172a]/95 backdrop-blur-sm border-white/20 text-white">
+      <DialogContent className="sm:max-w-lg md:max-w-xl bg-[#0f172a]/95 backdrop-blur-sm border-white/20 text-white max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-white flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-[#0ea5e9]" />
-            Generate Embeddings
+          <DialogTitle className="text-white flex items-center gap-2 break-words pr-8">
+            <Sparkles className="w-5 h-5 text-[#0ea5e9] shrink-0" />
+            <span className="break-words">Generate Embeddings</span>
           </DialogTitle>
-          <DialogDescription className="text-gray-300">
+          <DialogDescription className="text-gray-300 break-words">
             Generate AI embeddings for components that don't have them yet
           </DialogDescription>
         </DialogHeader>
@@ -141,18 +141,18 @@ export function GenerateEmbeddingsButton() {
           {/* Stats */}
           {stats && !result && (
             <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="p-3 bg-[#0ea5e9]/10 rounded-lg border border-[#0ea5e9]/20">
-                  <div className="text-2xl font-bold text-[#0ea5e9]">{stats.total}</div>
-                  <div className="text-xs text-gray-400 mt-1">Total</div>
+              <div className="grid grid-cols-3 gap-2 sm:gap-3 text-center">
+                <div className="p-2 sm:p-3 bg-[#0ea5e9]/10 rounded-lg border border-[#0ea5e9]/20">
+                  <div className="text-xl sm:text-2xl font-bold text-[#0ea5e9] break-words">{stats.total}</div>
+                  <div className="text-xs text-gray-400 mt-1 break-words">Total</div>
                 </div>
-                <div className="p-3 bg-green-500/10 rounded-lg border border-green-500/20">
-                  <div className="text-2xl font-bold text-green-500">{stats.withEmbedding}</div>
-                  <div className="text-xs text-gray-400 mt-1">With Embedding</div>
+                <div className="p-2 sm:p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+                  <div className="text-xl sm:text-2xl font-bold text-green-500 break-words">{stats.withEmbedding}</div>
+                  <div className="text-xs text-gray-400 mt-1 break-words">With Embedding</div>
                 </div>
-                <div className="p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
-                  <div className="text-2xl font-bold text-yellow-500">{stats.withoutEmbedding}</div>
-                  <div className="text-xs text-gray-400 mt-1">Missing</div>
+                <div className="p-2 sm:p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
+                  <div className="text-xl sm:text-2xl font-bold text-yellow-500 break-words">{stats.withoutEmbedding}</div>
+                  <div className="text-xs text-gray-400 mt-1 break-words">Missing</div>
                 </div>
               </div>
 
@@ -167,14 +167,14 @@ export function GenerateEmbeddingsButton() {
               {stats.withoutEmbedding === 0 ? (
                 <div className="flex items-center gap-2 p-3 bg-green-500/10 rounded-lg border border-green-500/20">
                   <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
-                  <p className="text-sm text-green-500">
+                  <p className="text-sm text-green-500 break-words">
                     All components already have embeddings!
                   </p>
                 </div>
               ) : (
                 <div className="flex items-center gap-2 p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
                   <AlertCircle className="w-5 h-5 text-yellow-500 shrink-0" />
-                  <p className="text-sm text-yellow-500">
+                  <p className="text-sm text-yellow-500 break-words">
                     {stats.withoutEmbedding} components need embeddings
                   </p>
                 </div>

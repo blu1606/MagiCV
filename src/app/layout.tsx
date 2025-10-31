@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 // import { CopilotKit } from "@copilotkit/react-core";
 import { ScrollProgress } from "@/components/ui/scroll-progress";
 import { Toaster } from "@/components/ui/toaster";
+import { ReactQueryProvider } from "@/lib/react-query-provider";
 import "./globals.css";
 // import "@copilotkit/react-ui/styles.css";
 
@@ -29,16 +30,18 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <ScrollProgress />
-        {/* Temporarily disabled CopilotKit to avoid Mastra integration issues */}
-        {/* <CopilotKit
-          runtimeUrl="/api/copilotkit"
-          agent="weatherAgent"
-          publicApiKey="ck_pub_ddccb58c6c87ae6d3bf709669ab0fb97"
-        > */}
-          {children}
-        {/* </CopilotKit> */}
-        <Toaster />
+        <ReactQueryProvider>
+          <ScrollProgress />
+          {/* Temporarily disabled CopilotKit to avoid Mastra integration issues */}
+          {/* <CopilotKit
+            runtimeUrl="/api/copilotkit"
+            agent="weatherAgent"
+            publicApiKey="ck_pub_ddccb58c6c87ae6d3bf709669ab0fb97"
+          > */}
+            {children}
+          {/* </CopilotKit> */}
+          <Toaster />
+        </ReactQueryProvider>
       </body>
     </html>
   );

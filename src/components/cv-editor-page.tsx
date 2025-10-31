@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
-import { Download, ChevronLeft, Plus, Trash2, Sparkles } from "lucide-react"
+import { Download, ChevronLeft, Plus, Trash2, Sparkles, FileJson } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 import { Input } from "@/components/ui/input"
@@ -76,14 +76,46 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
     ],
   })
 
-  const handleExport = async (format: "pdf" | "docx" | "json") => {
+  const handleExport = async (format: "pdf" | "json") => {
     setIsExporting(true)
-    // Simulate export generation
-    setTimeout(() => {
+
+    try {
+      if (format === "json") {
+        // Export as JSON
+        const dataStr = JSON.stringify(cvData, null, 2)
+        const blob = new Blob([dataStr], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${cvData.name.replace(/\s+/g, "_")}_CV.json`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+
+        toast({
+          title: "Exported!",
+          description: "CV data exported as JSON",
+        })
+      } else if (format === "pdf") {
+        // Export as PDF by printing the preview panel
+        window.print()
+
+        toast({
+          title: "Print Dialog Opened",
+          description: "Use your browser's print dialog to save as PDF",
+        })
+      }
+    } catch (error: any) {
+      console.error('Export error:', error)
+      toast({
+        title: "Export Failed",
+        description: error.message || "Failed to export CV",
+        variant: "destructive"
+      })
+    } finally {
       setIsExporting(false)
-      const fileName = `${cvData.name.replace(/\s+/g, "_")}_CV.${format === "pdf" ? "pdf" : format === "docx" ? "docx" : "json"}`
-      alert(`Exported as ${fileName}`)
-    }, 1500)
+    }
   }
 
   const addExperience = () => {
@@ -259,22 +291,44 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
 
   return (
     <div className="min-h-screen bg-[#0f172a] relative overflow-hidden">
+      {/* Print Styles */}
+      <style jsx global>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          .print-preview, .print-preview * {
+            visibility: visible;
+          }
+          .print-preview {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            background: white !important;
+          }
+          .no-print {
+            display: none !important;
+          }
+        }
+      `}</style>
+
       {/* Grid Pattern Background */}
-      <GridPattern 
-        className="absolute inset-0 opacity-10" 
-        width={40} 
-        height={40} 
+      <GridPattern
+        className="absolute inset-0 opacity-10 no-print"
+        width={40}
+        height={40}
         x={0}
         y={0}
         strokeDasharray="0"
       />
-      
+
       {/* Background Effect during AI generation */}
       {isGenerating && (
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0ea5e9]/10 to-[#22d3ee]/10 animate-pulse" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0ea5e9]/10 to-[#22d3ee]/10 animate-pulse no-print" />
       )}
       {/* Header */}
-      <div className="border-b border-white/20 backdrop-blur-sm sticky top-0 z-50 bg-[#0f172a]/80">
+      <div className="border-b border-white/20 backdrop-blur-sm sticky top-0 z-50 bg-[#0f172a]/80 no-print">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link href="/dashboard">
             <Button variant="ghost" size="sm" className="gap-2 text-white hover:bg-white/10 border-white/20">
@@ -287,7 +341,7 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
               <div className="flex items-center gap-3">
                 <div className="relative w-12 h-12">
                   <div className="w-12 h-12 rounded-full border-4 border-gray-700 flex items-center justify-center">
-                    <div 
+                    <div
                       className="absolute inset-0 rounded-full border-4 border-transparent"
                       style={{
                         borderTopColor: matchScore > 75 ? "#22d3ee" : matchScore > 50 ? "#f97316" : "#ef4444",
@@ -311,7 +365,43 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
                 <div className="text-xs text-gray-400">Calculating...</div>
               </div>
             )}
-            <ShimmerButton 
+
+            {/* Export Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2 border-white/20 text-white hover:bg-white/10" disabled={isExporting}>
+                  {isExporting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Exporting...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4" />
+                      Export
+                    </>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="bg-[#0f172a]/95 backdrop-blur-sm border-white/20">
+                <DropdownMenuItem
+                  onClick={() => handleExport("pdf")}
+                  className="text-white hover:bg-white/10 cursor-pointer"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Export as PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleExport("json")}
+                  className="text-white hover:bg-white/10 cursor-pointer"
+                >
+                  <FileJson className="w-4 h-4 mr-2" />
+                  Export as JSON
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <ShimmerButton
               onClick={handleGeneratePDF}
               disabled={isGenerating || !jobDescription.trim()}
               className="bg-gradient-to-r from-[#0ea5e9] to-[#22d3ee] text-white"
@@ -336,7 +426,7 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Editor Panel */}
-          <div className="space-y-6 overflow-y-auto max-h-[calc(100vh-120px)] bg-[#0f172a]/80 backdrop-blur-sm p-8 rounded-lg border border-white/20">
+          <div className="space-y-6 overflow-y-auto max-h-[calc(100vh-120px)] bg-[#0f172a]/80 backdrop-blur-sm p-8 rounded-lg border border-white/20 no-print">
             {/* Job Description Section */}
             <div className="space-y-4 border-b border-white/20 pb-6 relative">
               <h3 className="text-lg font-semibold text-white flex items-center gap-2 pt-2">
@@ -596,13 +686,13 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
           </div>
 
           {/* Preview Panel */}
-          <div className="lg:sticky lg:top-20 lg:h-fit">
-            <Card className="p-10 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
-              <div className="space-y-6 text-sm">
+          <div className="lg:sticky lg:top-20 lg:h-fit lg:max-h-[calc(100vh-120px)] overflow-y-auto print-preview">
+            <Card className="p-6 md:p-8 lg:p-10 bg-[#0f172a]/80 backdrop-blur-sm border-white/20 print:bg-white print:border-none print:shadow-none">
+              <div className="space-y-4 md:space-y-6 text-sm max-w-full break-words">
                 {/* Header */}
                 <div>
-                  <h1 className="text-2xl font-bold text-white">{cvData.name || "Your Name"}</h1>
-                  <p className="text-xs text-gray-300 mt-1">
+                  <h1 className="text-xl md:text-2xl font-bold text-white break-words">{cvData.name || "Your Name"}</h1>
+                  <p className="text-xs text-gray-300 mt-1 break-all">
                     {cvData.email} • {cvData.phone}
                   </p>
                 </div>
@@ -613,7 +703,7 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
                     <h2 className="text-xs font-semibold text-pink-400 mb-2 uppercase tracking-wide">
                       Professional Summary
                     </h2>
-                    <p className="text-xs text-gray-300 leading-relaxed">{cvData.summary}</p>
+                    <p className="text-xs text-gray-300 leading-relaxed break-words">{cvData.summary}</p>
                   </div>
                 )}
 
@@ -624,19 +714,19 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
                     <div className="space-y-3">
                       {cvData.experience.map((exp) => (
                         <div key={exp.id}>
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <p className="text-xs font-semibold text-white">{exp.title || "Job Title"}</p>
-                              <p className="text-xs text-gray-300">{exp.company || "Company"}</p>
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold text-white break-words">{exp.title || "Job Title"}</p>
+                              <p className="text-xs text-gray-300 break-words">{exp.company || "Company"}</p>
                             </div>
                             {(exp.startDate || exp.endDate) && (
-                              <p className="text-xs text-gray-300">
+                              <p className="text-xs text-gray-300 whitespace-nowrap">
                                 {exp.startDate} {exp.startDate && exp.endDate ? "–" : ""} {exp.endDate}
                               </p>
                             )}
                           </div>
                           {exp.description && (
-                            <p className="text-xs text-gray-300 mt-1 leading-relaxed">{exp.description}</p>
+                            <p className="text-xs text-gray-300 mt-1 leading-relaxed break-words">{exp.description}</p>
                           )}
                         </div>
                       ))}
@@ -651,8 +741,8 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
                     <div className="space-y-2">
                       {cvData.education.map((edu) => (
                         <div key={edu.id}>
-                          <p className="text-xs font-semibold text-white">{edu.school || "School"}</p>
-                          <p className="text-xs text-gray-300">
+                          <p className="text-xs font-semibold text-white break-words">{edu.school || "School"}</p>
+                          <p className="text-xs text-gray-300 break-words">
                             {edu.degree || "Degree"} {edu.field && `in ${edu.field}`}
                           </p>
                         </div>
@@ -667,7 +757,7 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
                     <h2 className="text-xs font-semibold text-[#0ea5e9] mb-2 uppercase tracking-wide">Skills</h2>
                     <div className="flex flex-wrap gap-1">
                       {cvData.skills.map((skill) => (
-                        <span key={skill} className="text-xs px-2 py-1 rounded-full bg-[#0ea5e9]/20 text-[#0ea5e9]">
+                        <span key={skill} className="text-xs px-2 py-1 rounded-full bg-[#0ea5e9]/20 text-[#0ea5e9] break-all">
                           {skill}
                         </span>
                       ))}
