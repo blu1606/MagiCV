@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PDFService } from '@/services/pdf-service';
+import { CVGeneratorService } from '@/services/cv-generator-service';
 import { SupabaseService } from '@/services/supabase-service';
 
 /**
@@ -39,22 +40,20 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Process PDF
-    const result = await PDFService.processPDFAndSave(
+    // New flow: Parse JD text, match to user's components, generate LaTeX + PDF without saving
+    const rawText = await PDFService.parsePDF(buffer);
+    const { pdfBuffer } = await CVGeneratorService.generateCVPDF(
       userId,
-      buffer,
-      file.name
+      rawText,
+      { includeProjects: true }
     );
 
-    // Get the created job description
-    const jobDescription = await SupabaseService.getJobDescriptionById(
-      result.cvId
-    );
-
-    return NextResponse.json({
-      message: 'Job description processed successfully',
-      jobDescription,
-      componentsCreated: result.componentsCreated,
+    return new NextResponse(Buffer.from(pdfBuffer), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="resume-${userId}.pdf"`,
+      },
     });
   } catch (error: any) {
     console.error('PDF upload error:', error);

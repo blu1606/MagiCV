@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   Download,
   Eye,
+  Edit,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -35,6 +36,23 @@ export function JDMatchingPage() {
   const [progress, setProgress] = useState(0)
   const [results, setResults] = useState<JDMatchingResults | null>(null)
   const [isGeneratingCV, setIsGeneratingCV] = useState(false)
+
+  // Restore results from localStorage on mount (if user is coming back from editor)
+  useEffect(() => {
+    const stored = localStorage.getItem('jd-matching-editor-data')
+    if (stored) {
+      try {
+        const { matchingResults } = JSON.parse(stored)
+        setResults(matchingResults)
+        toast({
+          title: 'Restored previous matching',
+          description: 'Your previous JD matching results have been restored',
+        })
+      } catch (error) {
+        console.error('Failed to restore matching results:', error)
+      }
+    }
+  }, [])
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -238,6 +256,27 @@ export function JDMatchingPage() {
     setResults(null)
     setProgress(0)
     setProcessingStage('parsing')
+    // Clear localStorage cache
+    localStorage.removeItem('jd-matching-editor-data')
+  }
+
+  const handleCustomizeInEditor = () => {
+    if (!results) return
+
+    // Save matching results to localStorage
+    const editorData = {
+      matchingResults: results,
+      timestamp: Date.now(),
+    }
+    localStorage.setItem('jd-matching-editor-data', JSON.stringify(editorData))
+
+    toast({
+      title: 'Opening Editor...',
+      description: 'Your matched components are ready to customize',
+    })
+
+    // Navigate to editor
+    router.push('/editor/from-matching')
   }
 
   const getStageLabel = () => {
@@ -421,7 +460,14 @@ export function JDMatchingPage() {
               {/* Action Buttons */}
               <Card className="bg-[#0f172a]/80 backdrop-blur-sm border-white/10 sticky bottom-6">
                 <CardContent className="py-4">
-                  <div className="flex gap-3 justify-center">
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                    <ShimmerButton
+                      onClick={handleCustomizeInEditor}
+                      className="bg-gradient-to-r from-[#22d3ee] to-[#0ea5e9] hover:opacity-90"
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Customize in Editor
+                    </ShimmerButton>
                     <ShimmerButton
                       onClick={handleGenerateCV}
                       disabled={isGeneratingCV}
@@ -435,7 +481,7 @@ export function JDMatchingPage() {
                       ) : (
                         <>
                           <Download className="w-4 h-4 mr-2" />
-                          Generate & Download CV
+                          Quick Download PDF
                         </>
                       )}
                     </ShimmerButton>
@@ -444,7 +490,8 @@ export function JDMatchingPage() {
                       onClick={handleReset}
                       className="border-white/20 hover:bg-white/10 text-white"
                     >
-                      Match Another JD
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload New JD
                     </Button>
                   </div>
                 </CardContent>

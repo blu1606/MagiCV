@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       cvData: providedCvData, // Optional: direct CV data from frontend
       includeProjects = true,
       useOnlineCompiler = false,
-      saveToDatabase = true 
+      saveToDatabase = false 
     } = body;
 
     if (!jobDescription) {

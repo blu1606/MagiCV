@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PDFService } from '@/services/pdf-service';
+import { CVGeneratorService } from '@/services/cv-generator-service';
 import { SupabaseService } from '@/services/supabase-service';
 import { createClient } from '@/lib/supabase/server';
 
@@ -8,7 +9,7 @@ import { createClient } from '@/lib/supabase/server';
  *
  * Multipart form data:
  * - file: PDF file
- * - saveToDatabase: boolean (optional, default: true)
+ * - saveToDatabase: boolean (ignored; flow now generates PDF without saving)
  */
 export async function POST(request: NextRequest) {
   try {
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const saveToDatabase = formData.get('saveToDatabase') !== 'false';
+    // Deprecated flag: we no longer save JD or components to DB in this endpoint
 
     if (!file) {
       return NextResponse.json(
@@ -57,38 +58,22 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    if (saveToDatabase) {
-      // Use existing PDF service to parse, extract, and save
-      const result = await PDFService.processPDFAndSave(
-        user.id,
-        buffer,
-        file.name
-      );
+    // New flow: parse JD, match user components, generate LaTeX content and export PDF (no DB save)
+    const rawText = await PDFService.parsePDF(buffer);
+    const { pdfBuffer, cvData } = await CVGeneratorService.generateCVPDF(
+      user.id,
+      rawText,
+      { includeProjects: true }
+    );
 
-      // Get the CV details for response
-      const cv = await SupabaseService.getCVById(result.cvId);
-
-      return NextResponse.json({
-        success: true,
-        message: 'Job description processed and saved successfully',
-        cvId: result.cvId,
-        pdfId: result.pdfId,
-        componentsCreated: result.componentsCreated,
-        title: cv?.title || 'Untitled',
-        company: cv?.content?.company || 'Unknown Company',
-      });
-    } else {
-      // Just parse and extract without saving
-      const rawText = await PDFService.parsePDF(buffer);
-      const jdData = await PDFService.extractJDComponents(rawText);
-
-      return NextResponse.json({
-        success: true,
-        message: 'Job description extracted (not saved)',
-        data: jdData,
-        rawText: rawText.substring(0, 500) + '...', // Preview only
-      });
-    }
+    return new NextResponse(Buffer.from(pdfBuffer), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="resume-${user.id}.pdf"`,
+        'X-Generated-For': user.id,
+      },
+    });
   } catch (error: any) {
     console.error('❌ JD extraction error:', error.message);
     return NextResponse.json(

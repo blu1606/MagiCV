@@ -563,7 +563,7 @@ export class SupabaseService {
    */
   static async saveGitHubData(userId: string, githubData: any) {
     const results = [];
-    
+
     // Upsert GitHub account (create or update if exists)
     const account = await this.upsertAccount({
       user_id: userId,
@@ -571,25 +571,28 @@ export class SupabaseService {
       provider_account_id: githubData.profile.login,
     });
 
-    // Save profile as a skill component
-    const profileComponent = await this.createComponent({
-      user_id: userId,
-      account_id: account.id,
-      type: 'skill',
-      title: 'GitHub Profile',
-      description: `${githubData.profile.name || githubData.profile.login} - ${githubData.profile.bio || ''}`,
-      highlights: [
-        `Company: ${githubData.profile.company || 'N/A'}`,
-        `Location: ${githubData.profile.location || 'N/A'}`,
-        `Followers: ${githubData.profile.followers || 0}`,
-        `Public Repos: ${githubData.profile.public_repos || 0}`,
-      ],
-      src: 'github',
-    });
-    results.push(profileComponent);
+    // Group skills by language/technology domain (3-5 general skill components)
+    // Use languageStats to create meaningful skill groups
+    const languageGroups = this.groupGitHubLanguagesIntoSkills(githubData);
 
-    // Save repositories as project components
-    for (const repo of githubData.repositories) {
+    for (const skillGroup of languageGroups) {
+      const skillComponent = await this.createComponent({
+        user_id: userId,
+        account_id: account.id,
+        type: 'skill',
+        title: skillGroup.title,
+        description: skillGroup.description,
+        highlights: skillGroup.highlights,
+        src: 'github',
+      });
+      results.push(skillComponent);
+    }
+
+    // Save top repositories as project components (based on stars and activity)
+    // Limit to top projects from topProjects array (already sorted by stars)
+    const topRepos = githubData.topProjects?.slice(0, 10) || githubData.repositories.slice(0, 10);
+
+    for (const repo of topRepos) {
       const repoComponent = await this.createComponent({
         user_id: userId,
         account_id: account.id,
@@ -599,8 +602,8 @@ export class SupabaseService {
         description: repo.description || 'No description',
         highlights: [
           `Language: ${repo.language || 'N/A'}`,
-          `Stars: ${repo.stargazers_count || 0}`,
-          `Forks: ${repo.forks_count || 0}`,
+          `Stars: ${repo.stars || repo.stargazers_count || 0}`,
+          `Forks: ${repo.forks || repo.forks_count || 0}`,
           ...(repo.topics || []).map((t: string) => `Topic: ${t}`),
         ],
         src: 'github',
@@ -612,7 +615,127 @@ export class SupabaseService {
       accountId: account.id,
       componentIds: results.map(r => r.id),
       totalSaved: results.length,
+      skillGroups: languageGroups.length,
+      projects: topRepos.length,
     };
+  }
+
+  /**
+   * Group GitHub languages into 3-5 general skill components
+   * Groups similar languages/technologies together
+   */
+  private static groupGitHubLanguagesIntoSkills(githubData: any): Array<{
+    title: string;
+    description: string;
+    highlights: string[];
+  }> {
+    const profile = githubData.profile;
+    const languageStats = githubData.languageStats;
+    const repos = githubData.repositories || [];
+
+    // Extract all technologies from languages and topics
+    const primaryLanguages = languageStats?.primaryLanguages || [];
+    const allTopics = new Set<string>();
+    repos.forEach((repo: any) => {
+      (repo.topics || []).forEach((topic: string) => allTopics.add(topic));
+    });
+
+    // Define technology domains (broader categories)
+    const domains = {
+      'Frontend Development': {
+        languages: ['JavaScript', 'TypeScript', 'HTML', 'CSS', 'Vue', 'React', 'Angular', 'Svelte'],
+        keywords: ['frontend', 'web', 'ui', 'react', 'vue', 'angular', 'next', 'nuxt', 'css', 'tailwind', 'bootstrap'],
+      },
+      'Backend Development': {
+        languages: ['Python', 'Java', 'Go', 'Ruby', 'PHP', 'C#', 'Rust', 'Kotlin', 'Scala'],
+        keywords: ['backend', 'api', 'server', 'django', 'flask', 'spring', 'express', 'fastapi', 'node'],
+      },
+      'Mobile Development': {
+        languages: ['Swift', 'Kotlin', 'Dart', 'Objective-C'],
+        keywords: ['mobile', 'android', 'ios', 'flutter', 'react-native', 'swiftui'],
+      },
+      'Data Science & AI': {
+        languages: ['Python', 'R', 'Julia'],
+        keywords: ['ml', 'machine-learning', 'ai', 'deep-learning', 'data-science', 'tensorflow', 'pytorch', 'sklearn', 'pandas', 'numpy'],
+      },
+      'DevOps & Cloud': {
+        languages: ['Shell', 'PowerShell', 'Dockerfile'],
+        keywords: ['devops', 'docker', 'kubernetes', 'aws', 'azure', 'gcp', 'cloud', 'ci-cd', 'terraform', 'ansible'],
+      },
+      'Database & Data Engineering': {
+        languages: ['SQL', 'PLpgSQL'],
+        keywords: ['database', 'sql', 'postgres', 'mysql', 'mongodb', 'redis', 'elasticsearch', 'data'],
+      },
+    };
+
+    // Map languages and topics to domains
+    const domainMatches: Record<string, {
+      languages: Set<string>;
+      topics: Set<string>;
+      repoCount: number;
+    }> = {};
+
+    primaryLanguages.forEach((lang: any) => {
+      for (const [domain, config] of Object.entries(domains)) {
+        if (config.languages.includes(lang.language)) {
+          if (!domainMatches[domain]) {
+            domainMatches[domain] = { languages: new Set(), topics: new Set(), repoCount: 0 };
+          }
+          domainMatches[domain].languages.add(lang.language);
+          domainMatches[domain].repoCount += lang.count;
+        }
+      }
+    });
+
+    // Match topics to domains
+    allTopics.forEach(topic => {
+      for (const [domain, config] of Object.entries(domains)) {
+        if (config.keywords.some(kw => topic.toLowerCase().includes(kw))) {
+          if (!domainMatches[domain]) {
+            domainMatches[domain] = { languages: new Set(), topics: new Set(), repoCount: 0 };
+          }
+          domainMatches[domain].topics.add(topic);
+        }
+      }
+    });
+
+    // Create skill components (limit to 3-5)
+    const skillGroups = Object.entries(domainMatches)
+      .filter(([_, data]) => data.languages.size > 0 || data.topics.size > 0)
+      .sort((a, b) => b[1].repoCount - a[1].repoCount)
+      .slice(0, 5)
+      .map(([domain, data]) => {
+        const languages = Array.from(data.languages);
+        const topics = Array.from(data.topics).slice(0, 8); // Limit topics
+
+        return {
+          title: domain,
+          description: `Experienced in ${domain.toLowerCase()} with ${data.repoCount} project${data.repoCount !== 1 ? 's' : ''} using ${languages.join(', ')}`,
+          highlights: [
+            `Languages: ${languages.join(', ') || 'N/A'}`,
+            `Projects: ${data.repoCount}`,
+            ...(topics.length > 0 ? [`Technologies: ${topics.join(', ')}`] : []),
+            `GitHub: @${profile.login}`,
+          ],
+        };
+      });
+
+    // If we have fewer than 3 skill groups, add a general "Software Development" skill
+    if (skillGroups.length < 3 && primaryLanguages.length > 0) {
+      const allLanguages = primaryLanguages.slice(0, 10).map((l: any) => l.language);
+      skillGroups.push({
+        title: 'Software Development',
+        description: `Software engineer with experience in ${allLanguages.slice(0, 3).join(', ')} and ${githubData.statistics.totalStars} GitHub stars across ${githubData.statistics.repositoryTypes.original} original repositories`,
+        highlights: [
+          `Languages: ${allLanguages.join(', ')}`,
+          `Total Stars: ${githubData.statistics.totalStars}`,
+          `Public Repos: ${profile.public_repos}`,
+          `Followers: ${profile.followers}`,
+        ],
+      });
+    }
+
+    return skillGroups.slice(0, 5); // Ensure max 5 skill components
   }
 
   static async saveYouTubeData(userId: string, youtubeData: any) {

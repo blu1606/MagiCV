@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Download, ChevronLeft, Plus, Trash2, Sparkles, FileJson } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -14,6 +14,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { GridPattern } from "@/components/ui/grid-pattern"
 import { ShimmerButton } from "@/components/ui/shimmer-button"
 import { NumberTicker } from "@/components/ui/number-ticker"
+import type { JDMatchingResults } from "@/lib/types/jd-matching"
 
 interface CVData {
   name: string
@@ -35,18 +36,31 @@ interface CVData {
     degree: string
     field: string
   }>
+  projects: Array<{
+    id: string
+    title: string
+    description: string
+    technologies: string
+  }>
 }
 
-export function CVEditorPage({ cvId }: { cvId: string }) {
+export function CVEditorPage({
+  cvId,
+  matchingResults
+}: {
+  cvId: string
+  matchingResults?: JDMatchingResults | null
+}) {
   const { toast } = useToast()
-  
+
   // MagicCV integration states
   const [jobDescription, setJobDescription] = useState("")
   const [matchScore, setMatchScore] = useState<number | null>(null)
   const [matchDetails, setMatchDetails] = useState<any>(null)
   const [isCalculating, setIsCalculating] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
-  
+  const [userProfile, setUserProfile] = useState<any>(null)
+
   // Existing states
   const [isExporting, setIsExporting] = useState(false)
   const [skillInput, setSkillInput] = useState("")
@@ -74,7 +88,25 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
         field: "Computer Science",
       },
     ],
+    projects: [],
   })
+
+  // Fetch user profile on mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await fetch('/api/profile')
+        if (response.ok) {
+          const data = await response.json()
+          setUserProfile(data.profile)
+          console.log('👤 User Profile:', data.profile)
+        }
+      } catch (error) {
+        console.error('Failed to fetch profile:', error)
+      }
+    }
+    fetchProfile()
+  }, [])
 
   const handleExport = async (format: "pdf" | "json") => {
     setIsExporting(true)
@@ -191,6 +223,52 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
     })
   }
 
+  const addProject = () => {
+    const newProject = {
+      id: Date.now().toString(),
+      title: "",
+      description: "",
+      technologies: "",
+    }
+    setCvData({
+      ...cvData,
+      projects: [...cvData.projects, newProject],
+    })
+  }
+
+  const removeProject = (id: string) => {
+    setCvData({
+      ...cvData,
+      projects: cvData.projects.filter((proj) => proj.id !== id),
+    })
+  }
+
+  const updateProject = (id: string, field: string, value: string) => {
+    setCvData({
+      ...cvData,
+      projects: cvData.projects.map((proj) => (proj.id === id ? { ...proj, [field]: value } : proj)),
+    })
+  }
+
+  // AI Fill-in: Transform matching results to CVData
+  useEffect(() => {
+    if (matchingResults) {
+      console.log('🎯 AI Fill-in: Transforming matching results to CV data...')
+
+      const filledData = transformMatchingResultsToCVData(matchingResults)
+      setCvData(filledData)
+
+      // Set job description and match score
+      setJobDescription(matchingResults.jdMetadata.description)
+      setMatchScore(matchingResults.overallScore)
+
+      toast({
+        title: "AI Pre-filled Successfully!",
+        description: `Loaded ${matchingResults.matches.filter(m => m.score >= 40).length} matched components`,
+      })
+    }
+  }, [matchingResults])
+
   // MagicCV Integration: Real-time match calculation with debounce
   const debouncedCalculateMatch = useDebouncedCallback(async (jd: string) => {
     if (!jd.trim() || jd.length < 50) {
@@ -240,43 +318,85 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
       })
       return
     }
-    
+
     setIsGenerating(true)
-    
+
     try {
-      const response = await fetch('/api/cv/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jobDescription,
-          includeProjects: true
+      // Check if we have matching results context
+      const stored = localStorage.getItem('jd-matching-editor-data')
+
+      if (stored && matchingResults) {
+        // We're in the context of JD matching - use the optimized flow
+        console.log('🎯 Generating CV from matched components with customizations...')
+
+        const response = await fetch('/api/cv/generate-from-matches', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            matches: matchingResults.matches,
+            jdMetadata: matchingResults.jdMetadata,
+            customizedData: cvData, // Send user customizations
+          }),
         })
-      })
-      
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Generation failed')
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Generation failed')
+        }
+
+        // Download PDF
+        const blob = await response.blob()
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `CV_${matchingResults.jdMetadata.company}_${matchingResults.jdMetadata.title}.pdf`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+
+        toast({
+          title: "Success!",
+          description: "Your customized CV has been generated and downloaded",
+        })
+      } else {
+        // Fallback to regular generation
+        console.log('📝 Generating CV from job description...')
+
+        const response = await fetch('/api/cv/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jobDescription,
+            includeProjects: true
+          })
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Generation failed')
+        }
+
+        // Get match score from header
+        const finalMatchScore = response.headers.get('X-Match-Score')
+        if (finalMatchScore) setMatchScore(Number(finalMatchScore))
+
+        // Download PDF
+        const blob = await response.blob()
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `CV_${new Date().toISOString().split('T')[0]}.pdf`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+
+        toast({
+          title: "Success!",
+          description: "Your CV has been generated and downloaded",
+        })
       }
-      
-      // Get match score from header
-      const finalMatchScore = response.headers.get('X-Match-Score')
-      if (finalMatchScore) setMatchScore(Number(finalMatchScore))
-      
-      // Download PDF
-      const blob = await response.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `CV_${new Date().toISOString().split('T')[0]}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-      
-      toast({
-        title: "Success!",
-        description: "Your CV has been generated and downloaded",
-      })
     } catch (error: any) {
       console.error('Generation error:', error)
       toast({
@@ -286,6 +406,93 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
       })
     } finally {
       setIsGenerating(false)
+    }
+  }
+
+  // Helper function to transform matching results to CV data
+  function transformMatchingResultsToCVData(results: JDMatchingResults): CVData {
+    // Filter good matches (score >= 40)
+    const goodMatches = results.matches.filter(m => m.score >= 40 && m.cvComponent)
+
+    console.log('📊 Transform Debug:', {
+      totalMatches: results.matches.length,
+      goodMatches: goodMatches.length,
+      matchTypes: goodMatches.map(m => m.cvComponent?.type),
+    })
+
+    // Group by type
+    const experiences = goodMatches
+      .filter(m => m.cvComponent?.type === 'experience')
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5) // Top 5 experiences
+      .map(m => ({
+        id: m.cvComponent!.id,
+        title: m.cvComponent!.title || '',
+        company: m.cvComponent!.organization || '',
+        description: m.cvComponent!.description || m.cvComponent!.highlights.join('. '),
+        startDate: m.cvComponent!.start_date || '',
+        endDate: m.cvComponent!.end_date || '',
+      }))
+
+    const education = goodMatches
+      .filter(m => m.cvComponent?.type === 'education')
+      .sort((a, b) => b.score - a.score)
+      .map(m => ({
+        id: m.cvComponent!.id,
+        school: m.cvComponent!.organization || m.cvComponent!.title || '',
+        degree: m.cvComponent!.title || '',
+        field: m.cvComponent!.description || '',
+      }))
+
+    const skills = goodMatches
+      .filter(m => m.cvComponent?.type === 'skill')
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 12) // Top 12 skills
+      .map(m => m.cvComponent!.title)
+
+    const projects = goodMatches
+      .filter(m => m.cvComponent?.type === 'project')
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5) // Top 5 projects
+      .map(m => ({
+        id: m.cvComponent!.id,
+        title: m.cvComponent!.title || '',
+        description: m.cvComponent!.description || m.cvComponent!.highlights.join('. '),
+        technologies: m.cvComponent!.highlights.filter(h => h.toLowerCase().includes('tech') || h.toLowerCase().includes('stack')).join(', ') || 'Various technologies',
+      }))
+
+    console.log('✅ Transformed Data:', {
+      experiencesCount: experiences.length,
+      educationCount: education.length,
+      skillsCount: skills.length,
+      projectsCount: projects.length,
+      experiences: experiences,
+      education: education,
+      skills: skills,
+      projects: projects,
+    })
+
+    return {
+      name: userProfile?.full_name || "Your Name",
+      email: userProfile?.email || "your@email.com",
+      phone: userProfile?.phone || "+1 (555) 000-0000",
+      summary: `Experienced professional with proven expertise matching the requirements for ${results.jdMetadata.title} at ${results.jdMetadata.company}. Ready to contribute with relevant skills and experience.`,
+      experience: experiences.length > 0 ? experiences : [{
+        id: Date.now().toString(),
+        title: "",
+        company: "",
+        description: "",
+        startDate: "",
+        endDate: "",
+      }],
+      skills: skills.length > 0 ? skills : [],
+      education: education.length > 0 ? education : [{
+        id: Date.now().toString(),
+        school: "",
+        degree: "",
+        field: "",
+      }],
+      projects: projects.length > 0 ? projects : [],
     }
   }
 
@@ -330,12 +537,19 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
       {/* Header */}
       <div className="border-b border-white/20 backdrop-blur-sm sticky top-0 z-50 bg-[#0f172a]/80 no-print">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link href="/dashboard">
-            <Button variant="ghost" size="sm" className="gap-2 text-white hover:bg-white/10 border-white/20">
-              <ChevronLeft className="w-4 h-4" />
-              Back
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href={matchingResults ? "/jd/match" : "/dashboard"}>
+              <Button variant="ghost" size="sm" className="gap-2 text-white hover:bg-white/10 border-white/20">
+                <ChevronLeft className="w-4 h-4" />
+                {matchingResults ? "Back to Match Results" : "Back to Dashboard"}
+              </Button>
+            </Link>
+            {matchingResults && (
+              <div className="text-xs text-gray-400 hidden sm:block">
+                From JD Matching
+              </div>
+            )}
+          </div>
           <div className="flex items-center gap-4">
             {matchScore !== null && (
               <div className="flex items-center gap-3">
@@ -424,6 +638,27 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+        {/* AI Pre-filled Banner */}
+        {matchingResults && (
+          <div className="mb-6 bg-gradient-to-r from-[#22d3ee]/20 to-[#0ea5e9]/20 border border-[#22d3ee]/30 rounded-lg p-4 backdrop-blur-sm">
+            <div className="flex items-center gap-3">
+              <Sparkles className="w-5 h-5 text-[#22d3ee]" />
+              <div className="flex-1">
+                <h3 className="text-white font-semibold">AI Pre-filled from JD Match</h3>
+                <p className="text-sm text-gray-300">
+                  Loaded {matchingResults.matches.filter(m => m.score >= 40).length} matched components for{' '}
+                  <span className="font-semibold text-[#22d3ee]">{matchingResults.jdMetadata.title}</span> at{' '}
+                  <span className="font-semibold text-[#22d3ee]">{matchingResults.jdMetadata.company}</span>
+                </p>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-[#22d3ee]">{matchingResults.overallScore}%</div>
+                <div className="text-xs text-gray-300">Match Score</div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Editor Panel */}
           <div className="space-y-6 overflow-y-auto max-h-[calc(100vh-120px)] bg-[#0f172a]/80 backdrop-blur-sm p-8 rounded-lg border border-white/20 no-print">
@@ -654,12 +889,12 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
                   <Plus className="w-4 h-4" />
                 </ShimmerButton>
               </div>
-              
+
               {/* Skills Grid Visualization */}
               {cvData.skills.length > 0 && (
                 <div className="mt-4 grid grid-cols-3 gap-2">
                   {cvData.skills.slice(0, 6).map((skill, index) => (
-                    <div 
+                    <div
                       key={skill}
                       className="h-18 px-3 bg-gradient-to-br from-[#0ea5e9]/20 to-[#22d3ee]/20 rounded-lg flex items-center justify-center text-xs font-medium text-[#0ea5e9] border border-[#0ea5e9]/30"
                     >
@@ -668,7 +903,7 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
                   ))}
                 </div>
               )}
-              
+
               <div className="flex flex-wrap gap-2">
                 {cvData.skills.map((skill) => (
                   <Badge
@@ -680,6 +915,53 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
                     {skill}
                     <span className="text-xs">×</span>
                   </Badge>
+                ))}
+              </div>
+            </div>
+
+            {/* Projects Section */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-white pt-2">Projects</h3>
+                <ShimmerButton onClick={addProject} className="gap-1 bg-[#0f172a]/60 border-white/20 text-white hover:bg-white/10 px-3 py-1 text-sm">
+                  <Plus className="w-4 h-4" />
+                  Add
+                </ShimmerButton>
+              </div>
+              <div className="space-y-4">
+                {cvData.projects.map((proj) => (
+                  <Card key={proj.id} className="p-6 space-y-3 bg-[#0f172a]/60 border-white/20">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 space-y-3">
+                        <Input
+                          value={proj.title}
+                          onChange={(e) => updateProject(proj.id, "title", e.target.value)}
+                          placeholder="Project Title"
+                          className="text-sm font-semibold bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
+                        />
+                        <Input
+                          value={proj.technologies}
+                          onChange={(e) => updateProject(proj.id, "technologies", e.target.value)}
+                          placeholder="Technologies Used (e.g., React, Node.js, MongoDB)"
+                          className="text-sm bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
+                        />
+                        <Textarea
+                          value={proj.description}
+                          onChange={(e) => updateProject(proj.id, "description", e.target.value)}
+                          placeholder="Project description and key achievements..."
+                          className="min-h-16 resize-none text-sm bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
+                        />
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeProject(proj.id)}
+                        className="text-red-400 hover:bg-red-400/10"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </Card>
                 ))}
               </div>
             </div>
@@ -760,6 +1042,26 @@ export function CVEditorPage({ cvId }: { cvId: string }) {
                         <span key={skill} className="text-xs px-2 py-1 rounded-full bg-[#0ea5e9]/20 text-[#0ea5e9] break-all">
                           {skill}
                         </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Projects */}
+                {cvData.projects.length > 0 && (
+                  <div>
+                    <h2 className="text-xs font-semibold text-pink-400 mb-3 uppercase tracking-wide">Projects</h2>
+                    <div className="space-y-3">
+                      {cvData.projects.map((proj) => (
+                        <div key={proj.id}>
+                          <p className="text-xs font-semibold text-white break-words">{proj.title || "Project Title"}</p>
+                          {proj.technologies && (
+                            <p className="text-xs text-[#0ea5e9] break-words">{proj.technologies}</p>
+                          )}
+                          {proj.description && (
+                            <p className="text-xs text-gray-300 mt-1 leading-relaxed break-words">{proj.description}</p>
+                          )}
+                        </div>
                       ))}
                     </div>
                   </div>

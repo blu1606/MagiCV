@@ -94,12 +94,19 @@ export class PDFService {
       experience?: string;
       salary?: string;
     };
+    groupedSkills?: Array<{
+      category: string;
+      summary: string;
+      technologies: string[];
+    }>;
   }> {
     try {
       const genAI = this.getClient();
       const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
 
-      const prompt = `Analyze the following job description and extract structured information in JSON format:
+      const prompt = `Analyze the following job description and extract structured information in JSON format.
+
+Additionally, group skills into broad categories (such as: Software, AI, Cloud, Data, DevOps, Security, Frontend, Backend, Mobile, Infrastructure, Product). For each category, provide a short summary and a list of concrete technologies/tools/libraries mentioned. IMPORTANT: Limit the number of categories returned to between 5 and 10 total. Within each category, list only the most essential technologies.
 
 Job Description:
 ${rawText}
@@ -113,6 +120,7 @@ Extract the following fields:
 - qualifications: Array of qualifications
 - benefits: Array of benefits (if mentioned)
 - metadata: {location, jobType, experience, salary} (if mentioned)
+ - groupedSkills: Array of objects with {category, summary, technologies[]} where categories are broad (e.g., Software, AI, Cloud, etc.). Categories MUST be between 5 and 10 total. Technologies should be specific names (e.g., React, Kubernetes, PostgreSQL).
 
 Return ONLY valid JSON without any markdown formatting or code blocks.`;
 
@@ -139,6 +147,7 @@ Return ONLY valid JSON without any markdown formatting or code blocks.`;
         qualifications: parsed.qualifications || [],
         benefits: parsed.benefits || [],
         metadata: parsed.metadata || {},
+        groupedSkills: parsed.groupedSkills || [],
       };
     } catch (error: any) {
       console.error('❌ JD extraction error:', error.message);
@@ -190,38 +199,57 @@ Return ONLY valid JSON without any markdown formatting or code blocks.`;
       });
 
       console.log('🔢 Generating embeddings...');
-      // Save individual components as skills/requirements
+      // Save grouped skill components (5-10 general components)
       let componentsCreated = 0;
 
-      // Save requirements as skill components
-      for (const req of jdData.requirements) {
-        const embedding = await EmbeddingService.embed(req);
-        await SupabaseService.createComponent({
-          user_id: userId,
-          type: 'skill',
-          title: 'Job Requirement',
-          description: req,
-          highlights: [`CV: ${cv.id}`, `Company: ${jdData.company}`],
-          embedding,
-          src: 'job_description',
-        });
-        componentsCreated++;
-      }
+      // Use groupedSkills if available (prioritized for better organization)
+      if (jdData.groupedSkills && jdData.groupedSkills.length > 0) {
+        console.log(`📦 Using ${jdData.groupedSkills.length} grouped skill categories`);
 
-      // Save skills as skill components
-      for (const skill of jdData.skills) {
-        const skillText = `${skill.skill} ${skill.level || ''} ${skill.required ? '(Required)' : ''}`;
-        const embedding = await EmbeddingService.embed(skillText);
-        await SupabaseService.createComponent({
-          user_id: userId,
-          type: 'skill',
-          title: skill.skill,
-          description: `Level: ${skill.level || 'N/A'} - ${skill.required ? 'Required' : 'Optional'}`,
-          highlights: [`CV: ${cv.id}`, `Company: ${jdData.company}`],
-          embedding,
-          src: 'job_description',
-        });
-        componentsCreated++;
+        for (const group of jdData.groupedSkills) {
+          // Create component text for embedding that includes all context
+          const componentText = `${group.category}: ${group.summary}. Technologies: ${group.technologies.join(', ')}`;
+          const embedding = await EmbeddingService.embed(componentText);
+
+          await SupabaseService.createComponent({
+            user_id: userId,
+            type: 'skill',
+            title: group.category,
+            description: group.summary,
+            highlights: [
+              `CV: ${cv.id}`,
+              `Company: ${jdData.company}`,
+              `Technologies: ${group.technologies.join(', ')}`,
+            ],
+            embedding,
+            src: 'job_description',
+          });
+          componentsCreated++;
+        }
+      } else {
+        // Fallback: Create general components from requirements and skills
+        console.log('⚠️ No grouped skills found, creating general components from requirements');
+
+        // Group requirements into broader categories (max 10)
+        const groupedRequirements = this.groupRequirementsIntoComponents(
+          jdData.requirements,
+          jdData.skills,
+          jdData.company
+        );
+
+        for (const group of groupedRequirements.slice(0, 10)) {
+          const embedding = await EmbeddingService.embed(group.description);
+          await SupabaseService.createComponent({
+            user_id: userId,
+            type: 'skill',
+            title: group.title,
+            description: group.description,
+            highlights: group.highlights,
+            embedding,
+            src: 'job_description',
+          });
+          componentsCreated++;
+        }
       }
 
       console.log(`✅ Processed PDF: ${componentsCreated} components created`);
@@ -254,6 +282,114 @@ Return ONLY valid JSON without any markdown formatting or code blocks.`;
       jobDescriptionId: result.cvId,
       componentsCreated: result.componentsCreated,
     };
+  }
+
+  /**
+   * Group requirements and skills into general components (fallback method)
+   * Creates 5-10 general components instead of many specific ones
+   */
+  private static groupRequirementsIntoComponents(
+    requirements: string[],
+    skills: Array<{ skill: string; level?: string; required?: boolean }>,
+    company: string
+  ): Array<{
+    title: string;
+    description: string;
+    highlights: string[];
+  }> {
+    // Define categories for grouping - use Record to allow dynamic keys
+    const categories: Record<string, { keywords: string[]; items: string[] }> = {
+      'Technical Skills': {
+        keywords: ['programming', 'language', 'framework', 'library', 'api', 'database', 'sql', 'development', 'code', 'software', 'system'],
+        items: [],
+      },
+      'Cloud & DevOps': {
+        keywords: ['cloud', 'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'ci/cd', 'devops', 'deployment', 'infrastructure'],
+        items: [],
+      },
+      'Data & Analytics': {
+        keywords: ['data', 'analytics', 'ml', 'machine learning', 'ai', 'deep learning', 'statistics', 'model', 'training'],
+        items: [],
+      },
+      'Frontend Development': {
+        keywords: ['frontend', 'react', 'vue', 'angular', 'ui', 'ux', 'css', 'html', 'javascript', 'typescript', 'web'],
+        items: [],
+      },
+      'Backend Development': {
+        keywords: ['backend', 'server', 'api', 'rest', 'graphql', 'microservices', 'node', 'python', 'java', 'go'],
+        items: [],
+      },
+      'Communication & Collaboration': {
+        keywords: ['communication', 'team', 'collaboration', 'agile', 'scrum', 'leadership', 'presentation', 'stakeholder'],
+        items: [],
+      },
+      'Problem Solving': {
+        keywords: ['problem', 'analytical', 'critical thinking', 'troubleshoot', 'debug', 'optimize', 'performance'],
+        items: [],
+      },
+    };
+
+    // Categorize requirements
+    requirements.forEach(req => {
+      const lowerReq = req.toLowerCase();
+      let categorized = false;
+
+      for (const [category, config] of Object.entries(categories)) {
+        if (config.keywords.some(kw => lowerReq.includes(kw))) {
+          config.items.push(req);
+          categorized = true;
+          break; // Only add to first matching category
+        }
+      }
+
+      // If not categorized, add to a general "Other Requirements" category
+      if (!categorized) {
+        if (!categories['Other Requirements']) {
+          categories['Other Requirements'] = { keywords: [], items: [] };
+        }
+        categories['Other Requirements'].items.push(req);
+      }
+    });
+
+    // Categorize skills
+    skills.forEach(skill => {
+      const lowerSkill = skill.skill.toLowerCase();
+      let categorized = false;
+
+      for (const [category, config] of Object.entries(categories)) {
+        if (config.keywords.some(kw => lowerSkill.includes(kw))) {
+          const skillText = `${skill.skill}${skill.level ? ` (${skill.level})` : ''}${skill.required ? ' - Required' : ''}`;
+          config.items.push(skillText);
+          categorized = true;
+          break;
+        }
+      }
+
+      if (!categorized) {
+        if (!categories['Other Requirements']) {
+          categories['Other Requirements'] = { keywords: [], items: [] };
+        }
+        const skillText = `${skill.skill}${skill.level ? ` (${skill.level})` : ''}${skill.required ? ' - Required' : ''}`;
+        categories['Other Requirements'].items.push(skillText);
+      }
+    });
+
+    // Create components from categories
+    const components = Object.entries(categories)
+      .filter(([_, config]) => config.items.length > 0)
+      .sort((a, b) => b[1].items.length - a[1].items.length)
+      .slice(0, 10) // Limit to 10 components
+      .map(([category, config]) => ({
+        title: category,
+        description: config.items.slice(0, 5).join('; ') + (config.items.length > 5 ? '...' : ''),
+        highlights: [
+          `Company: ${company}`,
+          `Count: ${config.items.length} requirement${config.items.length !== 1 ? 's' : ''}`,
+          ...config.items.slice(0, 8).map(item => `• ${item}`),
+        ],
+      }));
+
+    return components;
   }
 }
 

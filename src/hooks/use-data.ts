@@ -36,30 +36,35 @@ export function useComponents() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    async function fetchComponents() {
-      try {
-        console.log('🔔 useComponents - fetching /api/components')
-        const response = await fetch('/api/components')
-        if (!response.ok) {
-          const text = await response.text().catch(() => '')
-          throw new Error(`Failed to fetch components: ${response.status} ${response.statusText} ${text}`)
-        }
-        const data = await response.json()
-        console.log('🔔 useComponents - received data, length:', Array.isArray(data) ? data.length : 'non-array')
-        setComponents(data)
-      } catch (err) {
-        console.error('useComponents error:', err)
-        setError(err instanceof Error ? err.message : 'Unknown error')
-      } finally {
-        setLoading(false)
+  const fetchComponents = async () => {
+    try {
+      setLoading(true)
+      console.log('🔔 useComponents - fetching /api/components')
+      const response = await fetch('/api/components', {
+        // Add cache headers
+        next: { revalidate: 0 }, // Force revalidation on fetch
+      })
+      if (!response.ok) {
+        const text = await response.text().catch(() => '')
+        throw new Error(`Failed to fetch components: ${response.status} ${response.statusText} ${text}`)
       }
+      const data = await response.json()
+      console.log('🔔 useComponents - received data, length:', Array.isArray(data) ? data.length : 'non-array')
+      setComponents(data)
+      setError(null)
+    } catch (err) {
+      console.error('useComponents error:', err)
+      setError(err instanceof Error ? err.message : 'Unknown error')
+    } finally {
+      setLoading(false)
     }
+  }
 
+  useEffect(() => {
     fetchComponents()
   }, [])
 
-  return { components, loading, error, refetch: () => setLoading(true) }
+  return { components, loading, error, refetch: fetchComponents }
 }
 
 /**
@@ -70,24 +75,29 @@ export function useCVs() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    async function fetchCVs() {
-      try {
-        const response = await fetch('/api/cvs')
-        if (!response.ok) throw new Error('Failed to fetch CVs')
-        const data = await response.json()
-        setCVs(data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error')
-      } finally {
-        setLoading(false)
-      }
+  const fetchCVs = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/cvs', {
+        // Add cache headers
+        next: { revalidate: 0 }, // Force revalidation on fetch
+      })
+      if (!response.ok) throw new Error('Failed to fetch CVs')
+      const data = await response.json()
+      setCVs(data)
+      setError(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error')
+    } finally {
+      setLoading(false)
     }
+  }
 
+  useEffect(() => {
     fetchCVs()
   }, [])
 
-  return { cvs, loading, error, refetch: () => setLoading(true) }
+  return { cvs, loading, error, refetch: fetchCVs }
 }
 
 /**
@@ -104,22 +114,26 @@ export function useDashboardStats() {
   })
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    async function fetchStats() {
-      try {
-        const response = await fetch('/api/stats')
-        if (!response.ok) throw new Error('Failed to fetch stats')
-        const data = await response.json()
-        setStats(data)
-      } catch (err) {
-        console.error('Error fetching stats:', err)
-      } finally {
-        setLoading(false)
-      }
+  const fetchStats = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/stats', {
+        // Add cache headers
+        next: { revalidate: 0 }, // Force revalidation on fetch
+      })
+      if (!response.ok) throw new Error('Failed to fetch stats')
+      const data = await response.json()
+      setStats(data)
+    } catch (err) {
+      console.error('Error fetching stats:', err)
+    } finally {
+      setLoading(false)
     }
+  }
 
+  useEffect(() => {
     fetchStats()
   }, [])
 
-  return { stats, loading }
+  return { stats, loading, refetch: fetchStats }
 }
