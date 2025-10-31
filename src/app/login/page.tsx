@@ -12,7 +12,7 @@ import Image from 'next/image';
 import { Button } from "@/components/ui/button"
 import { LinkedInSignIn } from "@/components/linkedin-signin"
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 interface InputProps {
   label?: string;
@@ -79,6 +79,7 @@ const AppInput = (props: InputProps) => {
 
 const LoginPage = () => {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
   const [mousePosition, setMousePosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isHovering, setIsHovering] = useState(false);
@@ -87,6 +88,20 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isSignUp, setIsSignUp] = useState(false)
+
+  // Check for error in URL params (from callback redirect)
+  useEffect(() => {
+    const errorParam = searchParams.get('error')
+    if (errorParam) {
+      if (errorParam === 'flow_state_expired') {
+        setError('Authentication session expired. Please try signing in again.')
+      } else {
+        setError(decodeURIComponent(errorParam))
+      }
+      // Clean up URL
+      router.replace('/login')
+    }
+  }, [searchParams, router])
 
   const handleMouseMove = (e: React.MouseEvent) => {
     const leftSection = e.currentTarget.getBoundingClientRect();
