@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { ChevronLeft, LogOut, Bell, Lock, Crown } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -22,13 +22,36 @@ import { GridPattern } from "@/components/ui/grid-pattern"
 import { ShimmerButton } from "@/components/ui/shimmer-button"
 import { AnimatedGradientText } from "@/components/ui/animated-gradient-text"
 import { Badge } from "@/components/ui/badge"
+import { signOut } from "@/app/auth/actions"
+import { useProfile, useUpdateProfile } from "@/hooks/use-profile"
+import { useToast } from "@/components/ui/use-toast"
 
 export function SettingsPage() {
-  const [user, setUser] = useState({
-    name: "Alex Johnson",
-    email: "alex@example.com",
-    plan: "Free",
+  const { toast } = useToast()
+  
+  // Use React Query hooks for data fetching and caching
+  const { data: profile, isLoading: loading, error } = useProfile()
+  const updateProfileMutation = useUpdateProfile()
+  
+  // Local state for form inputs
+  const [profileForm, setProfileForm] = useState({
+    full_name: profile?.full_name || "",
+    profession: profile?.profession || "",
+    avatar_url: profile?.avatar_url || "",
   })
+
+  // Sync form with profile data when it loads
+  useEffect(() => {
+    if (profile) {
+      setProfileForm({
+        full_name: profile.full_name || "",
+        profession: profile.profession || "",
+        avatar_url: profile.avatar_url || "",
+      })
+    }
+  }, [profile])
+
+  const [plan] = useState("Free") // Plan can be loaded separately if needed
 
   const [settings, setSettings] = useState({
     theme: "system",
@@ -38,15 +61,34 @@ export function SettingsPage() {
     defaultTemplate: "modern",
   })
 
-  const [isSaving, setIsSaving] = useState(false)
-
+  // Handle save with React Query mutation
   const handleSaveProfile = async () => {
-    setIsSaving(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    setIsSaving(false)
-    alert("Profile updated successfully!")
+    try {
+      await updateProfileMutation.mutateAsync({
+        full_name: profileForm.full_name || null,
+        profession: profileForm.profession || null,
+        avatar_url: profileForm.avatar_url || null,
+      })
+      
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been updated successfully.",
+      })
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update profile",
+        variant: "destructive",
+      })
+    }
   }
+
+  // Redirect to login if unauthorized
+  useEffect(() => {
+    if (error && 'message' in error && error.message === 'Unauthorized') {
+      window.location.href = '/login'
+    }
+  }, [error])
 
   return (
     <div className="min-h-screen bg-[#0f172a] relative overflow-hidden">
@@ -78,30 +120,48 @@ export function SettingsPage() {
         {/* Profile Section */}
         <Card className="p-8 mb-6 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
           <h2 className="text-lg font-semibold mb-4 text-white">Profile</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-semibold mb-2 block text-white">Full Name</label>
-              <Input
-                value={user.name}
-                onChange={(e) => setUser({ ...user, name: e.target.value })}
-                placeholder="Your full name"
-                className="bg-[#0f172a]/60 border-white/20 text-white placeholder:text-gray-400"
-              />
+          {loading ? (
+            <div className="text-gray-400">Loading profile...</div>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-semibold mb-2 block text-white">Full Name</label>
+                <Input
+                  value={profileForm.full_name}
+                  onChange={(e) => setProfileForm({ ...profileForm, full_name: e.target.value })}
+                  placeholder="Your full name"
+                  className="bg-[#0f172a]/60 border-white/20 text-white placeholder:text-gray-400"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-semibold mb-2 block text-white">Email Address</label>
+                <Input
+                  type="email"
+                  value={profile?.email || ""}
+                  disabled
+                  placeholder="your@email.com"
+                  className="bg-[#0f172a]/60 border-white/20 text-white placeholder:text-gray-400 opacity-50 cursor-not-allowed"
+                />
+                <p className="text-xs text-gray-400 mt-1">Email cannot be changed</p>
+              </div>
+              <div>
+                <label className="text-sm font-semibold mb-2 block text-white">Profession</label>
+                <Input
+                  value={profileForm.profession}
+                  onChange={(e) => setProfileForm({ ...profileForm, profession: e.target.value })}
+                  placeholder="e.g. Software Engineer, Designer, etc."
+                  className="bg-[#0f172a]/60 border-white/20 text-white placeholder:text-gray-400"
+                />
+              </div>
+              <ShimmerButton 
+                onClick={handleSaveProfile} 
+                disabled={updateProfileMutation.isPending} 
+                className="bg-gradient-to-r from-[#0ea5e9] to-[#22d3ee] text-white"
+              >
+                {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
+              </ShimmerButton>
             </div>
-            <div>
-              <label className="text-sm font-semibold mb-2 block text-white">Email Address</label>
-              <Input
-                type="email"
-                value={user.email}
-                onChange={(e) => setUser({ ...user, email: e.target.value })}
-                placeholder="your@email.com"
-                className="bg-[#0f172a]/60 border-white/20 text-white placeholder:text-gray-400"
-              />
-            </div>
-            <ShimmerButton onClick={handleSaveProfile} disabled={isSaving} className="bg-gradient-to-r from-[#0ea5e9] to-[#22d3ee] text-white">
-              {isSaving ? "Saving..." : "Save Changes"}
-            </ShimmerButton>
-          </div>
+          )}
         </Card>
 
         {/* Preferences Section */}
@@ -216,7 +276,7 @@ export function SettingsPage() {
           </h2>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="font-semibold text-white">{user.plan} Plan</p>
+              <p className="font-semibold text-white">{plan} Plan</p>
               <AnimatedGradientText className="text-sm">
                 1 CV per month • Basic templates
               </AnimatedGradientText>
@@ -250,7 +310,12 @@ export function SettingsPage() {
                 </AlertDialogHeader>
                 <div className="flex gap-3 justify-end">
                   <AlertDialogCancel className="bg-[#0f172a] border-white/20 text-white">Cancel</AlertDialogCancel>
-                  <AlertDialogAction className="bg-red-500 text-white hover:bg-red-600">
+                  <AlertDialogAction
+                    onClick={async () => {
+                      await signOut()
+                    }}
+                    className="bg-red-500 text-white hover:bg-red-600"
+                  >
                     Sign Out
                   </AlertDialogAction>
                 </div>

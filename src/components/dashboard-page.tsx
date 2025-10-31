@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
-import { Plus, FileText, Trash2, Download, Copy, Search, Filter } from "lucide-react"
+import { Plus, FileText, Trash2, Download, Copy, Search, Filter, Upload } from "lucide-react"
 import { useState } from "react"
 import Link from "next/link"
 import { Input } from "@/components/ui/input"
@@ -16,6 +16,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { useToast } from "@/components/ui/use-toast"
 import { Badge } from "@/components/ui/badge"
 import { useCVs, useDashboardStats } from "@/hooks/use-data"
 import { SignOutButton } from "@/components/signout-button"
@@ -34,8 +45,9 @@ interface CV {
 }
 
 export function DashboardPage() {
-  const { cvs, loading: cvsLoading, error: cvsError } = useCVs()
+  const { cvs, loading: cvsLoading, error: cvsError, refetch: refetchCVs } = useCVs()
   const { stats, loading: statsLoading } = useDashboardStats()
+  const { toast } = useToast()
 
   const [jobDescription, setJobDescription] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
@@ -43,6 +55,8 @@ export function DashboardPage() {
   const [filterStatus, setFilterStatus] = useState<"all" | "draft" | "completed" | "archived">("all")
   const [sortBy, setSortBy] = useState<"recent" | "score">("recent")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [cvToDelete, setCvToDelete] = useState<CV | null>(null)
 
   const filteredCVs = cvs
     .filter((cv) => {
@@ -78,11 +92,43 @@ export function DashboardPage() {
   }
 
   const handleDeleteCV = async (id: string) => {
+    const cv = cvs.find(c => c.id === id)
+    if (cv) {
+      setCvToDelete(cv)
+      setDeleteDialogOpen(true)
+    }
+  }
+
+  const confirmDeleteCV = async () => {
+    if (!cvToDelete) return
+
     try {
-      // TODO: Implement CV deletion API call
-      console.log('Deleting CV:', id)
-    } catch (error) {
+      const response = await fetch(`/api/cv/${cvToDelete.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to delete CV')
+      }
+
+      toast({
+        title: 'CV deleted',
+        description: `"${cvToDelete.title}" has been deleted successfully`,
+      })
+
+      // Refresh CV list
+      refetchCVs()
+    } catch (error: any) {
       console.error('Error deleting CV:', error)
+      toast({
+        variant: 'destructive',
+        title: 'Delete failed',
+        description: error.message,
+      })
+    } finally {
+      setDeleteDialogOpen(false)
+      setCvToDelete(null)
     }
   }
 
@@ -151,14 +197,21 @@ export function DashboardPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
             <h1 className="text-4xl font-bold text-white">Welcome back</h1>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <ShimmerButton className="bg-gradient-to-r from-[#0ea5e9] to-[#22d3ee] text-white">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Generate CV
+            <div className="flex items-center gap-3">
+              <Link href="/jd/upload">
+                <ShimmerButton className="bg-gradient-to-r from-[#f97316] to-[#fb923c] text-white">
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload JD
                 </ShimmerButton>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md bg-[#0f172a]/95 backdrop-blur-sm border-white/20 text-white p-8">
+              </Link>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <ShimmerButton className="bg-gradient-to-r from-[#0ea5e9] to-[#22d3ee] text-white">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Generate CV
+                  </ShimmerButton>
+                </DialogTrigger>
+              <DialogContent className="sm:max-w-md bg-[#0f172a]/95 backdrop-blur-sm border-white/20 text-white">
                 <DialogHeader>
                   <DialogTitle className="text-white">Generate New CV</DialogTitle>
                   <DialogDescription className="text-gray-300">Paste a job description to generate an optimized CV</DialogDescription>
@@ -190,8 +243,9 @@ export function DashboardPage() {
                 </div>
               </DialogContent>
             </Dialog>
+            </div>
           </div>
-          <p className="text-gray-300">Create a new CV or manage your existing ones</p>
+          <p className="text-gray-300">Upload a job description PDF or create a new CV</p>
         </div>
 
         {/* Search and Filter Section */}
@@ -355,6 +409,30 @@ export function DashboardPage() {
           </div>
         )}
       </main>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent className="bg-[#0f172a] border-white/20">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Delete CV?</AlertDialogTitle>
+            <AlertDialogDescription className="text-[#94a3b8]">
+              Are you sure you want to delete "<span className="font-medium text-white">{cvToDelete?.title}</span>"?
+              This action cannot be undone and will permanently remove the CV and all associated files.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-transparent border-white/20 text-white hover:bg-white/10">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteCV}
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

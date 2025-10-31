@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SupabaseService } from '@/services/supabase-service';
 
 /**
- * GET /api/components/:userId - Get all components for a user
+ * GET /api/components/user/:userId - Get all components for a user
  */
 export async function GET(
   request: NextRequest,
@@ -41,7 +41,7 @@ export async function GET(
 }
 
 /**
- * DELETE /api/components/:userId - Delete components for a user
+ * DELETE /api/components/user/:userId - Delete components for a user
  */
 export async function DELETE(
   request: NextRequest,
@@ -75,4 +75,3 @@ export async function DELETE(
     );
   }
 }
-

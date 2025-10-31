@@ -42,27 +42,25 @@ describeIntegration('SupabaseService - Integration Tests (Real Database)', () =>
 
   describe('Component Operations', () => {
     test('Should save and retrieve components from real database', async () => {
-      // Create components
-      const components = [
-        {
-          type: 'experience',
-          title: 'Senior Software Engineer',
-          organization: 'Tech Corp',
-          description: 'Built scalable systems',
-          highlights: ['Led team of 5', 'Increased performance 50%'],
-          start_date: '2020-01',
-          end_date: '2023-12',
-        },
-        {
-          type: 'skill',
-          title: 'TypeScript',
-          description: 'Expert level',
-          highlights: [],
-        },
-      ];
+      // Create test components using createComponent
+      await SupabaseService.createComponent({
+        user_id: testUserId,
+        type: 'experience',
+        title: 'Senior Software Engineer',
+        organization: 'Tech Corp',
+        description: 'Built scalable systems',
+        highlights: ['Led team of 5', 'Increased performance 50%'],
+        start_date: '2020-01-01',
+        end_date: '2023-12-31',
+      });
 
-      // Save to real database
-      await SupabaseService.saveComponents(testUserId, components);
+      await SupabaseService.createComponent({
+        user_id: testUserId,
+        type: 'skill',
+        title: 'TypeScript',
+        description: 'Expert level',
+        highlights: [],
+      });
 
       // Retrieve from real database
       const result = await SupabaseService.getUserComponents(testUserId);
@@ -85,15 +83,15 @@ describeIntegration('SupabaseService - Integration Tests (Real Database)', () =>
       await createTestComponent(testUserId, 'skill');
       await createTestComponent(testUserId, 'education');
 
-      // Filter by type
-      const result = await SupabaseService.getUserComponents(
+      // Filter by type using getComponentsByType
+      const result = await SupabaseService.getComponentsByType(
         testUserId,
         'experience'
       );
 
       // Verify only experience components returned
-      expect(result.components.length).toBeGreaterThan(0);
-      result.components.forEach(c => {
+      expect(result.length).toBeGreaterThan(0);
+      result.forEach(c => {
         expect(c.type).toBe('experience');
       });
     }, 15000);

@@ -9,7 +9,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
-  testDir: './e2e',
+  // Chạy E2E backend tập trung vào API tests trong archive
+  testDir: './archive/e2e/tests',
   
   // Parallel execution
   fullyParallel: true,
@@ -78,12 +79,7 @@ export default defineConfig({
     },
   ],
 
-  // Run dev server before tests (optional)
-  webServer: process.env.ENABLE_E2E_TESTS === 'true' ? {
-    command: 'pnpm run dev:ui',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000,
-  } : undefined,
+  // Không tự khởi chạy server để hỗ trợ run backend-only khi server đã chạy sẵn
+  webServer: undefined,
 });
 

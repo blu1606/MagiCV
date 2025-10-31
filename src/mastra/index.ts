@@ -19,4 +19,9 @@ export const mastra = new Mastra({
   logger: new ConsoleLogger({
     level: LOG_LEVEL,
   }),
+  // Migrated from deprecated telemetry to AI Tracing
+  // See: https://github.com/mastra-ai/mastra/issues/8577
+  observability: {
+    default: { enabled: true },
+  },
 });
