@@ -126,7 +126,7 @@ export function GenerateEmbeddingsButton() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-lg md:max-w-xl bg-[#0f172a]/95 backdrop-blur-sm border-white/20 text-white max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg md:max-w-xl bg-[#0f172a]/95 backdrop-blur-sm border-white/20 text-white max-h-[90vh] overflow-y-auto p-8">
         <DialogHeader>
           <DialogTitle className="text-white flex items-center gap-2 break-words pr-8">
             <Sparkles className="w-5 h-5 text-[#0ea5e9] shrink-0" />

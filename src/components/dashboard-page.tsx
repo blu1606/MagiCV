@@ -311,22 +311,22 @@ export function DashboardPage() {
             <div className="grid gap-4">
               {filteredCVs.map((cv) => (
                 <Link key={cv.id} href={`/editor/${cv.id}`}>
-                  <Card className="p-8 hover:border-[#0ea5e9]/50 hover:bg-[#0f172a]/90 transition-all cursor-pointer group bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-bold group-hover:text-[#0ea5e9] transition-colors truncate text-white">
+                  <Card className="p-8 hover:border-[#0ea5e9]/50 hover:bg-[#0f172a]/90 transition-all cursor-pointer group bg-[#0f172a]/80 backdrop-blur-sm border-white/20 overflow-hidden">
+                    <div className="flex items-start justify-between gap-4 min-w-0">
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <div className="flex items-center gap-2 mb-2 min-w-0">
+                          <h3 className="font-bold group-hover:text-[#0ea5e9] transition-colors truncate text-white min-w-0">
                             {cv.title}
                           </h3>
-                          <Badge className="bg-[#0ea5e9]/10 border-[#0ea5e9]/20 text-[#0ea5e9] text-xs">draft</Badge>
+                          <Badge className="bg-[#0ea5e9]/10 border-[#0ea5e9]/20 text-[#0ea5e9] text-xs shrink-0">draft</Badge>
                         </div>
-                        <p className="text-sm text-gray-300 mt-1 truncate">{cv.job_description || 'No description'}</p>
-                        <div className="flex items-center gap-4 mt-3 text-xs text-gray-400">
-                          <span>{new Date(cv.created_at).toLocaleDateString()}</span>
-                          <span className="capitalize">modern template</span>
+                        <p className="text-sm text-gray-300 mt-1 truncate overflow-hidden">{cv.job_description || 'No description'}</p>
+                        <div className="flex items-center gap-4 mt-3 text-xs text-gray-400 flex-wrap">
+                          <span className="truncate">{new Date(cv.created_at).toLocaleDateString()}</span>
+                          <span className="capitalize truncate">modern template</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 flex-shrink-0">
+                      <div className="flex items-center gap-3 shrink-0">
                         <div className="text-right">
                           <div className="text-2xl font-bold text-[#0ea5e9]">
                             <NumberTicker value={cv.match_score || 0} />%
