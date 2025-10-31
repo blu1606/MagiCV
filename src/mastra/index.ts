@@ -19,4 +19,13 @@ export const mastra = new Mastra({
   logger: new ConsoleLogger({
     level: LOG_LEVEL,
   }),
+  // Migrated from deprecated telemetry to AI Tracing
+  // See: https://github.com/mastra-ai/mastra/issues/8577
+  observability: {
+    default: {
+      enabled: process.env.NODE_ENV === 'development' || !!process.env.MASTRA_AI_TRACING_ENABLED,
+      // AI Tracing is enabled by default in development for better DX
+      // Can be explicitly enabled in production via MASTRA_AI_TRACING_ENABLED env var
+    },
+  },
 });
