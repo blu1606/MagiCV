@@ -94,12 +94,19 @@ export class PDFService {
       experience?: string;
       salary?: string;
     };
+    groupedSkills?: Array<{
+      category: string;
+      summary: string;
+      technologies: string[];
+    }>;
   }> {
     try {
       const genAI = this.getClient();
       const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
 
-      const prompt = `Analyze the following job description and extract structured information in JSON format:
+      const prompt = `Analyze the following job description and extract structured information in JSON format.
+
+Additionally, group skills into broad categories (such as: Software, AI, Cloud, Data, DevOps, Security, Frontend, Backend, Mobile, Infrastructure, Product). For each category, provide a short summary and a list of concrete technologies/tools/libraries mentioned. IMPORTANT: Limit the number of categories returned to between 5 and 10 total. Within each category, list only the most essential technologies.
 
 Job Description:
 ${rawText}
@@ -113,6 +120,7 @@ Extract the following fields:
 - qualifications: Array of qualifications
 - benefits: Array of benefits (if mentioned)
 - metadata: {location, jobType, experience, salary} (if mentioned)
+ - groupedSkills: Array of objects with {category, summary, technologies[]} where categories are broad (e.g., Software, AI, Cloud, etc.). Categories MUST be between 5 and 10 total. Technologies should be specific names (e.g., React, Kubernetes, PostgreSQL).
 
 Return ONLY valid JSON without any markdown formatting or code blocks.`;
 
@@ -139,6 +147,7 @@ Return ONLY valid JSON without any markdown formatting or code blocks.`;
         qualifications: parsed.qualifications || [],
         benefits: parsed.benefits || [],
         metadata: parsed.metadata || {},
+        groupedSkills: parsed.groupedSkills || [],
       };
     } catch (error: any) {
       console.error('❌ JD extraction error:', error.message);

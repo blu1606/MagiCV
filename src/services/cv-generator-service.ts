@@ -3,6 +3,7 @@ import { SupabaseService } from './supabase-service';
 import { EmbeddingService } from './embedding-service';
 import { LaTeXService } from './latex-service';
 import type { Component, Profile } from '@/lib/supabase';
+import { PDFService } from './pdf-service';
 
 /**
  * CV Generator Service
@@ -220,11 +221,11 @@ Important: Select only the BEST 3-5 items per category. Quality over quantity!`;
         throw new Error('Profile not found');
       }
 
-      // Find relevant components
-      const components = await this.findRelevantComponents(
+      // Extract keywords/categories from JD and match to user's components
+      const components = await this.matchComponentsByCategories(
         userId,
         jobDescription,
-        30 // Get more for better selection
+        { categoriesLimit: 10, topKPerCategory: 5 }
       );
 
       if (components.length === 0) {
@@ -272,6 +273,59 @@ Important: Select only the BEST 3-5 items per category. Quality over quantity!`;
       console.error('❌ Error generating CV content:', error.message);
       throw error;
     }
+  }
+
+  /**
+   * Match components theo từng category lớn trích xuất từ JD
+   * Thay vì lưu DB, dùng kết quả matching để build đầu vào cho LLM
+   */
+  static async matchComponentsByCategories(
+    userId: string,
+    jobDescription: string,
+    options?: { categoriesLimit?: number; topKPerCategory?: number }
+  ): Promise<Component[]> {
+    const categoriesLimit = options?.categoriesLimit ?? 10;
+    const topKPerCategory = options?.topKPerCategory ?? 5;
+
+    // 1) Trích xuất groupedSkills (Software, AI, Cloud, ...)
+    const jd = await PDFService.extractJDComponents(jobDescription);
+    const grouped = (jd.groupedSkills || []).slice(0, categoriesLimit);
+
+    // Nếu không có groupedSkills, fallback về vector search toàn văn
+    if (grouped.length === 0) {
+      return this.findRelevantComponents(userId, jobDescription, categoriesLimit * topKPerCategory);
+    }
+
+    // 2) Với mỗi category, tạo truy vấn ngắn gọn: summary + technologies
+    const queries = grouped.map(g => {
+      const techs = (g.technologies || []).slice(0, 10).join(', ');
+      return `${g.category}: ${g.summary}. Tech: ${techs}`;
+    });
+
+    // 3) Tìm topKPerCategory component cho từng truy vấn
+    const results: Component[] = [];
+    for (const q of queries) {
+      const embedding = await EmbeddingService.embed(q);
+      const batch = await SupabaseService.similaritySearchComponents(
+        userId,
+        embedding,
+        topKPerCategory
+      );
+      results.push(...batch);
+    }
+
+    // 4) Loại trùng theo id, giữ thứ tự xuất hiện (theo ưu tiên category)
+    const seen = new Set<string>();
+    const deduped: Component[] = [];
+    for (const c of results) {
+      const id = (c as any).id || `${c.type}:${c.title}:${c.organization ?? ''}`;
+      if (!seen.has(id)) {
+        seen.add(id);
+        deduped.push(c);
+      }
+    }
+
+    return deduped;
   }
 
   /**
