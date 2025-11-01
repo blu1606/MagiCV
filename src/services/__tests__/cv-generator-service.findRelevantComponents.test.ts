@@ -13,23 +13,16 @@
 
 import { describe, test, expect, beforeEach, afterEach, afterAll, jest } from '@jest/globals';
 import { CVGeneratorService } from '@/services/cv-generator-service';
+import { EmbeddingService } from '@/services/embedding-service';
+import { SupabaseService } from '@/services/supabase-service';
 import type { Component } from '@/lib/supabase';
 
-// Import mocks
+// Import utilities
 import {
-  EmbeddingServiceMock,
-  setupEmbeddingMocks,
-  resetEmbeddingMocks,
-  setMockError as setEmbeddingError,
   generateMockEmbedding,
 } from './__mocks__/embedding-service.mock';
 
 import {
-  SupabaseServiceMock,
-  setupSupabaseMocks,
-  resetSupabaseMocks,
-  setMockSuccess as setSupabaseSuccess,
-  setMockError as setSupabaseError,
   createMockComponent,
   createMockComponents,
 } from './__mocks__/supabase-service.mock';
@@ -41,19 +34,14 @@ jest.mock('@/services/supabase-service');
 // Suppress console logs during tests
 const originalConsole = global.console;
 
-describe.skip('CVGeneratorService.findRelevantComponents', () => {
+describe('CVGeneratorService.findRelevantComponents', () => {
   // ============================================
   // SETUP & TEARDOWN
   // ============================================
 
   beforeEach(() => {
-    // Reset all mocks to clean state
-    resetEmbeddingMocks();
-    resetSupabaseMocks();
-
-    // Setup default mock behaviors (success paths)
-    setupEmbeddingMocks();
-    setupSupabaseMocks();
+    // Clear all mocks
+    jest.clearAllMocks();
 
     // Suppress console output for cleaner test logs
     global.console = {
@@ -136,8 +124,8 @@ describe.skip('CVGeneratorService.findRelevantComponents', () => {
         }),
       ];
 
-      EmbeddingServiceMock.embed.mockResolvedValue(mockEmbedding);
-      SupabaseServiceMock.similaritySearchComponents.mockResolvedValue(mockComponentsWithSimilarity);
+      jest.spyOn(EmbeddingService, 'embed').mockResolvedValue(mockEmbedding);
+      jest.spyOn(SupabaseService, 'similaritySearchComponents').mockResolvedValue(mockComponentsWithSimilarity);
 
       // Act
       const result = await CVGeneratorService.findRelevantComponents(
@@ -152,12 +140,12 @@ describe.skip('CVGeneratorService.findRelevantComponents', () => {
       expect(result).toEqual(mockComponentsWithSimilarity);
       
       // Verify embedding service was called correctly
-      expect(EmbeddingServiceMock.embed).toHaveBeenCalledTimes(1);
-      expect(EmbeddingServiceMock.embed).toHaveBeenCalledWith(jobDescription);
+      expect(EmbeddingService.embed).toHaveBeenCalledTimes(1);
+      expect(EmbeddingService.embed).toHaveBeenCalledWith(jobDescription);
 
       // Verify similarity search was called with correct params
-      expect(SupabaseServiceMock.similaritySearchComponents).toHaveBeenCalledTimes(1);
-      expect(SupabaseServiceMock.similaritySearchComponents).toHaveBeenCalledWith(
+      expect(SupabaseService.similaritySearchComponents).toHaveBeenCalledTimes(1);
+      expect(SupabaseService.similaritySearchComponents).toHaveBeenCalledWith(
         userId,
         mockEmbedding,
         limit
@@ -184,10 +172,12 @@ describe.skip('CVGeneratorService.findRelevantComponents', () => {
 
       const allUserComponents = createMockComponents(10, 'experience');
       
-      SupabaseServiceMock.getUserComponents.mockResolvedValue({
+      const embedSpy = jest.spyOn(EmbeddingService, 'embed');
+      const getUserComponentsSpy = jest.spyOn(SupabaseService, 'getUserComponents').mockResolvedValue({
         components: allUserComponents,
         total: 10,
       });
+      const similaritySearchSpy = jest.spyOn(SupabaseService, 'similaritySearchComponents');
 
       // Act
       const result = await CVGeneratorService.findRelevantComponents(
@@ -202,14 +192,14 @@ describe.skip('CVGeneratorService.findRelevantComponents', () => {
       expect(result.length).toBeLessThanOrEqual(limit);
       
       // Verify embedding service was NOT called (no JD to embed)
-      expect(EmbeddingServiceMock.embed).not.toHaveBeenCalled();
+      expect(embedSpy).not.toHaveBeenCalled();
 
       // Verify getUserComponents was called (fallback path)
-      expect(SupabaseServiceMock.getUserComponents).toHaveBeenCalledTimes(1);
-      expect(SupabaseServiceMock.getUserComponents).toHaveBeenCalledWith(userId);
+      expect(getUserComponentsSpy).toHaveBeenCalledTimes(1);
+      expect(getUserComponentsSpy).toHaveBeenCalledWith(userId);
 
       // Verify similaritySearchComponents was NOT called
-      expect(SupabaseServiceMock.similaritySearchComponents).not.toHaveBeenCalled();
+      expect(similaritySearchSpy).not.toHaveBeenCalled();
 
       // Verify console warning was logged
       expect(global.console.log).toHaveBeenCalledWith(
@@ -237,9 +227,9 @@ describe.skip('CVGeneratorService.findRelevantComponents', () => {
 
       const mockEmbedding = generateMockEmbedding(768, 99999);
 
-      EmbeddingServiceMock.embed.mockResolvedValue(mockEmbedding);
-      SupabaseServiceMock.similaritySearchComponents.mockResolvedValue([]);
-      SupabaseServiceMock.getUserComponents.mockResolvedValue({
+      jest.spyOn(EmbeddingService, 'embed').mockResolvedValue(mockEmbedding);
+      jest.spyOn(SupabaseService, 'similaritySearchComponents').mockResolvedValue([]);
+      jest.spyOn(SupabaseService, 'getUserComponents').mockResolvedValue({
         components: [],
         total: 0,
       });
@@ -257,7 +247,7 @@ describe.skip('CVGeneratorService.findRelevantComponents', () => {
       expect(result).toHaveLength(0);
       
       // Verify fallback was triggered
-      expect(SupabaseServiceMock.getUserComponents).toHaveBeenCalledTimes(1);
+      expect(SupabaseService.getUserComponents).toHaveBeenCalledTimes(1);
       
       // Verify warning was logged
       expect(global.console.warn).toHaveBeenCalledWith(
@@ -281,8 +271,12 @@ describe.skip('CVGeneratorService.findRelevantComponents', () => {
 
       const mockEmbedding = generateMockEmbedding(768, 55555);
 
-      EmbeddingServiceMock.embed.mockResolvedValue(mockEmbedding);
-      SupabaseServiceMock.similaritySearchComponents.mockResolvedValue([]);
+      const embedSpy = jest.spyOn(EmbeddingService, 'embed').mockResolvedValue(mockEmbedding);
+      const similaritySearchSpy = jest.spyOn(SupabaseService, 'similaritySearchComponents').mockResolvedValue([]);
+      const getUserComponentsSpy = jest.spyOn(SupabaseService, 'getUserComponents').mockResolvedValue({
+        components: [],
+        total: 0,
+      });
 
       // Act
       const result = await CVGeneratorService.findRelevantComponents(
@@ -297,11 +291,14 @@ describe.skip('CVGeneratorService.findRelevantComponents', () => {
       expect(result).toHaveLength(0);
 
       // Verify similarity search was called with limit=0
-      expect(SupabaseServiceMock.similaritySearchComponents).toHaveBeenCalledWith(
+      expect(similaritySearchSpy).toHaveBeenCalledWith(
         userId,
         mockEmbedding,
         0
       );
+
+      // Verify fallback was called since similarity search returned empty array
+      expect(getUserComponentsSpy).toHaveBeenCalledTimes(1);
     });
 
     /**
@@ -321,8 +318,8 @@ describe.skip('CVGeneratorService.findRelevantComponents', () => {
       const mockEmbedding = generateMockEmbedding(768, 77777);
       const relevantComponents = createMockComponents(3, 'experience');
 
-      EmbeddingServiceMock.embed.mockResolvedValue(mockEmbedding);
-      SupabaseServiceMock.similaritySearchComponents.mockResolvedValue(relevantComponents);
+      jest.spyOn(EmbeddingService, 'embed').mockResolvedValue(mockEmbedding);
+      jest.spyOn(SupabaseService, 'similaritySearchComponents').mockResolvedValue(relevantComponents);
 
       // Act
       const result = await CVGeneratorService.findRelevantComponents(
@@ -337,8 +334,8 @@ describe.skip('CVGeneratorService.findRelevantComponents', () => {
       expect(result).toEqual(relevantComponents);
 
       // Verify long text was processed
-      expect(EmbeddingServiceMock.embed).toHaveBeenCalledWith(longJobDescription);
-      expect(EmbeddingServiceMock.embed).toHaveBeenCalledTimes(1);
+      expect(EmbeddingService.embed).toHaveBeenCalledWith(longJobDescription);
+      expect(EmbeddingService.embed).toHaveBeenCalledTimes(1);
 
       // Verify no truncation errors occurred (test passes if no exception)
       expect(true).toBe(true);
@@ -365,15 +362,15 @@ describe.skip('CVGeneratorService.findRelevantComponents', () => {
       const mockEmbedding = generateMockEmbedding(768, 11111);
       const fallbackComponents = createMockComponents(2, 'skill');
 
-      EmbeddingServiceMock.embed.mockResolvedValue(mockEmbedding);
+      jest.spyOn(EmbeddingService, 'embed').mockResolvedValue(mockEmbedding);
       
       // Similarity search fails with invalid user_id error
-      SupabaseServiceMock.similaritySearchComponents.mockRejectedValue(
+      jest.spyOn(SupabaseService, 'similaritySearchComponents').mockRejectedValue(
         new Error('Invalid user_id')
       );
 
       // Fallback succeeds
-      SupabaseServiceMock.getUserComponents.mockResolvedValue({
+      jest.spyOn(SupabaseService, 'getUserComponents').mockResolvedValue({
         components: fallbackComponents,
         total: 2,
       });
@@ -391,8 +388,8 @@ describe.skip('CVGeneratorService.findRelevantComponents', () => {
       expect(result).toEqual(fallbackComponents);
 
       // Verify error was caught and fallback was executed
-      expect(SupabaseServiceMock.similaritySearchComponents).toHaveBeenCalledTimes(1);
-      expect(SupabaseServiceMock.getUserComponents).toHaveBeenCalledTimes(1);
+      expect(SupabaseService.similaritySearchComponents).toHaveBeenCalledTimes(1);
+      expect(SupabaseService.getUserComponents).toHaveBeenCalledTimes(1);
 
       // Verify error and warning were logged
       expect(global.console.error).toHaveBeenCalledWith(
@@ -419,15 +416,16 @@ describe.skip('CVGeneratorService.findRelevantComponents', () => {
       const fallbackComponents = createMockComponents(8, 'experience');
 
       // Embedding service fails
-      EmbeddingServiceMock.embed.mockRejectedValue(
+      const embedSpy = jest.spyOn(EmbeddingService, 'embed').mockRejectedValue(
         new Error('API rate limit exceeded')
       );
 
       // Fallback succeeds
-      SupabaseServiceMock.getUserComponents.mockResolvedValue({
+      const getUserComponentsSpy = jest.spyOn(SupabaseService, 'getUserComponents').mockResolvedValue({
         components: fallbackComponents,
         total: 8,
       });
+      const similaritySearchSpy = jest.spyOn(SupabaseService, 'similaritySearchComponents');
 
       // Act
       const result = await CVGeneratorService.findRelevantComponents(
@@ -442,14 +440,14 @@ describe.skip('CVGeneratorService.findRelevantComponents', () => {
       expect(result).toEqual(fallbackComponents);
 
       // Verify embedding was attempted
-      expect(EmbeddingServiceMock.embed).toHaveBeenCalledTimes(1);
+      expect(embedSpy).toHaveBeenCalledTimes(1);
 
       // Verify similarity search was NOT called (embedding failed)
-      expect(SupabaseServiceMock.similaritySearchComponents).not.toHaveBeenCalled();
+      expect(similaritySearchSpy).not.toHaveBeenCalled();
 
       // Verify fallback was executed
-      expect(SupabaseServiceMock.getUserComponents).toHaveBeenCalledTimes(1);
-      expect(SupabaseServiceMock.getUserComponents).toHaveBeenCalledWith(userId);
+      expect(getUserComponentsSpy).toHaveBeenCalledTimes(1);
+      expect(getUserComponentsSpy).toHaveBeenCalledWith(userId);
 
       // Verify error and warning were logged
       expect(global.console.error).toHaveBeenCalledWith(
@@ -525,8 +523,8 @@ describe.skip('CVGeneratorService.findRelevantComponents', () => {
         }),
       ];
 
-      EmbeddingServiceMock.embed.mockResolvedValue(mockEmbedding);
-      SupabaseServiceMock.similaritySearchComponents.mockResolvedValue(mixedComponents);
+      jest.spyOn(EmbeddingService, 'embed').mockResolvedValue(mockEmbedding);
+      jest.spyOn(SupabaseService, 'similaritySearchComponents').mockResolvedValue(mixedComponents);
 
       // Act
       const result = await CVGeneratorService.findRelevantComponents(
@@ -563,8 +561,8 @@ describe.skip('CVGeneratorService.findRelevantComponents', () => {
       expect(result[4].id).toBe('comp_proj_1');
 
       // Verify all embeddings were processed
-      expect(EmbeddingServiceMock.embed).toHaveBeenCalledTimes(1);
-      expect(SupabaseServiceMock.similaritySearchComponents).toHaveBeenCalledTimes(1);
+      expect(EmbeddingService.embed).toHaveBeenCalledTimes(1);
+      expect(SupabaseService.similaritySearchComponents).toHaveBeenCalledTimes(1);
     });
   });
 });
