@@ -718,6 +718,176 @@ describe('EmbeddingService', () => {
       expect(calledText).toContain('Expert');
       expect(calledText).toContain('(Required)');
     });
+
+    // ============================================
+    // NEW TESTS FOR MISSING BRANCH COVERAGE
+    // ============================================
+
+    test('Given github_repository component, When embedComponent called, Then extracts name, language and topics', async () => {
+      // Arrange
+      const componentType = 'github_repository';
+      const data = {
+        name: 'awesome-nextjs-app',
+        description: 'A production-ready Next.js starter',
+        language: 'TypeScript',
+        topics: ['react', 'nextjs', 'tailwind'],
+      };
+
+      mockModel.embedContent.mockResolvedValue({
+        embedding: {
+          values: mockEmbeddingValues,
+        },
+      });
+
+      // Act
+      await EmbeddingService.embedComponent(componentType, data);
+
+      // Assert
+      const calledText = mockModel.embedContent.mock.calls[0][0];
+      expect(calledText).toContain('awesome-nextjs-app');
+      expect(calledText).toContain('TypeScript');
+      expect(calledText).toContain('react, nextjs, tailwind');
+    });
+
+    test('Given youtube_channel component, When embedComponent called, Then extracts title and description', async () => {
+      // Arrange
+      const componentType = 'youtube_channel';
+      const data = {
+        title: 'Tech Education Channel',
+        description: 'Programming tutorials and code reviews',
+      };
+
+      mockModel.embedContent.mockResolvedValue({
+        embedding: {
+          values: mockEmbeddingValues,
+        },
+      });
+
+      // Act
+      await EmbeddingService.embedComponent(componentType, data);
+
+      // Assert
+      const calledText = mockModel.embedContent.mock.calls[0][0];
+      expect(calledText).toContain('Tech Education Channel');
+      expect(calledText).toContain('Programming tutorials');
+    });
+
+    test('Given youtube_video component, When embedComponent called, Then extracts video details', async () => {
+      // Arrange
+      const componentType = 'youtube_video';
+      const data = {
+        title: 'Advanced React Patterns',
+        description: 'Deep dive into render props and HOCs',
+      };
+
+      mockModel.embedContent.mockResolvedValue({
+        embedding: {
+          values: mockEmbeddingValues,
+        },
+      });
+
+      // Act
+      await EmbeddingService.embedComponent(componentType, data);
+
+      // Assert
+      const calledText = mockModel.embedContent.mock.calls[0][0];
+      expect(calledText).toContain('Advanced React Patterns');
+      expect(calledText).toContain('Deep dive into render props');
+    });
+
+    test('Given linkedin_profile component, When embedComponent called, Then extracts headline and summary', async () => {
+      // Arrange
+      const componentType = 'linkedin_profile';
+      const data = {
+        headline: 'Senior Full Stack Engineer | React | Node.js',
+        summary: 'Building scalable web applications with modern tech stack',
+      };
+
+      mockModel.embedContent.mockResolvedValue({
+        embedding: {
+          values: mockEmbeddingValues,
+        },
+      });
+
+      // Act
+      await EmbeddingService.embedComponent(componentType, data);
+
+      // Assert
+      const calledText = mockModel.embedContent.mock.calls[0][0];
+      expect(calledText).toContain('Senior Full Stack Engineer');
+      expect(calledText).toContain('Building scalable web applications');
+    });
+
+    test('Given linkedin_certification component, When embedComponent called, Then extracts cert name and issuer', async () => {
+      // Arrange
+      const componentType = 'linkedin_certification';
+      const data = {
+        name: 'AWS Solutions Architect Professional',
+        issuer: 'Amazon Web Services',
+      };
+
+      mockModel.embedContent.mockResolvedValue({
+        embedding: {
+          values: mockEmbeddingValues,
+        },
+      });
+
+      // Act
+      await EmbeddingService.embedComponent(componentType, data);
+
+      // Assert
+      const calledText = mockModel.embedContent.mock.calls[0][0];
+      expect(calledText).toContain('AWS Solutions Architect Professional');
+      expect(calledText).toContain('Amazon Web Services');
+    });
+
+    test('Given linkedin_language component, When embedComponent called, Then extracts language and proficiency', async () => {
+      // Arrange
+      const componentType = 'linkedin_language';
+      const data = {
+        name: 'French',
+        proficiency: 'Native or bilingual proficiency',
+      };
+
+      mockModel.embedContent.mockResolvedValue({
+        embedding: {
+          values: mockEmbeddingValues,
+        },
+      });
+
+      // Act
+      await EmbeddingService.embedComponent(componentType, data);
+
+      // Assert
+      const calledText = mockModel.embedContent.mock.calls[0][0];
+      expect(calledText).toContain('French');
+      expect(calledText).toContain('Native or bilingual proficiency');
+    });
+
+    test('Given jd_metadata component, When embedComponent called, Then extracts job details', async () => {
+      // Arrange
+      const componentType = 'jd_metadata';
+      const data = {
+        title: 'Staff Software Engineer',
+        company: 'Google',
+        description: 'Leading technical initiatives for Cloud Platform',
+      };
+
+      mockModel.embedContent.mockResolvedValue({
+        embedding: {
+          values: mockEmbeddingValues,
+        },
+      });
+
+      // Act
+      await EmbeddingService.embedComponent(componentType, data);
+
+      // Assert
+      const calledText = mockModel.embedContent.mock.calls[0][0];
+      expect(calledText).toContain('Staff Software Engineer');
+      expect(calledText).toContain('Google');
+      expect(calledText).toContain('Leading technical initiatives');
+    });
   });
 
   // ============================================
