@@ -32,6 +32,40 @@ export class SupabaseService {
     return data;
   }
 
+  /**
+   * Get user email from auth.users
+   */
+  static async getUserEmail(userId: string): Promise<string | null> {
+    try {
+      const { data, error } = await this.supabase.auth.admin.getUserById(userId);
+
+      if (error) {
+        console.error('Error fetching user email:', error);
+        return null;
+      }
+
+      return data?.user?.email || null;
+    } catch (error) {
+      console.error('Exception fetching user email:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get complete user info (profile + email)
+   */
+  static async getUserInfo(userId: string): Promise<{
+    profile: Profile | null;
+    email: string | null;
+  }> {
+    const [profile, email] = await Promise.all([
+      this.getProfileById(userId),
+      this.getUserEmail(userId),
+    ]);
+
+    return { profile, email };
+  }
+
   static async getAllProfiles(): Promise<Profile[]> {
     const { data, error } = await this.supabase
       .from('profiles')

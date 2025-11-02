@@ -18,18 +18,17 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-COPY pnpm-lock.yaml ./
+# Copy package files
+COPY package.json pnpm-lock.yaml ./
 
+# Install dependencies (including devDependencies needed for build)
 RUN --mount=type=cache,target=/pnpm/store \
-  pnpm fetch --frozen-lockfile
+  pnpm install --frozen-lockfile
 
-COPY package.json ./
-
-RUN --mount=type=cache,target=/pnpm/store \
-  pnpm install --frozen-lockfile --prod --offline
-
+# Copy source code and configuration files
 COPY . .
 
+# Build the application
 RUN pnpm build
 
 FROM node:lts AS runtime

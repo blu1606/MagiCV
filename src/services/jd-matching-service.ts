@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto';
 import { EmbeddingService } from './embedding-service';
 import { SupabaseService } from './supabase-service';
 import { PDFService } from './pdf-service';
+import { SeniorityAnalysisService } from './seniority-analysis-service';
 import type { Component } from '@/lib/supabase';
 import type {
   JDComponent,
@@ -11,6 +12,7 @@ import type {
   JDComponentType,
 } from '@/lib/types/jd-matching';
 import { getMatchQuality } from '@/lib/types/jd-matching';
+import type { SeniorityLevel } from './seniority-analysis-service';
 
 type GroupedSkillInput = {
   category: string;
@@ -72,12 +74,18 @@ export class JDMatchingService {
       // Extract structured data using LLM
       const jdData = await PDFService.extractJDComponents(rawText);
 
+      // Extract seniority level from JD text
+      const seniorityLevel = SeniorityAnalysisService.parseSeniorityFromText(
+        `${jdData.title} ${rawText}`
+      );
+
       // Extract metadata
       const jdMetadata = {
         title: jdData.title || 'Untitled Position',
         company: jdData.company || 'Unknown Company',
         location: jdData.metadata?.location || undefined,
         description: rawText.substring(0, 500),
+        seniorityLevel: seniorityLevel || undefined,
       };
 
       const components: JDComponent[] = [];
@@ -446,7 +454,33 @@ export class JDMatchingService {
   }
 
   /**
-   * Match a single JD component with user's CV components
+   * Calculate keyword match bonus
+   * Boosts score if there are exact keyword matches
+   */
+  private static calculateKeywordBonus(
+    jdComponent: JDComponent,
+    cvComponent: Component
+  ): number {
+    const jdText = `${jdComponent.title} ${jdComponent.description}`.toLowerCase();
+    const cvText = `${cvComponent.title} ${cvComponent.description} ${cvComponent.highlights.join(' ')}`.toLowerCase();
+
+    // Extract important keywords (tech stack, skills, tools)
+    const techKeywords = jdText.match(/\b(react|vue|angular|node|python|java|aws|kubernetes|docker|sql|nosql|typescript|javascript|go|rust|c\+\+|c#|ruby|php|swift|kotlin|flutter|mongodb|postgres|redis|elasticsearch|kafka|graphql|rest|grpc|microservices|ci\/cd|jenkins|terraform|ansible)\b/gi) || [];
+
+    if (techKeywords.length === 0) return 0;
+
+    // Count how many keywords appear in CV text
+    const matchedKeywords = techKeywords.filter(keyword =>
+      cvText.includes(keyword.toLowerCase())
+    );
+
+    // Calculate bonus: up to +15 points for perfect keyword alignment
+    const matchRatio = matchedKeywords.length / techKeywords.length;
+    return Math.round(matchRatio * 15);
+  }
+
+  /**
+   * Match a single JD component with user's CV components (Enhanced with context awareness)
    */
   static async matchSingleComponent(
     jdComponent: JDComponent,
@@ -476,15 +510,22 @@ export class JDMatchingService {
                   cvEmbedding = await EmbeddingService.embedComponentObject(cvComponent);
                 }
 
-                const score = EmbeddingService.cosineSimilarity(
+                // Base similarity score
+                const similarityScore = EmbeddingService.cosineSimilarity(
                   jdComponent.embedding!,
                   cvEmbedding
                 );
 
-                return { component: cvComponent, score };
+                // Calculate keyword match bonus
+                const keywordBonus = this.calculateKeywordBonus(jdComponent, cvComponent);
+
+                // Combined score (similarity + bonus, capped at 100)
+                const combinedScore = Math.min(similarityScore + (keywordBonus / 100), 1.0);
+
+                return { component: cvComponent, score: combinedScore, keywordBonus };
               } catch (e: any) {
                 // Skip components that fail embedding/similarity
-                return { component: cvComponent, score: -1 };
+                return { component: cvComponent, score: -1, keywordBonus: 0 };
               }
             })
         )
@@ -504,8 +545,13 @@ export class JDMatchingService {
         };
       }
 
-      // Convert cosine similarity (0-1) to percentage (0-100)
-      const scorePercentage = Math.round(bestMatch.score * 100);
+      // Convert to percentage (0-100)
+      let scorePercentage = Math.round(bestMatch.score * 100);
+
+      // Log keyword bonus if significant
+      if (bestMatch.keywordBonus > 0) {
+        console.log(`  ✨ Keyword bonus: +${bestMatch.keywordBonus} points for ${jdComponent.title}`);
+      }
 
       // Generate reasoning using LLM
       const reasoning = await this.generateMatchReasoning(
@@ -642,7 +688,7 @@ Provide a concise explanation (1-2 sentences) of why this is a ${score >= 80 ? '
       };
     }
 
-    // Calculate overall score (weighted average)
+    // Calculate overall score (dynamic weighted average)
     const requiredMatches = validMatches.filter(m => m.jdComponent.required);
     const optionalMatches = validMatches.filter(m => !m.jdComponent.required);
 
@@ -654,8 +700,19 @@ Provide a concise explanation (1-2 sentences) of why this is a ${score >= 80 ? '
       ? optionalMatches.reduce((sum, m) => sum + m.score, 0) / optionalMatches.length
       : 0;
 
-    // Weight: 70% required, 30% optional
-    const overallScore = Math.round(requiredScore * 0.7 + optionalScore * 0.3);
+    // Dynamic weighting based on required/optional ratio
+    // If all required: 100% weight on required
+    // If all optional: 100% weight on optional
+    // If mixed: 70% required, 30% optional (default)
+    let overallScore: number;
+    if (requiredMatches.length === 0 && optionalMatches.length > 0) {
+      overallScore = Math.round(optionalScore);
+    } else if (optionalMatches.length === 0 && requiredMatches.length > 0) {
+      overallScore = Math.round(requiredScore);
+    } else {
+      // Standard weighting: 70% required, 30% optional
+      overallScore = Math.round(requiredScore * 0.7 + optionalScore * 0.3);
+    }
 
     // Calculate category scores
     const categoryScores = {
@@ -690,14 +747,34 @@ Provide a concise explanation (1-2 sentences) of why this is a ${score >= 80 ? '
 
   /**
    * Calculate score for a specific category
+   * Enhanced to map JD component types to CV component types intelligently
    */
   private static calculateCategoryScore(
     matches: MatchResult[],
     cvComponentTypes: Component['type'][]
   ): number {
-    const categoryMatches = matches.filter(m =>
-      m.cvComponent && cvComponentTypes.includes(m.cvComponent.type)
-    );
+    const categoryMatches = matches.filter(m => {
+      if (!m.cvComponent) return false;
+
+      // Direct type match
+      if (cvComponentTypes.includes(m.cvComponent.type)) return true;
+
+      // Enhanced mapping logic
+      // JD "skill" components can match CV skills, projects (that demonstrate skills), or experience
+      if (m.jdComponent.type === 'skill') {
+        return cvComponentTypes.includes('skill') ||
+               cvComponentTypes.includes('project') ||
+               cvComponentTypes.includes('experience');
+      }
+
+      // JD "requirement" or "responsibility" can match any CV component type
+      // as they represent broad job requirements
+      if (m.jdComponent.type === 'requirement' || m.jdComponent.type === 'responsibility') {
+        return true;
+      }
+
+      return false;
+    });
 
     if (categoryMatches.length === 0) return 0;
 
@@ -725,6 +802,33 @@ Provide a concise explanation (1-2 sentences) of why this is a ${score >= 80 ? '
       const { overallScore, categoryScores, missingComponents, suggestions } =
         this.calculateOverallScore(matches);
 
+      // Step 4: Perform seniority analysis if JD level detected
+      let seniorityAnalysis = undefined;
+      if (jdMetadata.seniorityLevel) {
+        try {
+          console.log(`🎯 Analyzing seniority match (JD level: ${jdMetadata.seniorityLevel})...`);
+          const userAnalysis = await SeniorityAnalysisService.analyzeSeniorityLevel(userId);
+          const matchResult = await SeniorityAnalysisService.validateSeniorityMatch(
+            userId,
+            jdMetadata.seniorityLevel
+          );
+
+          seniorityAnalysis = {
+            userLevel: matchResult.userLevel,
+            jdLevel: matchResult.jdLevel,
+            isMatch: matchResult.isMatch,
+            gap: matchResult.gap,
+            advice: matchResult.advice,
+            confidence: userAnalysis.confidence,
+          };
+
+          console.log(`✅ Seniority analysis: ${matchResult.userLevel} vs ${matchResult.jdLevel} (${matchResult.isMatch ? 'Match' : 'Mismatch'})`);
+        } catch (seniorityError: any) {
+          console.warn('⚠️ Seniority analysis failed:', seniorityError.message);
+          // Continue without seniority analysis
+        }
+      }
+
       const results: JDMatchingResults = {
         jdMetadata,
         jdComponents,
@@ -733,6 +837,7 @@ Provide a concise explanation (1-2 sentences) of why this is a ${score >= 80 ? '
         categoryScores,
         suggestions,
         missingComponents,
+        seniorityAnalysis,
       };
 
       console.log(`✅ Matching complete! Overall score: ${overallScore}%`);

@@ -1,6 +1,7 @@
 # Git
 .git
 .gitignore
+.github
 
 # Node
 node_modules
@@ -9,20 +10,24 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Environment files
+# Environment files (keep .env.example for reference)
 .env.local
-.env.example
 .env.*.local
 .env.*
+!.env.example
 
-# Build output
+# Build output (Next.js will rebuild)
+.next
 .mastra/
 dist/
 build/
+*.tsbuildinfo
 
-# IDE
+# IDE & Editor
 .vscode/
 .idea/
+.cursor
+.claude
 *.swp
 *.swo
 *~
@@ -34,6 +39,7 @@ Thumbs.db
 # Documentation
 *.md
 LICENSE
+docs/
 
 # Docker
 Dockerfile
@@ -44,8 +50,23 @@ Dockerfile
 *.temp
 .cache/
 
-# Test files
+# Test files & coverage
 coverage/
 .nyc_output/
+.swc/
+__mocks__/
+*.test.ts
+*.test.tsx
 *.test.js
+*.spec.ts
+*.spec.tsx
 *.spec.js
+playwright.config.ts
+jest.config.js
+jest.setup.js
+jest.setup.env.js
+TESTING_*.md
+
+# Archive & misc
+archive/
+*.pdf

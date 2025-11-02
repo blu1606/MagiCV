@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { SupabaseService } from '@/services/supabase-service';
 import { LaTeXService } from '@/services/latex-service';
+import { ProfessionalSummaryService } from '@/services/professional-summary-service';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { MatchResult, JDMatchingResults } from '@/lib/types/jd-matching';
 
@@ -69,6 +70,21 @@ export async function POST(request: NextRequest) {
       project: goodMatches.filter(m => m.cvComponent?.type === 'project'),
     };
 
+    // Generate professional summary from matches
+    let professionalSummary: string | undefined;
+    try {
+      console.log('📝 Generating professional summary...');
+      professionalSummary = await ProfessionalSummaryService.generateFromMatches(
+        goodMatches,
+        jdMetadata,
+        jdMetadata.seniorityLevel
+      );
+      console.log('✓ Professional summary generated');
+    } catch (error: any) {
+      console.warn('⚠️ Professional summary generation failed:', error.message);
+      // Continue without summary - it's optional
+    }
+
     // Use LLM to create optimized CV content
     // If customizedData is provided, merge it with the matched components
     const cvData = customizedData
@@ -76,12 +92,14 @@ export async function POST(request: NextRequest) {
           profile,
           componentsByType,
           jdMetadata,
-          customizedData
+          customizedData,
+          professionalSummary
         )
       : await generateOptimizedCVContent(
           profile,
           componentsByType,
-          jdMetadata
+          jdMetadata,
+          professionalSummary
         );
 
     console.log('✓ CV content generated');
@@ -134,7 +152,8 @@ async function generateOptimizedCVContent(
     skill: MatchResult[];
     project: MatchResult[];
   },
-  jdMetadata: JDMatchingResults['jdMetadata']
+  jdMetadata: JDMatchingResults['jdMetadata'],
+  professionalSummary?: string
 ): Promise<any> {
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (!apiKey) {
@@ -250,6 +269,11 @@ Return ONLY valid JSON without markdown formatting.`;
 
   const cvContent = JSON.parse(cleanText);
 
+  // Add professional summary if available
+  if (professionalSummary) {
+    cvContent.professionalSummary = professionalSummary;
+  }
+
   // Add default margins
   cvContent.margins = LaTeXService.getDefaultMargins();
 
@@ -268,7 +292,8 @@ async function generateOptimizedCVContentWithCustomizations(
     project: MatchResult[];
   },
   jdMetadata: JDMatchingResults['jdMetadata'],
-  customizedData: any
+  customizedData: any,
+  professionalSummary?: string
 ): Promise<any> {
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (!apiKey) {
@@ -386,6 +411,13 @@ Return ONLY valid JSON without markdown formatting.`;
   }
 
   const cvContent = JSON.parse(cleanText);
+
+  // Add professional summary if available (prioritize custom summary, fallback to generated)
+  if (customizedData.summary) {
+    cvContent.professionalSummary = customizedData.summary;
+  } else if (professionalSummary) {
+    cvContent.professionalSummary = professionalSummary;
+  }
 
   // Add default margins
   cvContent.margins = LaTeXService.getDefaultMargins();

@@ -1,6 +1,6 @@
 'use client'
 
-import { Target, TrendingUp, Briefcase, GraduationCap, Code, FolderKanban, AlertTriangle } from 'lucide-react'
+import { Target, TrendingUp, Briefcase, GraduationCap, Code, FolderKanban, AlertTriangle, Award, CheckCircle2, XCircle } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -31,6 +31,82 @@ export function JDMatchingVisualization({ results }: JDMatchingVisualizationProp
 
   return (
     <div className="space-y-6">
+      {/* Seniority Match Card */}
+      {results.seniorityAnalysis && (
+        <Card className={`backdrop-blur-sm ${
+          results.seniorityAnalysis.isMatch
+            ? 'bg-green-500/5 border-green-500/30'
+            : results.seniorityAnalysis.gap === -1
+            ? 'bg-blue-500/5 border-blue-500/30'
+            : 'bg-orange-500/5 border-orange-500/30'
+        }`}>
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Award className={`w-5 h-5 ${
+                results.seniorityAnalysis.isMatch
+                  ? 'text-green-500'
+                  : results.seniorityAnalysis.gap === -1
+                  ? 'text-blue-500'
+                  : 'text-orange-500'
+              }`} />
+              Seniority Level Match
+            </CardTitle>
+            <CardDescription className="text-[#94a3b8]">
+              Analysis based on your experience and the job requirements
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* User Level */}
+              <div className="flex flex-col items-center p-4 bg-white/5 rounded-lg border border-white/10">
+                <span className="text-sm text-[#94a3b8] mb-2">Your Level</span>
+                <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-lg px-4 py-1 capitalize">
+                  {results.seniorityAnalysis.userLevel}
+                </Badge>
+                <span className="text-xs text-[#94a3b8] mt-2">{results.seniorityAnalysis.confidence}% confidence</span>
+              </div>
+
+              {/* Match Status */}
+              <div className="flex flex-col items-center justify-center p-4">
+                {results.seniorityAnalysis.isMatch ? (
+                  <CheckCircle2 className="w-12 h-12 text-green-500 mb-2" />
+                ) : (
+                  <XCircle className="w-12 h-12 text-orange-500 mb-2" />
+                )}
+                <span className={`text-sm font-medium ${
+                  results.seniorityAnalysis.isMatch ? 'text-green-400' : 'text-orange-400'
+                }`}>
+                  {results.seniorityAnalysis.isMatch ? 'Good Match!' :
+                   results.seniorityAnalysis.gap === -1 ? 'Stretch Opportunity' :
+                   results.seniorityAnalysis.gap > 0 ? 'Overqualified' : 'Level Gap'}
+                </span>
+                {results.seniorityAnalysis.gap !== 0 && (
+                  <span className="text-xs text-[#94a3b8] mt-1">
+                    {Math.abs(results.seniorityAnalysis.gap)} level {Math.abs(results.seniorityAnalysis.gap) > 1 ? 'difference' : 'apart'}
+                  </span>
+                )}
+              </div>
+
+              {/* JD Level */}
+              <div className="flex flex-col items-center p-4 bg-white/5 rounded-lg border border-white/10">
+                <span className="text-sm text-[#94a3b8] mb-2">Required Level</span>
+                <Badge className="bg-[#0ea5e9]/10 text-[#0ea5e9] border-[#0ea5e9]/20 text-lg px-4 py-1 capitalize">
+                  {results.seniorityAnalysis.jdLevel}
+                </Badge>
+                <span className="text-xs text-[#94a3b8] mt-2">From job posting</span>
+              </div>
+            </div>
+
+            {/* Advice */}
+            <div className="mt-4 p-4 bg-white/5 rounded-lg border border-white/10">
+              <p className="text-sm text-[#94a3b8] leading-relaxed">
+                {results.seniorityAnalysis.advice}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Overall Score Card */}
       <Card className="bg-[#0f172a]/80 backdrop-blur-sm border-[#0ea5e9]/30">
         <CardHeader>

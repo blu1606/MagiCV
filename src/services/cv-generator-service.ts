@@ -2,6 +2,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { SupabaseService } from './supabase-service';
 import { EmbeddingService } from './embedding-service';
 import { LaTeXService } from './latex-service';
+import { LLMUtilsService } from './llm-utils-service';
 import type { Component, Profile } from '@/lib/supabase';
 import { PDFService } from './pdf-service';
 
@@ -179,18 +180,28 @@ Output format:
 
 Important: Select only the BEST 3-5 items per category. Quality over quantity!`;
 
-      const result = await model.generateContent(prompt);
-      const response = result.response.text();
-
-      // Clean response
-      let cleanText = response.trim();
-      if (cleanText.startsWith('```json')) {
-        cleanText = cleanText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-      } else if (cleanText.startsWith('```')) {
-        cleanText = cleanText.replace(/^```\s*/, '').replace(/\s*```$/, '');
-      }
-
-      const selected = JSON.parse(cleanText);
+      // Use LLM utils for robust JSON parsing and retry logic
+      const selected = await LLMUtilsService.callWithRetry(model, prompt, {
+        maxRetries: 3,
+        parseJSON: true,
+        validator: (data: any) => {
+          // Validate structure
+          if (!data.experiences || !Array.isArray(data.experiences)) {
+            console.error('Invalid structure: missing experiences array');
+            return false;
+          }
+          if (!data.education || !Array.isArray(data.education)) {
+            console.error('Invalid structure: missing education array');
+            return false;
+          }
+          if (!data.skills) {
+            console.error('Invalid structure: missing skills object');
+            return false;
+          }
+          return true;
+        },
+        validatorErrorMessage: 'Response must include experiences, education, skills, and projects arrays',
+      });
 
       console.log('✅ Components selected and ranked');
       return selected;
@@ -215,8 +226,8 @@ Important: Select only the BEST 3-5 items per category. Quality over quantity!`;
     try {
       console.log('📝 Generating CV content...');
 
-      // Get profile
-      const profile = await SupabaseService.getProfileById(userId);
+      // Get profile and email
+      const { profile, email } = await SupabaseService.getUserInfo(userId);
       if (!profile) {
         throw new Error('Profile not found');
       }
@@ -243,10 +254,10 @@ Important: Select only the BEST 3-5 items per category. Quality over quantity!`;
       const cvData = {
         profile: {
           name: profile.full_name || 'Your Name',
-          email: 'email@example.com', // Should get from auth.users
-          phone: '(000) 000-0000',
-          address: '123 Street',
-          city_state_zip: 'City, State ZIP',
+          email: email || 'email@example.com',
+          phone: '(000) 000-0000', // TODO: Add phone to profile table
+          address: '123 Street', // TODO: Add address to profile table
+          city_state_zip: 'City, State ZIP', // TODO: Add location to profile table
         },
         margins: LaTeXService.getDefaultMargins(),
         education: selected.education || [],
@@ -329,7 +340,7 @@ Important: Select only the BEST 3-5 items per category. Quality over quantity!`;
   }
 
   /**
-   * Generate full CV PDF
+   * Generate full CV PDF with intelligent fallback strategy
    */
   static async generateCVPDF(
     userId: string,
@@ -345,19 +356,58 @@ Important: Select only the BEST 3-5 items per category. Quality over quantity!`;
       // Generate CV content
       const cvData = await this.generateCVContent(userId, jobDescription, options);
 
-      // Generate PDF from template
-      let pdfBuffer: Buffer;
-      
-      if (options?.useOnlineCompiler) {
-        // Use online compiler
-        const latexContent = await LaTeXService.renderTemplate('resume.tex.njk', cvData);
-        pdfBuffer = await LaTeXService.generatePDFOnline(latexContent);
-      } else {
-        // Use local pdflatex
-        pdfBuffer = await LaTeXService.generatePDF('resume.tex.njk', cvData);
+      // Validate CV data before compilation
+      const validation = LaTeXService.validateResumeData(cvData);
+      if (!validation.valid) {
+        console.warn('⚠️ CV data validation warnings:', validation.errors);
+        // Continue anyway but log warnings
       }
 
-      console.log('✅ CV PDF generated successfully');
+      // Generate PDF from template with fallback strategy
+      let pdfBuffer: Buffer;
+      let compilationMethod: string;
+
+      try {
+        if (options?.useOnlineCompiler !== false) {
+          // Try online compiler first (default)
+          console.log('🌐 Attempting online compilation...');
+          const latexContent = await LaTeXService.renderTemplate('resume.tex.njk', cvData);
+          pdfBuffer = await LaTeXService.generatePDFOnline(latexContent);
+          compilationMethod = 'online';
+        } else {
+          // Use local if explicitly requested
+          console.log('🖥️ Using local compilation...');
+          pdfBuffer = await LaTeXService.generatePDF('resume.tex.njk', cvData);
+          compilationMethod = 'local';
+        }
+      } catch (primaryError: any) {
+        console.warn(`⚠️ Primary compilation (${options?.useOnlineCompiler !== false ? 'online' : 'local'}) failed:`, primaryError.message);
+
+        // Fallback to alternative method
+        try {
+          if (options?.useOnlineCompiler !== false) {
+            // Online failed, try local
+            console.log('🔄 Falling back to local compilation...');
+            pdfBuffer = await LaTeXService.generatePDF('resume.tex.njk', cvData);
+            compilationMethod = 'local (fallback)';
+          } else {
+            // Local failed, try online
+            console.log('🔄 Falling back to online compilation...');
+            const latexContent = await LaTeXService.renderTemplate('resume.tex.njk', cvData);
+            pdfBuffer = await LaTeXService.generatePDFOnline(latexContent);
+            compilationMethod = 'online (fallback)';
+          }
+        } catch (fallbackError: any) {
+          console.error('❌ Both compilation methods failed');
+          console.error('Primary error:', primaryError.message);
+          console.error('Fallback error:', fallbackError.message);
+          throw new Error(
+            `PDF generation failed. Primary: ${primaryError.message}. Fallback: ${fallbackError.message}`
+          );
+        }
+      }
+
+      console.log(`✅ CV PDF generated successfully (${compilationMethod})`);
 
       return {
         pdfBuffer,
@@ -365,6 +415,18 @@ Important: Select only the BEST 3-5 items per category. Quality over quantity!`;
       };
     } catch (error: any) {
       console.error('❌ Error generating CV PDF:', error.message);
+
+      // Provide more helpful error messages
+      if (error.message.includes('Profile not found')) {
+        throw new Error('User profile not found. Please create a profile first.');
+      }
+      if (error.message.includes('No components found')) {
+        throw new Error('No CV components found. Please add your experiences, skills, or education.');
+      }
+      if (error.message.includes('pdflatex is not installed')) {
+        throw new Error('PDF compilation failed. Please ensure pdflatex is installed or use online compilation.');
+      }
+
       throw error;
     }
   }

@@ -1,7 +1,9 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { EmbeddingCacheService } from './embedding-cache-service';
 
 /**
  * Embedding Service using Google Gemini embedding-004 model
+ * Now with caching to reduce API calls
  */
 export class EmbeddingService {
   private static genAI: GoogleGenerativeAI | null = null;
@@ -20,8 +22,17 @@ export class EmbeddingService {
   /**
    * Generate embedding for text using Gemini text-embedding-004
    * Returns 768-dimensional vector
+   * Now with caching support
    */
-  static async embed(text: string): Promise<number[]> {
+  static async embed(text: string, useCache: boolean = true): Promise<number[]> {
+    // Check cache first
+    if (useCache) {
+      const cached = EmbeddingCacheService.get(text);
+      if (cached) {
+        return cached;
+      }
+    }
+
     const genAI = this.getClient();
     const model = genAI.getGenerativeModel({ model: 'text-embedding-004' });
 
@@ -36,6 +47,11 @@ export class EmbeddingService {
 
         if (!embedding.values || embedding.values.length === 0) {
           throw new Error('No embedding values returned');
+        }
+
+        // Cache the result
+        if (useCache) {
+          EmbeddingCacheService.set(text, embedding.values);
         }
 
         return embedding.values;

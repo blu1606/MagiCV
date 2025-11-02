@@ -1,4 +1,5 @@
 import type { Component } from '@/lib/supabase';
+import type { SeniorityLevel } from '@/services/seniority-analysis-service';
 
 /**
  * JD Component types
@@ -39,6 +40,7 @@ export interface JDMatchingResults {
     company: string;
     location?: string;
     description: string;
+    seniorityLevel?: SeniorityLevel;
   };
   jdComponents: JDComponent[];
   matches: MatchResult[];
@@ -51,6 +53,14 @@ export interface JDMatchingResults {
   };
   suggestions: string[];
   missingComponents: JDComponent[];
+  seniorityAnalysis?: {
+    userLevel: SeniorityLevel;
+    jdLevel: SeniorityLevel;
+    isMatch: boolean;
+    gap: number;
+    advice: string;
+    confidence: number;
+  };
 }
 
 /**

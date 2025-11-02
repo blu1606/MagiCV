@@ -32,7 +32,7 @@ type AggregatedSkillCategory = {
   technologies: string[];
   repoCount: number;
   notableProjects: string[];
-  languageBreakdown: Array<{ language: string; count: number; percentage?: number }>;
+  languageBreakdown: Array<{ language: string; count: number; percentage: number }>;
   totalPercentage: number;
 };
 
@@ -630,7 +630,7 @@ export class GitHubComponentService {
           ([language, data]) => ({
             language,
             count: data.count,
-            percentage: data.percentage,
+            percentage: data.percentage ?? 0,
           })
         );
         const totalPercentage = languageBreakdown.reduce(
@@ -734,7 +734,7 @@ export class GitHubComponentService {
     const languages = Array.from(languageMap.entries()).map(([language, data]) => ({
       language,
       count: data.count,
-      percentage: data.percentage,
+      percentage: data.percentage ?? 0,
     }));
     const totalPercentage = languages.reduce((acc, item) => acc + (item.percentage ?? 0), 0);
 
