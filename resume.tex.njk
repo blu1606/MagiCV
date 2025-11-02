@@ -19,7 +19,7 @@
 % Header (Name)
 % =========================
 \begin{center}
-    \textbf{{{ profile.name }}}\\
+    \textbf{ {{- profile.name -}} }\\
     \hrulefill
 \end{center}
 
@@ -55,7 +55,7 @@
 \end{center}
 
 {% for ed in education %}
-\textbf{{{ ed.school }}} \hfill {{ ed.location }}
+\textbf{ {{- ed.school -}} } \hfill {{ ed.location }}
 
 {{ ed.degree }}{% if ed.concentration %}, {{ ed.concentration }}{% endif %}{% if ed.gpa %}. GPA: {{ ed.gpa }}{% endif %} \hfill {{ ed.graduation_date }}{% if ed.thesis %} \\
 Thesis: {{ ed.thesis }}{% endif %}
@@ -75,7 +75,7 @@ Study abroad coursework in {{ study_abroad.topic }}. \hfill {{ study_abroad.star
 {% endif %}
 
 {% if high_school %}
-\textbf{{{ high_school.name }}} \hfill {{ high_school.location }}\\
+\textbf{ {{- high_school.name -}} } \hfill {{ high_school.location }}\\
 {% if high_school.details %}{{ high_school.details }} \hfill {{ high_school.graduation_date }}{% else %}Graduation Date: {{ high_school.graduation_date }}{% endif %}
 
 \vspace{12pt}
@@ -89,8 +89,8 @@ Study abroad coursework in {{ study_abroad.topic }}. \hfill {{ study_abroad.star
 \end{center}
 
 {% for exp in experience %}
-\textbf{{{ exp.organization }}} \hfill {{ exp.location }}{% if exp.remote %} (Remote){% endif %}\\
-\textbf{{{ exp.title }}} \hfill {{ exp.start }} -- {{ exp.end }}
+\textbf{ {{- exp.organization -}} } \hfill {{ exp.location }}{% if exp.remote %} (Remote){% endif %}\\
+\textbf{ {{- exp.title -}} } \hfill {{ exp.start }} -- {{ exp.end }}
 \begin{itemize}[noitemsep, topsep=0pt, partopsep=0pt, parsep=0pt]
 {% for b in exp.bullets %}
     \item {{ b }}
@@ -109,8 +109,8 @@ Study abroad coursework in {{ study_abroad.topic }}. \hfill {{ study_abroad.star
 \end{center}
 
 {% for act in leadership %}
-\textbf{{{ act.organization }}} \hfill {{ act.location }}\\
-\textbf{{{ act.role }}} \hfill {{ act.start }} -- {{ act.end }}
+\textbf{ {{- act.organization -}} } \hfill {{ act.location }}\\
+\textbf{ {{- act.role -}} } \hfill {{ act.start }} -- {{ act.end }}
 {% if act.bullets and act.bullets|length > 0 %}
 \begin{itemize}[noitemsep, topsep=0pt, partopsep=0pt, parsep=0pt]
 {% for b in act.bullets %}

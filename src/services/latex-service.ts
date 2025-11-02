@@ -150,35 +150,108 @@ export class LaTeXService {
   static async generatePDFOnline(
     latexContent: string
   ): Promise<Buffer> {
-    try {
-      console.log('🌐 Compiling LaTeX using online service...');
-      
-      const FormData = require('form-data');
-      const fetch = (await import('node-fetch')).default;
-      
-      const form = new FormData();
-      form.append('file', Buffer.from(latexContent), {
-        filename: 'document.tex',
-        contentType: 'text/plain',
-      });
+    const fetch = (await import('node-fetch')).default;
+    const FormData = require('form-data');
 
-      const response = await fetch('https://latexonline.cc/compile?command=pdflatex', {
-        method: 'POST',
-        body: form,
-      });
+    console.log('🌐 Compiling LaTeX using online service...');
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    // List of free LaTeX compilation services
+    const services = [
+      {
+        name: 'latex.ytotech.com',
+        compile: async () => {
+          const form = new FormData();
+          form.append('compiler', 'pdflatex');
+          form.append('resources[]', Buffer.from(latexContent), {
+            filename: 'main.tex',
+            contentType: 'text/x-tex',
+          });
+
+          const response = await fetch('https://latex.ytotech.com/builds/sync', {
+            method: 'POST',
+            body: form,
+            headers: form.getHeaders(),
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          return await response.buffer();
+        }
+      },
+      {
+        name: 'texlive.net',
+        compile: async () => {
+          const form = new FormData();
+          form.append('filecontents[]', latexContent);
+          form.append('filename[]', 'document.tex');
+          form.append('engine', 'pdflatex');
+
+          const response = await fetch('https://texlive.net/cgi-bin/latexcgi', {
+            method: 'POST',
+            body: form,
+            headers: form.getHeaders(),
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          return await response.buffer();
+        }
+      },
+      {
+        name: 'latexbase.com',
+        compile: async () => {
+          // LaTeX Base API
+          const response = await fetch('https://latexbase.com/api/v1/compile', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              latex: latexContent,
+              format: 'pdf',
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          const result = await response.json();
+          if (result.pdf_url) {
+            const pdfResponse = await fetch(result.pdf_url);
+            return await pdfResponse.buffer();
+          }
+
+          throw new Error('No PDF URL returned');
+        }
       }
+    ];
 
-      const pdfBuffer = await response.buffer();
-      console.log('✅ PDF compiled successfully (online)');
-      
-      return pdfBuffer;
-    } catch (error: any) {
-      console.error('❌ Online LaTeX compilation error:', error.message);
-      throw new Error(`Failed to compile LaTeX online: ${error.message}`);
+    // Try each service sequentially
+    const errors: string[] = [];
+
+    for (const service of services) {
+      try {
+        console.log(`  → Trying ${service.name}...`);
+        const pdfBuffer = await service.compile();
+        console.log(`✅ PDF compiled successfully (${service.name})`);
+        return pdfBuffer;
+      } catch (error: any) {
+        const errorMsg = `${service.name}: ${error.message}`;
+        console.warn(`  ✗ ${errorMsg}`);
+        errors.push(errorMsg);
+        continue;
+      }
     }
+
+    // All services failed
+    const errorMessage = `All online LaTeX compilers failed:\n${errors.join('\n')}`;
+    console.error('❌ Online LaTeX compilation error:', errorMessage);
+    throw new Error(errorMessage);
   }
 
   /**

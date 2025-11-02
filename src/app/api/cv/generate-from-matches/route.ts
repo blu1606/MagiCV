@@ -62,13 +62,32 @@ export async function POST(request: NextRequest) {
 
     console.log(`✓ Using ${goodMatches.length} matched components`);
 
-    // Group components by type
+    // Get ALL user components to ensure we always include essential info (education, awards, etc.)
+    const allUserComponents = await SupabaseService.getComponentsByUserId(user.id);
+    console.log(`✓ Found ${allUserComponents.length} total user components`);
+
+    // Group matched components by type
     const componentsByType = {
       experience: goodMatches.filter(m => m.cvComponent?.type === 'experience'),
       education: goodMatches.filter(m => m.cvComponent?.type === 'education'),
       skill: goodMatches.filter(m => m.cvComponent?.type === 'skill'),
       project: goodMatches.filter(m => m.cvComponent?.type === 'project'),
     };
+
+    // Always include ALL education (essential for CV completeness)
+    const allEducation = allUserComponents.filter(c => c.type === 'education');
+    const educationIds = new Set(componentsByType.education.map(m => m.cvComponent!.id));
+    const additionalEducation = allEducation.filter(edu => !educationIds.has(edu.id));
+
+    if (additionalEducation.length > 0) {
+      console.log(`✓ Adding ${additionalEducation.length} additional education entries (not matched but essential)`);
+      componentsByType.education.push(...additionalEducation.map(edu => ({
+        jdComponent: { id: 'default', type: 'education' as const, title: '', description: '', highlights: [], embedding: null, created_at: '', updated_at: '' },
+        cvComponent: edu,
+        score: 100, // Mark as essential
+        reasoning: 'Essential education information',
+      })));
+    }
 
     // Generate professional summary from matches
     let professionalSummary: string | undefined;
