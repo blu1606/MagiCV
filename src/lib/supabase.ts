@@ -99,6 +99,7 @@ export interface CV {
   job_description?: string;
   match_score?: number;
   content: any; // jsonb
+  embedding?: number[]; // vector(768) - for vector search
   created_at: string;
   updated_at: string;
 }
