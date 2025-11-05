@@ -297,7 +297,7 @@ export function DashboardPage() {
                     AI-Optimized CV
                   </ShimmerButton>
                 </DialogTrigger>
-              <DialogContent className="sm:max-w-lg md:max-w-xl bg-[#0f172a]/95 backdrop-blur-sm border-white/20 text-white max-h-[90vh] overflow-y-auto p-8">
+              <DialogContent className="sm:max-w-md md:max-w-lg bg-[#0f172a]/95 backdrop-blur-sm border-white/20 text-white max-h-[85vh] overflow-y-auto p-6">
                 <DialogHeader>
                   <DialogTitle className="text-white flex items-center gap-2">
                     <Sparkles className="w-5 h-5 text-[#22d3ee]" />
@@ -467,8 +467,36 @@ export function DashboardPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={(e) => {
+                            onClick={async (e) => {
                               e.preventDefault()
+                              e.stopPropagation()
+                              try {
+                                const response = await fetch(`/api/cv/${cv.id}/download`)
+                                if (!response.ok) {
+                                  const error = await response.json()
+                                  throw new Error(error.error || 'Download failed')
+                                }
+                                const blob = await response.blob()
+                                const url = URL.createObjectURL(blob)
+                                const a = document.createElement('a')
+                                a.href = url
+                                a.download = `CV-${cv.title}-${Date.now()}.pdf`
+                                document.body.appendChild(a)
+                                a.click()
+                                document.body.removeChild(a)
+                                URL.revokeObjectURL(url)
+                                toast({
+                                  title: 'CV Downloaded',
+                                  description: 'Your CV has been downloaded successfully',
+                                })
+                              } catch (error: any) {
+                                console.error('Download error:', error)
+                                toast({
+                                  title: 'Download Failed',
+                                  description: error.message || 'Failed to download CV',
+                                  variant: 'destructive'
+                                })
+                              }
                             }}
                             title="Download CV"
                             className="text-white hover:bg-white/10"

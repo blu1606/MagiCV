@@ -111,6 +111,25 @@ export function CVEditorPage({
     projects: [],
   })
 
+  // Handle cvId "new" - reset to empty CV
+  useEffect(() => {
+    if (cvId === "new") {
+      setCvData({
+        name: "",
+        email: "",
+        phone: "",
+        summary: "",
+        experience: [],
+        skills: [],
+        education: [],
+        projects: [],
+      })
+      setJobDescription("")
+      setMatchScore(null)
+      setMatchDetails(null)
+    }
+  }, [cvId])
+
   // Fetch user profile on mount
   useEffect(() => {
     const fetchProfile = async () => {
@@ -120,13 +139,23 @@ export function CVEditorPage({
           const data = await response.json()
           setUserProfile(data.profile)
           console.log('👤 User Profile:', data.profile)
+
+          // If creating new CV, pre-fill with user profile
+          if (cvId === "new" && data.profile) {
+            setCvData(prev => ({
+              ...prev,
+              name: data.profile.full_name || "",
+              email: data.profile.email || "",
+              phone: data.profile.phone || "",
+            }))
+          }
         }
       } catch (error) {
         console.error('Failed to fetch profile:', error)
       }
     }
     fetchProfile()
-  }, [])
+  }, [cvId])
 
   const handleExport = async (format: "pdf" | "json") => {
     setIsExporting(true)

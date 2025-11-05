@@ -45,7 +45,7 @@ export function ComponentLibraryStats() {
 
   if (loading) {
     return (
-      <Card className="bg-gradient-to-br from-[#22d3ee]/10 to-[#0ea5e9]/10 border-[#22d3ee]/20 p-6">
+      <Card className="bg-gradient-to-br from-[#22d3ee]/10 to-[#0ea5e9]/10 border-[#22d3ee]/20 p-4">
         <div className="flex items-center justify-center py-8">
           <div className="w-8 h-8 border-2 border-[#22d3ee] border-t-transparent rounded-full animate-spin" />
         </div>
@@ -55,7 +55,7 @@ export function ComponentLibraryStats() {
 
   if (stats.total === 0) {
     return (
-      <Card className="bg-gradient-to-br from-[#22d3ee]/10 to-[#0ea5e9]/10 border-[#22d3ee]/20 p-6">
+      <Card className="bg-gradient-to-br from-[#22d3ee]/10 to-[#0ea5e9]/10 border-[#22d3ee]/20 p-4">
         <div className="flex items-start gap-4">
           <div className="p-3 rounded-lg bg-[#22d3ee]/10 border border-[#22d3ee]/20">
             <Sparkles className="w-6 h-6 text-[#22d3ee]" />
@@ -115,7 +115,7 @@ export function ComponentLibraryStats() {
   ]
 
   return (
-    <Card className="bg-gradient-to-br from-[#22d3ee]/10 to-[#0ea5e9]/10 border-[#22d3ee]/20 p-6">
+    <Card className="bg-gradient-to-br from-[#22d3ee]/10 to-[#0ea5e9]/10 border-[#22d3ee]/20 p-4">
       <div className="flex items-start justify-between mb-4">
         <div>
           <h3 className="text-lg font-semibold text-white mb-1">
@@ -125,7 +125,7 @@ export function ComponentLibraryStats() {
             Reusable CV components ready for any job application
           </p>
         </div>
-        <Link href="/components/library">
+        <Link href="/library">
           <Button
             variant="ghost"
             size="sm"

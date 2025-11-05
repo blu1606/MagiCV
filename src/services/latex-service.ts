@@ -220,9 +220,9 @@ export class LaTeXService {
             throw new Error(`HTTP ${response.status}`);
           }
 
-          const result = await response.json();
+          const result: any = await response.json();
           if (result.pdf_url) {
-            const pdfResponse = await fetch(result.pdf_url);
+            const pdfResponse = await fetch(result.pdf_url as string);
             return await pdfResponse.buffer();
           }
 

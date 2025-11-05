@@ -138,7 +138,7 @@ export function QuickMatchScore({ userId, variant = 'default' }: QuickMatchScore
 
   return (
     <div className="space-y-4">
-      <Card className="bg-gradient-to-br from-[#0ea5e9]/10 to-[#22d3ee]/10 border-[#0ea5e9]/20 p-6">
+      <Card className="bg-gradient-to-br from-[#0ea5e9]/10 to-[#22d3ee]/10 border-[#0ea5e9]/20 p-4">
         <div className="flex items-start gap-4">
           <div className="p-3 rounded-lg bg-[#0ea5e9]/10 border border-[#0ea5e9]/20">
             <Target className="w-6 h-6 text-[#0ea5e9]" />
