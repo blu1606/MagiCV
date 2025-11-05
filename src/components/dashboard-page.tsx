@@ -358,7 +358,7 @@ export function DashboardPage() {
         </div>
 
         {/* Widgets Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 gap-6 mb-8">
           {/* Quick Match Score Widget */}
           <QuickMatchScore variant="default" />
 

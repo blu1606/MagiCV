@@ -168,7 +168,7 @@ export function DataSourcesPage() {
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <Card className="bg-[#0f172a]/80 backdrop-blur-sm border-white/10 p-6">
+          <Card className="bg-[#0f172a]/80 backdrop-blur-sm border-white/10 p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-slate-400 text-sm mb-1">Connected Sources</p>
@@ -181,7 +181,7 @@ export function DataSourcesPage() {
             <Progress value={(connectedSources / 3) * 100} className="mt-4 h-2" />
           </Card>
 
-          <Card className="bg-[#0f172a]/80 backdrop-blur-sm border-white/10 p-6">
+          <Card className="bg-[#0f172a]/80 backdrop-blur-sm border-white/10 p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-slate-400 text-sm mb-1">Total Components</p>
@@ -193,7 +193,7 @@ export function DataSourcesPage() {
             </div>
           </Card>
 
-          <Card className="bg-[#0f172a]/80 backdrop-blur-sm border-white/10 p-6">
+          <Card className="bg-[#0f172a]/80 backdrop-blur-sm border-white/10 p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-slate-400 text-sm mb-1">Last Updated</p>
@@ -219,7 +219,7 @@ export function DataSourcesPage() {
 
             return (
               <Card key={key} className="bg-[#0f172a]/80 backdrop-blur-sm border-white/10 hover:border-[#0ea5e9]/30 transition-all">
-                <div className="p-6">
+                <div className="p-4">
                   {/* Header */}
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
@@ -319,7 +319,7 @@ export function DataSourcesPage() {
         </div>
 
         {/* Help Section */}
-        <Card className="mt-8 bg-[#0ea5e9]/5 border-[#0ea5e9]/20 p-6">
+        <Card className="mt-8 bg-[#0ea5e9]/5 border-[#0ea5e9]/20 p-4">
           <div className="flex items-start gap-4">
             <div className="p-2 rounded-lg bg-[#0ea5e9]/10 border border-[#0ea5e9]/20 flex-shrink-0">
               <AlertCircle className="w-5 h-5 text-[#0ea5e9]" />

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseAdmin } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/server'
 
 /**
  * GET /api/data-sources/status
@@ -7,18 +7,10 @@ import { getSupabaseAdmin } from '@/lib/supabase'
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = getSupabaseAdmin()
+    const supabase = await createClient()
 
-    // Get user from auth header
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user from token
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    )
+    // Get user from session
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

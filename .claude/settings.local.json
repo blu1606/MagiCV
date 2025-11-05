@@ -5,7 +5,9 @@
       "Bash(npx tsc --noEmit)",
       "Bash(pnpm test:*)",
       "Bash(pnpm test:coverage:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(dir:*)",
+      "Bash(test:*)"
     ],
     "deny": [],
     "ask": []
