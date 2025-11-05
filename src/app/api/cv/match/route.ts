@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CVGeneratorService } from '@/services/cv-generator-service';
 import { SupabaseService } from '@/services/supabase-service';
+import { MatchScoreOptimizerService } from '@/services/match-score-optimizer-service';
 
 /**
  * POST /api/cv/match - Calculate match score between CV components and JD
- * 
+ *
+ * NOTE: This endpoint now uses the optimized weighted scoring algorithm
+ * for consistency across the application.
+ *
  * Body:
  * {
  *   userId: string,
  *   jobDescription: string,
- *   detailed?: boolean (return detailed analysis)
+ *   detailed?: boolean (return detailed analysis with breakdown)
  * }
  */
 export async function POST(request: NextRequest) {
@@ -33,64 +37,45 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('📊 Calculating match score for user:', userId);
+    console.log('📊 Calculating optimized match score for user:', userId);
 
-    // Calculate match score
-    const matchResult = await CVGeneratorService.calculateMatchScore(
+    // Use optimized weighted scoring algorithm
+    const optimizedResult = await MatchScoreOptimizerService.calculateOptimizedMatchScore(
       userId,
-      jobDescription
+      jobDescription,
+      {
+        useCache: true,
+        topK: 50,
+      }
     );
 
-    let detailedAnalysis = null;
-
-    if (detailed) {
-      // Get relevant components for detailed view
-      const components = await CVGeneratorService.findRelevantComponents(
-        userId,
-        jobDescription,
-        20
-      );
-
-      // Group by type
-      const componentsByType = {
-        experience: components.filter(c => c.type === 'experience'),
-        education: components.filter(c => c.type === 'education'),
-        skill: components.filter(c => c.type === 'skill'),
-        project: components.filter(c => c.type === 'project'),
-      };
-
-      detailedAnalysis = {
-        totalComponents: components.length,
-        componentsByType: {
-          experience: componentsByType.experience.length,
-          education: componentsByType.education.length,
-          skill: componentsByType.skill.length,
-          project: componentsByType.project.length,
-        },
-        topComponents: {
-          experience: componentsByType.experience.slice(0, 3).map(c => ({
-            id: c.id,
-            title: c.title,
-            organization: c.organization,
-            description: c.description?.substring(0, 100),
-          })),
-          skills: componentsByType.skill.slice(0, 5).map(c => ({
-            id: c.id,
-            title: c.title,
-            description: c.description?.substring(0, 50),
-          })),
-        },
-      };
-    }
-
-    return NextResponse.json({
-      ...matchResult,
-      detailed: detailedAnalysis,
+    // Format response to match legacy format
+    const response: any = {
+      score: optimizedResult.score,
+      summary: optimizedResult.suggestions[0] || `Your profile matches ${Math.round(optimizedResult.score)}% with this job`,
       profile: {
         name: profile.full_name,
         profession: profile.profession,
       },
-    });
+    };
+
+    // Add detailed breakdown if requested
+    if (detailed) {
+      response.detailed = {
+        breakdown: optimizedResult.breakdown,
+        missingSkills: optimizedResult.missingSkills,
+        suggestions: optimizedResult.suggestions,
+        topMatches: {
+          experience: optimizedResult.topMatchedComponents.experience?.slice(0, 3),
+          skills: optimizedResult.topMatchedComponents.skills?.slice(0, 5),
+          education: optimizedResult.topMatchedComponents.education?.slice(0, 2),
+          projects: optimizedResult.topMatchedComponents.projects?.slice(0, 3),
+        },
+        metadata: optimizedResult.metadata,
+      };
+    }
+
+    return NextResponse.json(response);
   } catch (error: any) {
     console.error('❌ Match calculation error:', error.message);
     return NextResponse.json(

@@ -3,9 +3,9 @@
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
-import { Download, ChevronLeft, Plus, Trash2, Sparkles, FileJson } from "lucide-react"
+import { Download, ChevronLeft, Plus, Trash2, Sparkles, FileJson, Wand2, Save, Check } from "lucide-react"
 import Link from "next/link"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -15,6 +15,8 @@ import { GridPattern } from "@/components/ui/grid-pattern"
 import { ShimmerButton } from "@/components/ui/shimmer-button"
 import { NumberTicker } from "@/components/ui/number-ticker"
 import type { JDMatchingResults } from "@/lib/types/jd-matching"
+import { AIRephrase } from "@/components/ai-rephrase"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface CVData {
   name: string
@@ -64,6 +66,24 @@ export function CVEditorPage({
   // Existing states
   const [isExporting, setIsExporting] = useState(false)
   const [skillInput, setSkillInput] = useState("")
+
+  // Save draft states
+  const [isSaving, setIsSaving] = useState(false)
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
+
+  // Rephrase dialog states
+  const [rephraseDialog, setRephraseDialog] = useState<{
+    open: boolean
+    text: string
+    field: string
+    id?: string
+  }>({
+    open: false,
+    text: '',
+    field: '',
+  })
+
   const [cvData, setCvData] = useState<CVData>({
     name: "Alex Johnson",
     email: "alex@example.com",
@@ -91,6 +111,25 @@ export function CVEditorPage({
     projects: [],
   })
 
+  // Handle cvId "new" - reset to empty CV
+  useEffect(() => {
+    if (cvId === "new") {
+      setCvData({
+        name: "",
+        email: "",
+        phone: "",
+        summary: "",
+        experience: [],
+        skills: [],
+        education: [],
+        projects: [],
+      })
+      setJobDescription("")
+      setMatchScore(null)
+      setMatchDetails(null)
+    }
+  }, [cvId])
+
   // Fetch user profile on mount
   useEffect(() => {
     const fetchProfile = async () => {
@@ -100,13 +139,23 @@ export function CVEditorPage({
           const data = await response.json()
           setUserProfile(data.profile)
           console.log('👤 User Profile:', data.profile)
+
+          // If creating new CV, pre-fill with user profile
+          if (cvId === "new" && data.profile) {
+            setCvData(prev => ({
+              ...prev,
+              name: data.profile.full_name || "",
+              email: data.profile.email || "",
+              phone: data.profile.phone || "",
+            }))
+          }
         }
       } catch (error) {
         console.error('Failed to fetch profile:', error)
       }
     }
     fetchProfile()
-  }, [])
+  }, [cvId])
 
   const handleExport = async (format: "pdf" | "json") => {
     setIsExporting(true)
@@ -249,6 +298,101 @@ export function CVEditorPage({
       projects: cvData.projects.map((proj) => (proj.id === id ? { ...proj, [field]: value } : proj)),
     })
   }
+
+  // Rephrase helpers
+  const openRephraseDialog = (text: string, field: string, id?: string) => {
+    setRephraseDialog({
+      open: true,
+      text,
+      field,
+      id,
+    })
+  }
+
+  const applyRephrasedText = (rephrasedText: string) => {
+    const { field, id } = rephraseDialog
+
+    if (field === 'summary') {
+      setCvData({ ...cvData, summary: rephrasedText })
+    } else if (field === 'experience' && id) {
+      updateExperience(id, 'description', rephrasedText)
+    } else if (field === 'project' && id) {
+      updateProject(id, 'description', rephrasedText)
+    }
+
+    setRephraseDialog({ open: false, text: '', field: '' })
+    toast({
+      title: "Applied!",
+      description: "AI-rephrased text has been applied",
+    })
+  }
+
+  // Save draft functionality
+  const saveDraft = useCallback(async (showToast = true) => {
+    setIsSaving(true)
+    setSaveStatus('saving')
+
+    try {
+      const response = await fetch('/api/cv/draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cvId: cvId,
+          title: `CV for ${cvData.name}`,
+          jobDescription: jobDescription,
+          cvData: cvData,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to save draft')
+      }
+
+      const data = await response.json()
+      setLastSaved(new Date())
+      setSaveStatus('saved')
+
+      if (showToast) {
+        toast({
+          title: "Draft Saved",
+          description: "Your changes have been saved",
+        })
+      }
+
+      return data
+    } catch (error: any) {
+      console.error('Save draft error:', error)
+      setSaveStatus('unsaved')
+
+      if (showToast) {
+        toast({
+          title: "Save Failed",
+          description: error.message || "Failed to save draft",
+          variant: "destructive"
+        })
+      }
+    } finally {
+      setIsSaving(false)
+    }
+  }, [cvId, cvData, jobDescription, toast])
+
+  // Autosave every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (saveStatus === 'unsaved') {
+        saveDraft(false) // Silent autosave
+      }
+    }, 30000) // 30 seconds
+
+    return () => clearInterval(interval)
+  }, [saveStatus, saveDraft])
+
+  // Mark as unsaved when data changes
+  useEffect(() => {
+    if (lastSaved !== null) {
+      setSaveStatus('unsaved')
+    }
+  }, [cvData, jobDescription])
 
   // AI Fill-in: Transform matching results to CVData
   useEffect(() => {
@@ -551,6 +695,53 @@ export function CVEditorPage({
             )}
           </div>
           <div className="flex items-center gap-4">
+            {/* Save Status Indicator */}
+            <div className="flex items-center gap-2">
+              {saveStatus === 'saved' && lastSaved && (
+                <div className="flex items-center gap-2 text-sm text-green-400">
+                  <Check className="w-4 h-4" />
+                  <span>Saved {new Date(lastSaved).toLocaleTimeString()}</span>
+                </div>
+              )}
+              {saveStatus === 'saving' && (
+                <div className="flex items-center gap-2 text-sm text-[#0ea5e9]">
+                  <div className="w-4 h-4 border-2 border-[#0ea5e9] border-t-transparent rounded-full animate-spin" />
+                  <span>Saving...</span>
+                </div>
+              )}
+              {saveStatus === 'unsaved' && (
+                <div className="flex items-center gap-2 text-sm text-orange-400">
+                  <span>Unsaved changes</span>
+                </div>
+              )}
+            </div>
+
+            {/* Save Draft Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => saveDraft(true)}
+              disabled={isSaving || saveStatus === 'saved'}
+              className="gap-2 border-white/20 text-white hover:bg-white/10"
+            >
+              {isSaving ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Saving...
+                </>
+              ) : saveStatus === 'saved' ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  Saved
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  Save Draft
+                </>
+              )}
+            </Button>
+
             {matchScore !== null && (
               <div className="flex items-center gap-3">
                 <div className="relative w-12 h-12">
@@ -752,7 +943,20 @@ export function CVEditorPage({
               </div>
 
               <div>
-                <label className="text-sm font-semibold mb-2 block text-white">Professional Summary</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-semibold text-white">Professional Summary</label>
+                  {cvData.summary && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openRephraseDialog(cvData.summary, 'summary')}
+                      className="gap-1 text-[#22d3ee] hover:text-[#0ea5e9] hover:bg-[#22d3ee]/10"
+                    >
+                      <Wand2 className="w-3 h-3" />
+                      <span className="text-xs">Rephrase with AI</span>
+                    </Button>
+                  )}
+                </div>
                 <Textarea
                   value={cvData.summary}
                   onChange={(e) => setCvData({ ...cvData, summary: e.target.value })}
@@ -802,12 +1006,28 @@ export function CVEditorPage({
                             className="text-xs bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
                           />
                         </div>
-                        <Textarea
-                          value={exp.description}
-                          onChange={(e) => updateExperience(exp.id, "description", e.target.value)}
-                          placeholder="Job description and achievements..."
-                          className="min-h-16 resize-none text-sm bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
-                        />
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs text-gray-300">Description</label>
+                            {exp.description && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openRephraseDialog(exp.description, 'experience', exp.id)}
+                                className="gap-1 text-[#22d3ee] hover:text-[#0ea5e9] hover:bg-[#22d3ee]/10 h-6 px-2"
+                              >
+                                <Wand2 className="w-3 h-3" />
+                                <span className="text-xs">AI</span>
+                              </Button>
+                            )}
+                          </div>
+                          <Textarea
+                            value={exp.description}
+                            onChange={(e) => updateExperience(exp.id, "description", e.target.value)}
+                            placeholder="Job description and achievements..."
+                            className="min-h-16 resize-none text-sm bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
+                          />
+                        </div>
                       </div>
                       <Button
                         variant="ghost"
@@ -945,12 +1165,28 @@ export function CVEditorPage({
                           placeholder="Technologies Used (e.g., React, Node.js, MongoDB)"
                           className="text-sm bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
                         />
-                        <Textarea
-                          value={proj.description}
-                          onChange={(e) => updateProject(proj.id, "description", e.target.value)}
-                          placeholder="Project description and key achievements..."
-                          className="min-h-16 resize-none text-sm bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
-                        />
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs text-gray-300">Description</label>
+                            {proj.description && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openRephraseDialog(proj.description, 'project', proj.id)}
+                                className="gap-1 text-[#22d3ee] hover:text-[#0ea5e9] hover:bg-[#22d3ee]/10 h-6 px-2"
+                              >
+                                <Wand2 className="w-3 h-3" />
+                                <span className="text-xs">AI</span>
+                              </Button>
+                            )}
+                          </div>
+                          <Textarea
+                            value={proj.description}
+                            onChange={(e) => updateProject(proj.id, "description", e.target.value)}
+                            placeholder="Project description and key achievements..."
+                            className="min-h-16 resize-none text-sm bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
+                          />
+                        </div>
                       </div>
                       <Button
                         variant="ghost"
@@ -1071,6 +1307,24 @@ export function CVEditorPage({
           </div>
         </div>
       </main>
+
+      {/* AI Rephrase Dialog */}
+      <Dialog open={rephraseDialog.open} onOpenChange={(open) => setRephraseDialog({ ...rephraseDialog, open })}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-[#0f172a]/95 backdrop-blur-sm border-white/20">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Wand2 className="w-5 h-5 text-[#22d3ee]" />
+              AI Rephrase
+            </DialogTitle>
+          </DialogHeader>
+          <AIRephrase
+            initialText={rephraseDialog.text}
+            onApply={applyRephrasedText}
+            showComparison={true}
+            context={jobDescription}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

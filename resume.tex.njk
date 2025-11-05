@@ -123,6 +123,60 @@ Study abroad coursework in {{ study_abroad.topic }}. \hfill {{ study_abroad.star
 {% endif %}
 
 % =========================
+% Projects
+% =========================
+{% if projects and projects|length > 0 %}
+\begin{center}
+    \textbf{Projects}
+\end{center}
+
+{% for proj in projects %}
+\textbf{ {{- proj.title -}} }{% if proj.technologies and proj.technologies|length > 0 %} -- {{ proj.technologies | join(", ") }}{% endif %}
+
+{% if proj.description %}{{ proj.description }}{% endif %}
+{% if proj.highlights and proj.highlights|length > 0 %}
+\begin{itemize}[noitemsep, topsep=0pt, partopsep=0pt, parsep=0pt]
+{% for h in proj.highlights %}
+    \item {{ h }}
+{% endfor %}
+\end{itemize}
+{% endif %}
+
+\vspace{6pt}
+{% endfor %}
+{% endif %}
+
+% =========================
+% Awards & Honors
+% =========================
+{% if awards and awards|length > 0 %}
+\begin{center}
+    \textbf{Awards \& Honors}
+\end{center}
+
+{% for award in awards %}
+\textbf{ {{- award.title -}} }{% if award.organization %} -- {{ award.organization }}{% endif %}{% if award.date %} \hfill {{ award.date }}{% endif %}
+
+{% endfor %}
+\vspace{6pt}
+{% endif %}
+
+% =========================
+% Certifications
+% =========================
+{% if certifications and certifications|length > 0 %}
+\begin{center}
+    \textbf{Certifications}
+\end{center}
+
+{% for cert in certifications %}
+\textbf{ {{- cert.title -}} }{% if cert.issuer %} -- {{ cert.issuer }}{% endif %}{% if cert.date %} \hfill {{ cert.date }}{% endif %}
+
+{% endfor %}
+\vspace{6pt}
+{% endif %}
+
+% =========================
 % Skills & Interests
 % =========================
 {% if skills %}

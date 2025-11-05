@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { CheckCircle, ArrowRight } from "lucide-react"
+import { useToast } from "@/components/ui/use-toast"
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1)
@@ -15,14 +16,49 @@ export default function OnboardingPage() {
     profession: "",
     bio: "",
   })
+  const [isSaving, setIsSaving] = useState(false)
   const router = useRouter()
+  const { toast } = useToast()
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step < 3) {
       setStep(step + 1)
     } else {
-      // Complete onboarding
-      router.push("/dashboard")
+      // Complete onboarding - save profile data
+      setIsSaving(true)
+
+      try {
+        const response = await fetch('/api/users/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            full_name: profile.fullName,
+            profession: profile.profession,
+            bio: profile.bio,
+          })
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to save profile')
+        }
+
+        toast({
+          title: 'Profile Saved!',
+          description: 'Welcome to MagiCV. Your profile has been created.',
+        })
+
+        router.push("/dashboard")
+      } catch (error: any) {
+        console.error('Error saving profile:', error)
+        toast({
+          variant: 'destructive',
+          title: 'Save Failed',
+          description: error.message || 'Failed to save your profile. Please try again.',
+        })
+      } finally {
+        setIsSaving(false)
+      }
     }
   }
 
@@ -120,10 +156,20 @@ export default function OnboardingPage() {
             </Button>
             <Button
               onClick={handleNext}
+              disabled={isSaving}
               className="glitch-button text-black font-bold gap-2"
             >
-              {step === 3 ? 'Complete Setup' : 'Next'}
-              <ArrowRight className="w-4 h-4" />
+              {isSaving ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  {step === 3 ? 'Complete Setup' : 'Next'}
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </Button>
           </div>
         </Card>

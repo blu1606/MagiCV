@@ -5,16 +5,17 @@ import { createClient } from '@supabase/supabase-js';
 
 /**
  * POST /api/cv/generate - Generate CV PDF from template
- * 
+ *
  * Authentication: Uses Supabase session from cookies
- * 
+ *
  * Body:
  * {
- *   jobDescription: string,
+ *   jobDescription?: string, // Optional: if provided, optimizes CV for specific job
  *   cvData?: object, // Optional: if provided, use this instead of querying components
  *   includeProjects?: boolean,
  *   useOnlineCompiler?: boolean,
- *   saveToDatabase?: boolean
+ *   saveToDatabase?: boolean,
+ *   useHybridArchitecture?: boolean // NEW: Use Solution A (Hybrid Architecture) for complete CVs
  * }
  */
 export async function POST(request: NextRequest) {
@@ -47,20 +48,16 @@ export async function POST(request: NextRequest) {
     
     // 2. Parse request body
     const body = await request.json();
-    const { 
-      jobDescription,
+    const {
+      jobDescription = '', // Optional: if empty, generates generic comprehensive CV
       cvData: providedCvData, // Optional: direct CV data from frontend
       includeProjects = true,
       useOnlineCompiler = false,
-      saveToDatabase = false 
+      saveToDatabase = false,
+      useHybridArchitecture = true // NEW: Default to hybrid architecture (Solution A)
     } = body;
 
-    if (!jobDescription) {
-      return NextResponse.json(
-        { error: 'jobDescription is required' },
-        { status: 400 }
-      );
-    }
+    // Job description is now optional - if not provided, generate generic CV with best components
 
     // 3. Verify user profile exists
     const profile = await SupabaseService.getProfileById(userId);
@@ -71,33 +68,47 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('📝 Generating CV for user:', userId);
+    console.log('📝 Generating CV for user:', userId, jobDescription ? '(optimized for job)' : '(generic CV)');
+    console.log(`  → Architecture: ${useHybridArchitecture ? 'Hybrid (Complete)' : 'Legacy (Sparse)'}`);
 
     // 4. Generate CV PDF
-    const { pdfBuffer, cvData: generatedCvData } = await CVGeneratorService.generateCVPDF(
-      userId,
-      jobDescription,
-      {
-        includeProjects,
-        useOnlineCompiler,
-      }
-    );
+    // Use Hybrid Architecture (Solution A) for complete, professional CVs
+    const { pdfBuffer, cvData: generatedCvData } = useHybridArchitecture
+      ? await CVGeneratorService.generateCVPDFHybrid(
+          userId,
+          jobDescription,
+          {
+            includeProjects,
+            useOnlineCompiler,
+          }
+        )
+      : await CVGeneratorService.generateCVPDF(
+          userId,
+          jobDescription,
+          {
+            includeProjects,
+            useOnlineCompiler,
+          }
+        );
 
-    // 5. Calculate match score
-    const matchScore = await CVGeneratorService.calculateMatchScore(
-      userId,
-      jobDescription
-    );
+    // 5. Calculate match score (only if job description provided)
+    const matchScore = jobDescription
+      ? await CVGeneratorService.calculateMatchScore(userId, jobDescription)
+      : { score: 0, summary: 'Generic CV - no job description provided' };
 
     let cvRecord = null;
     let pdfRecord = null;
 
     if (saveToDatabase) {
       // Save CV to database
+      const cvTitle = jobDescription
+        ? `CV for ${generatedCvData.profile.name} - Optimized`
+        : `CV for ${generatedCvData.profile.name} - Generic`;
+
       cvRecord = await SupabaseService.createCV({
         user_id: userId,
-        title: `CV for ${generatedCvData.profile.name}`,
-        job_description: jobDescription,
+        title: cvTitle,
+        job_description: jobDescription || null,
         match_score: matchScore.score,
         content: generatedCvData,
       });

@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { useComponents } from "@/hooks/use-data"
+import { useToast } from "@/components/ui/use-toast"
 import { SignOutButton } from "@/components/signout-button"
 import { GridPattern } from "@/components/ui/grid-pattern"
 import { ShimmerButton } from "@/components/ui/shimmer-button"
@@ -37,12 +38,16 @@ interface Component {
 }
 
 export function LibraryPage() {
-  const { components, loading: componentsLoading, error: componentsError } = useComponents()
+  const { components, loading: componentsLoading, error: componentsError, refetch } = useComponents()
+  const { toast } = useToast()
 
   const [searchQuery, setSearchQuery] = useState("")
   const [filterType, setFilterType] = useState<"all" | "experience" | "education" | "skill" | "project">("all")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [newComponent, setNewComponent] = useState({ title: "", type: "experience" as const, description: "" })
+  const [isAdding, setIsAdding] = useState(false)
+  const [isDuplicating, setIsDuplicating] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const filteredComponents = components.filter((comp) => {
     const matchesSearch = comp.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -54,6 +59,7 @@ export function LibraryPage() {
 
   const handleAddComponent = async () => {
     if (newComponent.title.trim() && newComponent.description.trim()) {
+      setIsAdding(true)
       try {
         const response = await fetch('/api/components', {
           method: 'POST',
@@ -70,35 +76,68 @@ export function LibraryPage() {
             highlights: [],
           }),
         })
-        
-        if (response.ok) {
-          setNewComponent({ title: "", type: "experience", description: "" })
-          setIsDialogOpen(false)
-          // Refresh components
-          window.location.reload()
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to add component')
         }
-      } catch (error) {
+
+        toast({
+          title: 'Component Added',
+          description: `"${newComponent.title}" has been added to your library`,
+        })
+
+        setNewComponent({ title: "", type: "experience", description: "" })
+        setIsDialogOpen(false)
+
+        // Refresh components list
+        await refetch()
+      } catch (error: any) {
         console.error('Error adding component:', error)
+        toast({
+          variant: 'destructive',
+          title: 'Add Failed',
+          description: error.message || 'Failed to add component. Please try again.',
+        })
+      } finally {
+        setIsAdding(false)
       }
     }
   }
 
   const handleDelete = async (id: string) => {
+    setDeletingId(id)
     try {
       const response = await fetch(`/api/components/${id}`, {
         method: 'DELETE',
       })
-      
-      if (response.ok) {
-        // Refresh components
-        window.location.reload()
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to delete component')
       }
-    } catch (error) {
+
+      toast({
+        title: 'Component Deleted',
+        description: 'The component has been removed from your library',
+      })
+
+      // Refresh components list
+      await refetch()
+    } catch (error: any) {
       console.error('Error deleting component:', error)
+      toast({
+        variant: 'destructive',
+        title: 'Delete Failed',
+        description: error.message || 'Failed to delete component. Please try again.',
+      })
+    } finally {
+      setDeletingId(null)
     }
   }
 
   const handleDuplicate = async (component: Component) => {
+    setIsDuplicating(true)
     try {
       const response = await fetch('/api/components', {
         method: 'POST',
@@ -115,13 +154,28 @@ export function LibraryPage() {
           highlights: component.highlights,
         }),
       })
-      
-      if (response.ok) {
-        // Refresh components
-        window.location.reload()
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to duplicate component')
       }
-    } catch (error) {
+
+      toast({
+        title: 'Component Duplicated',
+        description: `Created copy: "${component.title} (Copy)"`,
+      })
+
+      // Refresh components list
+      await refetch()
+    } catch (error: any) {
       console.error('Error duplicating component:', error)
+      toast({
+        variant: 'destructive',
+        title: 'Duplicate Failed',
+        description: error.message || 'Failed to duplicate component. Please try again.',
+      })
+    } finally {
+      setIsDuplicating(false)
     }
   }
 
@@ -211,11 +265,20 @@ export function LibraryPage() {
                   </div>
                   <ShimmerButton
                     onClick={handleAddComponent}
-                    disabled={!newComponent.title.trim() || !newComponent.description.trim()}
+                    disabled={!newComponent.title.trim() || !newComponent.description.trim() || isAdding}
                     className="w-full bg-gradient-to-r from-[#0ea5e9] to-[#22d3ee] text-white"
                   >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Component
+                    {isAdding ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                        Adding...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Component
+                      </>
+                    )}
                   </ShimmerButton>
                 </div>
               </DialogContent>
@@ -310,14 +373,36 @@ export function LibraryPage() {
                     </p>
                   </div>
                   <div className="flex gap-1 flex-shrink-0">
-                    <Button variant="ghost" size="sm" onClick={() => handleDuplicate(component)} title="Duplicate" className="text-white hover:bg-white/10">
-                      <Copy className="w-4 h-4" />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDuplicate(component)}
+                      disabled={isDuplicating}
+                      title="Duplicate"
+                      className="text-white hover:bg-white/10"
+                    >
+                      {isDuplicating ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
                     </Button>
                     <Button variant="ghost" size="sm" title="Edit" className="text-white hover:bg-white/10">
                       <Edit2 className="w-4 h-4" />
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDelete(component.id)} title="Delete" className="text-red-400 hover:bg-red-400/10">
-                      <Trash2 className="w-4 h-4" />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(component.id)}
+                      disabled={deletingId === component.id}
+                      title="Delete"
+                      className="text-red-400 hover:bg-red-400/10"
+                    >
+                      {deletingId === component.id ? (
+                        <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
                     </Button>
                   </div>
                 </div>

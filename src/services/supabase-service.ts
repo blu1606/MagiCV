@@ -293,6 +293,20 @@ export class SupabaseService {
     };
   }
 
+  /**
+   * Alias for getUserComponents - returns just components array
+   */
+  static async getComponentsByUserId(userId: string): Promise<Component[]> {
+    const { data, error } = await this.supabase
+      .from('components')
+      .select()
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false});
+
+    if (error) throw error;
+    return data || [];
+  }
+
   static async getComponentsByType(userId: string, type: ComponentType): Promise<Component[]> {
     const { data, error } = await this.supabase
       .from('components')

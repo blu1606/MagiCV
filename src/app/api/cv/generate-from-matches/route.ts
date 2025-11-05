@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { SupabaseService } from '@/services/supabase-service';
 import { LaTeXService } from '@/services/latex-service';
-import { ProfessionalSummaryService } from '@/services/professional-summary-service';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { CVDataEnhancerService } from '@/services/cv-data-enhancer-service';
 import type { MatchResult, JDMatchingResults } from '@/lib/types/jd-matching';
 
 /**
@@ -62,64 +61,39 @@ export async function POST(request: NextRequest) {
 
     console.log(`✓ Using ${goodMatches.length} matched components`);
 
-    // Get ALL user components to ensure we always include essential info (education, awards, etc.)
-    const allUserComponents = await SupabaseService.getComponentsByUserId(user.id);
-    console.log(`✓ Found ${allUserComponents.length} total user components`);
+    // Use CVDataEnhancerService to ensure CV completeness
+    // This ensures we ALWAYS include:
+    // - All contact information (phone, address, email)
+    // - ALL education (not just matched)
+    // - Minimum number of experiences and skills
+    // - Awards and certifications extracted from highlights
+    // - Professional summary
+    console.log('🔧 Enhancing CV data for completeness...');
+    const enhancedData = await CVDataEnhancerService.enhanceCVData(
+      user.id,
+      goodMatches,
+      jdMetadata,
+      {
+        minimumExperiences: 2,
+        minimumSkills: 5,
+        includeAllEducation: true,
+      }
+    );
 
-    // Group matched components by type
-    const componentsByType = {
-      experience: goodMatches.filter(m => m.cvComponent?.type === 'experience'),
-      education: goodMatches.filter(m => m.cvComponent?.type === 'education'),
-      skill: goodMatches.filter(m => m.cvComponent?.type === 'skill'),
-      project: goodMatches.filter(m => m.cvComponent?.type === 'project'),
+    console.log('✓ CV data enhanced with complete information');
+
+    // Prepare cvData for LaTeX template
+    const cvData = {
+      profile: enhancedData.profile,
+      professionalSummary: enhancedData.professionalSummary,
+      experience: enhancedData.experiences,
+      education: enhancedData.education,
+      skills: enhancedData.skills,
+      projects: enhancedData.projects,
+      awards: enhancedData.awards,
+      certifications: enhancedData.certifications,
+      margins: LaTeXService.getDefaultMargins(),
     };
-
-    // Always include ALL education (essential for CV completeness)
-    const allEducation = allUserComponents.filter(c => c.type === 'education');
-    const educationIds = new Set(componentsByType.education.map(m => m.cvComponent!.id));
-    const additionalEducation = allEducation.filter(edu => !educationIds.has(edu.id));
-
-    if (additionalEducation.length > 0) {
-      console.log(`✓ Adding ${additionalEducation.length} additional education entries (not matched but essential)`);
-      componentsByType.education.push(...additionalEducation.map(edu => ({
-        jdComponent: { id: 'default', type: 'education' as const, title: '', description: '', highlights: [], embedding: null, created_at: '', updated_at: '' },
-        cvComponent: edu,
-        score: 100, // Mark as essential
-        reasoning: 'Essential education information',
-      })));
-    }
-
-    // Generate professional summary from matches
-    let professionalSummary: string | undefined;
-    try {
-      console.log('📝 Generating professional summary...');
-      professionalSummary = await ProfessionalSummaryService.generateFromMatches(
-        goodMatches,
-        jdMetadata,
-        jdMetadata.seniorityLevel
-      );
-      console.log('✓ Professional summary generated');
-    } catch (error: any) {
-      console.warn('⚠️ Professional summary generation failed:', error.message);
-      // Continue without summary - it's optional
-    }
-
-    // Use LLM to create optimized CV content
-    // If customizedData is provided, merge it with the matched components
-    const cvData = customizedData
-      ? await generateOptimizedCVContentWithCustomizations(
-          profile,
-          componentsByType,
-          jdMetadata,
-          customizedData,
-          professionalSummary
-        )
-      : await generateOptimizedCVContent(
-          profile,
-          componentsByType,
-          jdMetadata,
-          professionalSummary
-        );
 
     console.log('✓ CV content generated');
 
@@ -160,286 +134,3 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/**
- * Generate optimized CV content using LLM
- */
-async function generateOptimizedCVContent(
-  profile: any,
-  componentsByType: {
-    experience: MatchResult[];
-    education: MatchResult[];
-    skill: MatchResult[];
-    project: MatchResult[];
-  },
-  jdMetadata: JDMatchingResults['jdMetadata'],
-  professionalSummary?: string
-): Promise<any> {
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-  if (!apiKey) {
-    throw new Error('GOOGLE_GENERATIVE_AI_API_KEY not found');
-  }
-
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
-
-  const prompt = `You are a professional CV writer. Create an optimized CV content for this job application.
-
-Job Description:
-Title: ${jdMetadata.title}
-Company: ${jdMetadata.company}
-Location: ${jdMetadata.location || 'N/A'}
-
-Candidate Profile:
-Name: ${profile.full_name || 'Candidate Name'}
-Profession: ${profile.profession || 'Professional'}
-
-Matched Components:
-
-EXPERIENCES (${componentsByType.experience.length}):
-${componentsByType.experience
-  .map(
-    (m, i) =>
-      `${i + 1}. ${m.cvComponent!.title} at ${m.cvComponent!.organization || 'N/A'} (Match: ${m.score}%)
-   ${m.cvComponent!.start_date || 'N/A'} - ${m.cvComponent!.end_date || 'Present'}
-   ${m.cvComponent!.description || 'No description'}
-   Highlights: ${m.cvComponent!.highlights.join(', ')}`
-  )
-  .join('\n\n')}
-
-EDUCATION (${componentsByType.education.length}):
-${componentsByType.education
-  .map(
-    (m, i) =>
-      `${i + 1}. ${m.cvComponent!.title} at ${m.cvComponent!.organization || 'N/A'} (Match: ${m.score}%)
-   ${m.cvComponent!.start_date || 'N/A'} - ${m.cvComponent!.end_date || 'N/A'}
-   ${m.cvComponent!.description || 'No description'}`
-  )
-  .join('\n\n')}
-
-SKILLS (${componentsByType.skill.length}):
-${componentsByType.skill
-  .map((m, i) => `${i + 1}. ${m.cvComponent!.title} (Match: ${m.score}%): ${m.cvComponent!.description || 'N/A'}`)
-  .join('\n')}
-
-PROJECTS (${componentsByType.project.length}):
-${componentsByType.project
-  .map(
-    (m, i) =>
-      `${i + 1}. ${m.cvComponent!.title} (Match: ${m.score}%)
-   ${m.cvComponent!.description || 'No description'}
-   Highlights: ${m.cvComponent!.highlights.join(', ')}`
-  )
-  .join('\n\n')}
-
-Task:
-Create a CV content in JSON format that is optimized for this specific job. Rewrite bullets to be more impactful and aligned with the job requirements. Select top 3-5 items per category.
-
-Output format:
-{
-  "profile": {
-    "name": "Full Name",
-    "email": "email@example.com",
-    "phone": "(000) 000-0000",
-    "address": "City, Country",
-    "city_state_zip": "City, Country"
-  },
-  "experience": [
-    {
-      "title": "Job Title",
-      "organization": "Company Name",
-      "location": "City, Country",
-      "remote": false,
-      "start": "Jan 2020",
-      "end": "Present",
-      "bullets": ["Achievement 1", "Achievement 2", "Achievement 3"]
-    }
-  ],
-  "education": [
-    {
-      "school": "University Name",
-      "degree": "Degree Name",
-      "concentration": "Field of Study",
-      "location": "City, Country",
-      "graduation_date": "May 2020",
-      "gpa": "3.8/4.0",
-      "coursework": ["Course 1", "Course 2"],
-      "awards": ["Award 1"]
-    }
-  ],
-  "skills": {
-    "technical": ["Skill 1", "Skill 2", "Skill 3"],
-    "languages": [{"name": "English", "level": "Native"}],
-    "interests": ["Interest 1", "Interest 2"]
-  }
-}
-
-Return ONLY valid JSON without markdown formatting.`;
-
-  const result = await model.generateContent(prompt);
-  const response = result.response.text();
-
-  // Clean response
-  let cleanText = response.trim();
-  if (cleanText.startsWith('```json')) {
-    cleanText = cleanText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-  } else if (cleanText.startsWith('```')) {
-    cleanText = cleanText.replace(/^```\s*/, '').replace(/\s*```$/, '');
-  }
-
-  const cvContent = JSON.parse(cleanText);
-
-  // Add professional summary if available
-  if (professionalSummary) {
-    cvContent.professionalSummary = professionalSummary;
-  }
-
-  // Add default margins
-  cvContent.margins = LaTeXService.getDefaultMargins();
-
-  return cvContent;
-}
-
-/**
- * Generate optimized CV content with user customizations
- */
-async function generateOptimizedCVContentWithCustomizations(
-  profile: any,
-  componentsByType: {
-    experience: MatchResult[];
-    education: MatchResult[];
-    skill: MatchResult[];
-    project: MatchResult[];
-  },
-  jdMetadata: JDMatchingResults['jdMetadata'],
-  customizedData: any,
-  professionalSummary?: string
-): Promise<any> {
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-  if (!apiKey) {
-    throw new Error('GOOGLE_GENERATIVE_AI_API_KEY not found');
-  }
-
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
-
-  const prompt = `You are a professional CV writer. The user has customized their CV data after AI pre-filling from job matching. Create an optimized LaTeX-ready CV content that incorporates their customizations while maintaining professional quality.
-
-Job Description:
-Title: ${jdMetadata.title}
-Company: ${jdMetadata.company}
-Location: ${jdMetadata.location || 'N/A'}
-
-User's Customized CV Data:
-Name: ${customizedData.name}
-Email: ${customizedData.email}
-Phone: ${customizedData.phone}
-Summary: ${customizedData.summary}
-
-Experiences (${customizedData.experience.length}):
-${customizedData.experience
-  .map(
-    (exp: any, i: number) =>
-      `${i + 1}. ${exp.title} at ${exp.company}
-   ${exp.startDate} - ${exp.endDate}
-   ${exp.description}`
-  )
-  .join('\n\n')}
-
-Education (${customizedData.education.length}):
-${customizedData.education
-  .map((edu: any, i: number) => `${i + 1}. ${edu.degree} from ${edu.school}\n   Field: ${edu.field}`)
-  .join('\n')}
-
-Skills (${customizedData.skills.length}):
-${customizedData.skills.join(', ')}
-
-Projects (${customizedData.projects?.length || 0}):
-${customizedData.projects && customizedData.projects.length > 0
-  ? customizedData.projects
-      .map(
-        (proj: any, i: number) =>
-          `${i + 1}. ${proj.title}
-   Technologies: ${proj.technologies}
-   ${proj.description}`
-      )
-      .join('\n\n')
-  : 'No projects provided'}
-
-Original Matched Components (for reference):
-- ${componentsByType.experience.length} experience matches
-- ${componentsByType.education.length} education matches
-- ${componentsByType.skill.length} skill matches
-- ${componentsByType.project.length} project matches
-
-Task:
-1. Use the user's customized data as the primary source
-2. Enhance and optimize the content for this specific job
-3. Keep the user's customizations but make them more impactful
-4. Format for LaTeX CV generation
-
-Output format (JSON):
-{
-  "profile": {
-    "name": "${customizedData.name}",
-    "email": "${customizedData.email}",
-    "phone": "${customizedData.phone}",
-    "address": "City, Country",
-    "city_state_zip": "City, Country"
-  },
-  "experience": [
-    {
-      "title": "Job Title",
-      "organization": "Company Name",
-      "location": "City, Country",
-      "remote": false,
-      "start": "Jan 2020",
-      "end": "Present",
-      "bullets": ["Achievement 1", "Achievement 2", "Achievement 3"]
-    }
-  ],
-  "education": [
-    {
-      "school": "University Name",
-      "degree": "Degree Name",
-      "concentration": "Field of Study",
-      "location": "City, Country",
-      "graduation_date": "May 2020",
-      "gpa": "",
-      "coursework": [],
-      "awards": []
-    }
-  ],
-  "skills": {
-    "technical": ["Skill 1", "Skill 2", "Skill 3"],
-    "languages": [{"name": "English", "level": "Native"}],
-    "interests": []
-  }
-}
-
-Return ONLY valid JSON without markdown formatting.`;
-
-  const result = await model.generateContent(prompt);
-  const response = result.response.text();
-
-  // Clean response
-  let cleanText = response.trim();
-  if (cleanText.startsWith('```json')) {
-    cleanText = cleanText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-  } else if (cleanText.startsWith('```')) {
-    cleanText = cleanText.replace(/^```\s*/, '').replace(/\s*```$/, '');
-  }
-
-  const cvContent = JSON.parse(cleanText);
-
-  // Add professional summary if available (prioritize custom summary, fallback to generated)
-  if (customizedData.summary) {
-    cvContent.professionalSummary = customizedData.summary;
-  } else if (professionalSummary) {
-    cvContent.professionalSummary = professionalSummary;
-  }
-
-  // Add default margins
-  cvContent.margins = LaTeXService.getDefaultMargins();
-
-  return cvContent;
-}

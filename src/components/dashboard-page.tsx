@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
-import { Plus, FileText, Trash2, Download, Copy, Search, Filter, Upload } from "lucide-react"
+import { Plus, FileText, Trash2, Download, Copy, Search, Filter, Upload, Sparkles } from "lucide-react"
 import { useState } from "react"
 import Link from "next/link"
 import { Input } from "@/components/ui/input"
@@ -34,6 +34,9 @@ import { GridPattern } from "@/components/ui/grid-pattern"
 import { NumberTicker } from "@/components/ui/number-ticker"
 import { AnimatedGradientText } from "@/components/ui/animated-gradient-text"
 import { ShimmerButton } from "@/components/ui/shimmer-button"
+import { QuickMatchScore } from "@/components/quick-match-score"
+import { ComponentLibraryStats } from "@/components/component-library-stats"
+import { TemplateSelector, type TemplateId } from "@/components/template-selector"
 
 interface CV {
   id: string
@@ -50,6 +53,7 @@ export function DashboardPage() {
   const { toast } = useToast()
 
   const [jobDescription, setJobDescription] = useState("")
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateId>("modern")
   const [isGenerating, setIsGenerating] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [filterStatus, setFilterStatus] = useState<"all" | "draft" | "completed" | "archived">("all")
@@ -75,17 +79,59 @@ export function DashboardPage() {
     })
 
   const handleGenerateCV = async () => {
-    if (!jobDescription.trim()) return
-
     setIsGenerating(true)
+
     try {
-      // TODO: Implement CV generation API call
-      console.log('Generating CV for:', jobDescription)
-      // For now, just close the dialog
+      const response = await fetch('/api/cv/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobDescription: jobDescription || '',
+          saveToDatabase: true,
+          includeProjects: true,
+          // Note: template selection will be used in future when multiple templates are ready
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Generation failed')
+      }
+
+      // Download the PDF
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `CV-${Date.now()}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+
+      toast({
+        title: 'CV Generated!',
+        description: jobDescription
+          ? 'Your AI-optimized CV has been created and downloaded'
+          : 'Your comprehensive CV has been created and downloaded',
+      })
+
+      // Refresh CV list
+      await refetchCVs()
+      if (refetchStats) {
+        await refetchStats()
+      }
+
+      // Close dialog and reset
       setJobDescription("")
       setIsDialogOpen(false)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating CV:', error)
+      toast({
+        variant: 'destructive',
+        title: 'Generation Failed',
+        description: error.message || 'Failed to generate CV. Please try again.',
+      })
     } finally {
       setIsGenerating(false)
     }
@@ -144,10 +190,34 @@ export function DashboardPage() {
 
   const handleDuplicateCV = async (cv: CV) => {
     try {
-      // TODO: Implement CV duplication API call
-      console.log('Duplicating CV:', cv.id)
-    } catch (error) {
+      const response = await fetch(`/api/cv/${cv.id}/duplicate`, {
+        method: 'POST',
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Duplication failed')
+      }
+
+      const { cv: newCV } = await response.json()
+
+      toast({
+        title: 'CV Duplicated',
+        description: `Created copy: "${newCV.title}"`,
+      })
+
+      // Refresh CV list
+      await refetchCVs()
+      if (refetchStats) {
+        await refetchStats()
+      }
+    } catch (error: any) {
       console.error('Error duplicating CV:', error)
+      toast({
+        variant: 'destructive',
+        title: 'Duplication Failed',
+        description: error.message || 'Failed to duplicate CV. Please try again.',
+      })
     }
   }
 
@@ -209,44 +279,73 @@ export function DashboardPage() {
             <h1 className="text-4xl font-bold text-white">Welcome back</h1>
             <div className="flex items-center gap-3">
               <Link href="/jd/upload">
-                <ShimmerButton className="bg-gradient-to-r from-[#f97316] to-[#fb923c] text-white">
+                <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
                   <Upload className="w-4 h-4 mr-2" />
-                  Upload JD
-                </ShimmerButton>
+                  Upload Job Description
+                </Button>
+              </Link>
+              <Link href="/editor/new">
+                <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Blank CV
+                </Button>
               </Link>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <ShimmerButton className="bg-gradient-to-r from-[#0ea5e9] to-[#22d3ee] text-white">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Generate CV
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    AI-Optimized CV
                   </ShimmerButton>
                 </DialogTrigger>
-              <DialogContent className="sm:max-w-lg md:max-w-xl bg-[#0f172a]/95 backdrop-blur-sm border-white/20 text-white max-h-[90vh] overflow-y-auto p-8">
+              <DialogContent className="sm:max-w-md md:max-w-lg bg-[#0f172a]/95 backdrop-blur-sm border-white/20 text-white max-h-[85vh] overflow-y-auto p-6">
                 <DialogHeader>
-                  <DialogTitle className="text-white">Generate New CV</DialogTitle>
-                  <DialogDescription className="text-gray-300">Paste a job description to generate an optimized CV</DialogDescription>
+                  <DialogTitle className="text-white flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-[#22d3ee]" />
+                    AI-Optimized CV Generation
+                  </DialogTitle>
+                  <DialogDescription className="text-gray-300">
+                    Paste a job description to create a CV optimized for that specific role. Leave blank for a comprehensive generic CV.
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
-                  <Textarea
-                    placeholder="Paste the job description here..."
-                    value={jobDescription}
-                    onChange={(e) => setJobDescription(e.target.value)}
-                    className="min-h-40 resize-none bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
-                  />
+                  {/* Template Selection */}
+                  <div>
+                    <label className="text-sm font-semibold text-white mb-2 block">
+                      Choose Template
+                    </label>
+                    <TemplateSelector
+                      selected={selectedTemplate}
+                      onSelect={setSelectedTemplate}
+                      compact={true}
+                    />
+                  </div>
+
+                  {/* Job Description */}
+                  <div>
+                    <label className="text-sm font-semibold text-white mb-2 block">
+                      Job Description (Optional)
+                    </label>
+                    <Textarea
+                      placeholder="Paste the job description here for AI optimization, or leave blank for a generic CV..."
+                      value={jobDescription}
+                      onChange={(e) => setJobDescription(e.target.value)}
+                      className="min-h-32 resize-none bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
+                    />
+                  </div>
                   <ShimmerButton
                     onClick={handleGenerateCV}
-                    disabled={!jobDescription.trim() || isGenerating}
+                    disabled={isGenerating}
                     className="w-full bg-gradient-to-r from-[#0ea5e9] to-[#22d3ee] text-white"
                   >
                     {isGenerating ? (
                       <>
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                        Building your draft...
+                        Generating your CV...
                       </>
                     ) : (
                       <>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Generate CV
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        {jobDescription.trim() ? 'Generate Optimized CV' : 'Generate Generic CV'}
                       </>
                     )}
                   </ShimmerButton>
@@ -256,6 +355,15 @@ export function DashboardPage() {
             </div>
           </div>
           <p className="text-gray-300">Upload a job description PDF or create a new CV</p>
+        </div>
+
+        {/* Widgets Grid */}
+        <div className="grid grid-cols-1 gap-6 mb-8">
+          {/* Quick Match Score Widget */}
+          <QuickMatchScore variant="default" />
+
+          {/* Component Library Stats */}
+          <ComponentLibraryStats />
         </div>
 
         {/* Search and Filter Section */}
@@ -359,8 +467,36 @@ export function DashboardPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={(e) => {
+                            onClick={async (e) => {
                               e.preventDefault()
+                              e.stopPropagation()
+                              try {
+                                const response = await fetch(`/api/cv/${cv.id}/download`)
+                                if (!response.ok) {
+                                  const error = await response.json()
+                                  throw new Error(error.error || 'Download failed')
+                                }
+                                const blob = await response.blob()
+                                const url = URL.createObjectURL(blob)
+                                const a = document.createElement('a')
+                                a.href = url
+                                a.download = `CV-${cv.title}-${Date.now()}.pdf`
+                                document.body.appendChild(a)
+                                a.click()
+                                document.body.removeChild(a)
+                                URL.revokeObjectURL(url)
+                                toast({
+                                  title: 'CV Downloaded',
+                                  description: 'Your CV has been downloaded successfully',
+                                })
+                              } catch (error: any) {
+                                console.error('Download error:', error)
+                                toast({
+                                  title: 'Download Failed',
+                                  description: error.message || 'Failed to download CV',
+                                  variant: 'destructive'
+                                })
+                              }
                             }}
                             title="Download CV"
                             className="text-white hover:bg-white/10"

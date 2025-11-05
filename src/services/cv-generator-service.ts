@@ -3,6 +3,7 @@ import { SupabaseService } from './supabase-service';
 import { EmbeddingService } from './embedding-service';
 import { LaTeXService } from './latex-service';
 import { LLMUtilsService } from './llm-utils-service';
+import { ProfileService } from './profile-service';
 import type { Component, Profile } from '@/lib/supabase';
 import { PDFService } from './pdf-service';
 
@@ -489,6 +490,442 @@ Important: Select only the BEST 3-5 items per category. Quality over quantity!`;
       };
     } catch (error: any) {
       console.error('❌ Error calculating match score:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * ============================================================================
+   * SOLUTION A: HYBRID ARCHITECTURE
+   * ============================================================================
+   * Generate CV using hybrid approach:
+   * - Profile: Always included (contact, summary)
+   * - Education: Always included (ALL entries)
+   * - Experience/Projects: Match-based (score ≥ 40%)
+   * - Skills: Comprehensive (matched first, then all others)
+   */
+
+  /**
+   * Generate CV content using Hybrid Architecture (Solution A)
+   * Ensures complete, professional CVs with all essential information
+   */
+  static async generateCVContentHybrid(
+    userId: string,
+    jobDescription: string,
+    options?: {
+      includeProjects?: boolean;
+      maxExperiences?: number;
+      maxEducation?: number;
+    }
+  ): Promise<any> {
+    try {
+      console.log('📝 Generating CV content (Hybrid Architecture)...');
+
+      // ========================================================================
+      // TIER 0: Profile (ALWAYS included - no matching required)
+      // ========================================================================
+      console.log('  → Getting profile data...');
+      const profileData = await ProfileService.getProfileForCV(userId);
+
+      // ========================================================================
+      // TIER 1: Education (ALWAYS included - all entries)
+      // ========================================================================
+      console.log('  → Getting ALL education entries...');
+      const allEducation = await SupabaseService.getUserComponents(userId);
+      const educationComponents = allEducation.components.filter(c => c.type === 'education');
+
+      // ========================================================================
+      // TIER 2: Match-based content (Experience & Projects)
+      // ========================================================================
+      console.log('  → Matching experiences and projects...');
+      let matchedComponents: Component[] = [];
+
+      if (jobDescription && jobDescription.trim() !== '') {
+        // Match experiences and projects if JD provided
+        matchedComponents = await this.findRelevantComponents(
+          userId,
+          jobDescription,
+          options?.maxExperiences || 20
+        );
+
+        // Filter to only experiences and projects with good match scores
+        matchedComponents = matchedComponents.filter(
+          c => (c.type === 'experience' || c.type === 'project')
+        );
+      } else {
+        // No JD: Get all experiences and projects
+        console.log('  ⚠️  No job description - including all experiences and projects');
+        const allComponents = await SupabaseService.getUserComponents(userId);
+        matchedComponents = allComponents.components.filter(
+          c => c.type === 'experience' || c.type === 'project'
+        );
+      }
+
+      // ========================================================================
+      // TIER 3: Skills (ALL skills - matched first, then additional)
+      // ========================================================================
+      console.log('  → Getting comprehensive skills...');
+      const allComponents = await SupabaseService.getUserComponents(userId);
+      const allSkills = allComponents.components.filter(c => c.type === 'skill');
+
+      // Separate matched and additional skills
+      const matchedSkillIds = new Set(
+        matchedComponents.filter(c => c.type === 'skill').map(c => c.id)
+      );
+      const matchedSkills = allSkills.filter(s => matchedSkillIds.has(s.id));
+      const additionalSkills = allSkills.filter(s => !matchedSkillIds.has(s.id));
+
+      // ========================================================================
+      // Combine all components for LLM selection
+      // ========================================================================
+      const allComponentsForSelection = [
+        ...matchedComponents,
+        ...educationComponents,
+        ...matchedSkills,
+        ...additionalSkills.slice(0, 10), // Include up to 10 additional skills
+      ];
+
+      console.log(`  ✓ Profile: Complete`);
+      console.log(`  ✓ Education: ${educationComponents.length} entries (ALL)`);
+      console.log(`  ✓ Matched experiences/projects: ${matchedComponents.filter(c => c.type === 'experience' || c.type === 'project').length}`);
+      console.log(`  ✓ Skills: ${matchedSkills.length} matched + ${additionalSkills.length} additional`);
+
+      // ========================================================================
+      // Use LLM to format and optimize content
+      // ========================================================================
+      const selected = await this.selectAndRankComponentsHybrid(
+        allComponentsForSelection,
+        jobDescription,
+        profileData,
+        {
+          educationCount: educationComponents.length,
+          matchedExpCount: matchedComponents.filter(c => c.type === 'experience').length,
+          matchedProjectCount: matchedComponents.filter(c => c.type === 'project').length,
+          matchedSkillCount: matchedSkills.length,
+          additionalSkillCount: additionalSkills.length,
+        }
+      );
+
+      // ========================================================================
+      // Build CV data structure
+      // ========================================================================
+      const cvData = {
+        profile: {
+          name: profileData.name,
+          email: profileData.email,
+          phone: profileData.phone,
+          address: profileData.location,
+          city_state_zip: profileData.location,
+          linkedin: profileData.linkedin_url,
+          github: profileData.github_url,
+          website: profileData.website_url,
+        },
+        summary: profileData.summary,
+        margins: LaTeXService.getDefaultMargins(),
+        education: selected.education || [],
+        experience: selected.experiences || [],
+        skills: {
+          technical: selected.skills?.technical || [],
+          languages: profileData.languages || [],
+          interests: profileData.interests || [],
+          soft: profileData.soft_skills || [],
+        },
+        leadership: [], // Can add later if needed
+      };
+
+      // Add projects to experience if included
+      if (options?.includeProjects && selected.projects) {
+        cvData.experience = [
+          ...cvData.experience,
+          ...selected.projects,
+        ];
+      }
+
+      console.log('✅ CV content generated (Hybrid Architecture)');
+      console.log(`  → Completeness: ~${this.calculateCompleteness(cvData)}%`);
+      return cvData;
+    } catch (error: any) {
+      console.error('❌ Error generating CV content (Hybrid):', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * LLM selection for hybrid architecture
+   * Instructs LLM to include ALL education and comprehensive skills
+   */
+  static async selectAndRankComponentsHybrid(
+    components: Component[],
+    jobDescription: string,
+    profileData: any,
+    stats: {
+      educationCount: number;
+      matchedExpCount: number;
+      matchedProjectCount: number;
+      matchedSkillCount: number;
+      additionalSkillCount: number;
+    }
+  ): Promise<{
+    experiences: any[];
+    education: any[];
+    skills: any;
+    projects: any[];
+  }> {
+    try {
+      console.log('🤖 Using LLM to format CV content (Hybrid Architecture)...');
+
+      const genAI = this.getClient();
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+
+      // Group components by type
+      const componentsByType = {
+        experience: components.filter(c => c.type === 'experience'),
+        education: components.filter(c => c.type === 'education'),
+        skill: components.filter(c => c.type === 'skill'),
+        project: components.filter(c => c.type === 'project'),
+      };
+
+      const prompt = `You are a professional CV writer. Format this candidate's CV data for LaTeX generation.
+
+IMPORTANT INSTRUCTIONS:
+1. Include ALL ${stats.educationCount} education entries (never filter education)
+2. Include ALL skills (both matched and additional - comprehensive skills list)
+3. Select top 5 experiences (from ${stats.matchedExpCount} matched)
+4. Select top 3 projects if relevant (from ${stats.matchedProjectCount} matched)
+5. Rewrite bullets to be impactful and achievement-focused
+
+Job Description:
+${jobDescription || 'General comprehensive CV'}
+
+Candidate Profile:
+Name: ${profileData.name}
+Title: ${profileData.professional_title}
+Summary: ${profileData.summary}
+
+Available Components:
+
+EDUCATION (${componentsByType.education.length} - INCLUDE ALL):
+${componentsByType.education.map((c, i) => `${i+1}. ${c.title} at ${c.organization || 'N/A'} (${c.start_date || 'N/A'} - ${c.end_date || 'N/A'})\n   ${c.description || 'No description'}`).join('\n\n')}
+
+EXPERIENCES (${componentsByType.experience.length} - SELECT TOP 5):
+${componentsByType.experience.map((c, i) => `${i+1}. ${c.title} at ${c.organization || 'N/A'} (${c.start_date || 'N/A'} - ${c.end_date || 'Current'})\n   ${c.description || 'No description'}\n   Highlights: ${c.highlights.join(', ')}`).join('\n\n')}
+
+SKILLS (${componentsByType.skill.length} - INCLUDE ALL, prioritize matched):
+${componentsByType.skill.map((c, i) => `${i+1}. ${c.title}: ${c.description || 'No description'}`).join('\n')}
+
+PROJECTS (${componentsByType.project.length} - SELECT TOP 3):
+${componentsByType.project.map((c, i) => `${i+1}. ${c.title} (${c.organization || 'Personal'})\n   ${c.description || 'No description'}\n   Highlights: ${c.highlights.join(', ')}`).join('\n\n')}
+
+Statistics:
+- Matched experiences: ${stats.matchedExpCount}
+- Matched projects: ${stats.matchedProjectCount}
+- Matched skills: ${stats.matchedSkillCount}
+- Additional skills: ${stats.additionalSkillCount}
+- Education entries: ${stats.educationCount}
+
+Output format (JSON):
+{
+  "experiences": [
+    {
+      "id": "component_id",
+      "title": "Job Title",
+      "organization": "Company Name",
+      "location": "City, Country",
+      "remote": false,
+      "start": "Jan 2020",
+      "end": "Present",
+      "bullets": ["Achievement 1", "Achievement 2", "Achievement 3"]
+    }
+  ],
+  "education": [
+    {
+      "id": "component_id",
+      "school": "University Name",
+      "degree": "Degree Name",
+      "concentration": "Field of Study",
+      "location": "City, Country",
+      "graduation_date": "May 2020",
+      "gpa": "3.8/4.0",
+      "coursework": ["Course 1", "Course 2"],
+      "awards": ["Award 1"]
+    }
+  ],
+  "skills": {
+    "technical": ["Skill 1", "Skill 2", "Skill 3", "..."]
+  },
+  "projects": [
+    {
+      "id": "component_id",
+      "title": "Project Name",
+      "organization": "Company/Personal",
+      "location": "Location or N/A",
+      "start": "Start Date",
+      "end": "End Date",
+      "bullets": ["Achievement 1", "Achievement 2"]
+    }
+  ]
+}
+
+Return ONLY valid JSON without markdown formatting.`;
+
+      // Use LLM utils for robust JSON parsing
+      const selected = await LLMUtilsService.callWithRetry(model, prompt, {
+        maxRetries: 3,
+        parseJSON: true,
+        validator: (data: any) => {
+          if (!data.experiences || !Array.isArray(data.experiences)) {
+            console.error('Invalid structure: missing experiences array');
+            return false;
+          }
+          if (!data.education || !Array.isArray(data.education)) {
+            console.error('Invalid structure: missing education array');
+            return false;
+          }
+          if (!data.skills) {
+            console.error('Invalid structure: missing skills object');
+            return false;
+          }
+          return true;
+        },
+        validatorErrorMessage: 'Response must include experiences, education, skills, and projects arrays',
+      });
+
+      console.log('✅ CV content formatted (Hybrid Architecture)');
+      return selected;
+    } catch (error: any) {
+      console.error('❌ Error formatting CV content:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Calculate CV completeness percentage
+   */
+  static calculateCompleteness(cvData: any): number {
+    let score = 0;
+    const maxScore = 100;
+
+    // Profile (20 points)
+    if (cvData.profile?.name && cvData.profile.name !== 'Your Name') score += 5;
+    if (cvData.profile?.email && cvData.profile.email !== 'email@example.com') score += 5;
+    if (cvData.profile?.phone && cvData.profile.phone !== '(000) 000-0000') score += 5;
+    if (cvData.profile?.address && cvData.profile.address !== 'City, Country') score += 5;
+
+    // Summary (10 points)
+    if (cvData.summary && cvData.summary.length > 50) score += 10;
+
+    // Education (20 points)
+    if (cvData.education && cvData.education.length > 0) score += 20;
+
+    // Experience (25 points)
+    if (cvData.experience && cvData.experience.length >= 3) {
+      score += 25;
+    } else if (cvData.experience && cvData.experience.length > 0) {
+      score += 15;
+    }
+
+    // Skills (20 points)
+    if (cvData.skills?.technical && cvData.skills.technical.length >= 5) {
+      score += 20;
+    } else if (cvData.skills?.technical && cvData.skills.technical.length > 0) {
+      score += 10;
+    }
+
+    // Languages (5 points)
+    if (cvData.skills?.languages && cvData.skills.languages.length > 0) score += 5;
+
+    return Math.min(score, maxScore);
+  }
+
+  /**
+   * Generate CV PDF using Hybrid Architecture
+   */
+  static async generateCVPDFHybrid(
+    userId: string,
+    jobDescription: string,
+    options?: {
+      includeProjects?: boolean;
+      useOnlineCompiler?: boolean;
+    }
+  ): Promise<{ pdfBuffer: Buffer; cvData: any }> {
+    try {
+      console.log('🚀 Starting CV PDF generation (Hybrid Architecture)...');
+
+      // Generate CV content using hybrid approach
+      const cvData = await this.generateCVContentHybrid(userId, jobDescription, options);
+
+      // Validate CV data before compilation
+      const validation = LaTeXService.validateResumeData(cvData);
+      if (!validation.valid) {
+        console.warn('⚠️  CV data validation warnings:', validation.errors);
+        // Continue anyway but log warnings
+      }
+
+      // Generate PDF from template with fallback strategy
+      let pdfBuffer: Buffer;
+      let compilationMethod: string;
+
+      try {
+        if (options?.useOnlineCompiler !== false) {
+          // Try online compiler first (default)
+          console.log('🌐 Attempting online compilation...');
+          const latexContent = await LaTeXService.renderTemplate('resume.tex.njk', cvData);
+          pdfBuffer = await LaTeXService.generatePDFOnline(latexContent);
+          compilationMethod = 'online';
+        } else {
+          // Use local if explicitly requested
+          console.log('🖥️  Using local compilation...');
+          pdfBuffer = await LaTeXService.generatePDF('resume.tex.njk', cvData);
+          compilationMethod = 'local';
+        }
+      } catch (primaryError: any) {
+        console.warn(`⚠️  Primary compilation (${options?.useOnlineCompiler !== false ? 'online' : 'local'}) failed:`, primaryError.message);
+
+        // Fallback to alternative method
+        try {
+          if (options?.useOnlineCompiler !== false) {
+            // Online failed, try local
+            console.log('🔄 Falling back to local compilation...');
+            pdfBuffer = await LaTeXService.generatePDF('resume.tex.njk', cvData);
+            compilationMethod = 'local (fallback)';
+          } else {
+            // Local failed, try online
+            console.log('🔄 Falling back to online compilation...');
+            const latexContent = await LaTeXService.renderTemplate('resume.tex.njk', cvData);
+            pdfBuffer = await LaTeXService.generatePDFOnline(latexContent);
+            compilationMethod = 'online (fallback)';
+          }
+        } catch (fallbackError: any) {
+          console.error('❌ Both compilation methods failed');
+          console.error('Primary error:', primaryError.message);
+          console.error('Fallback error:', fallbackError.message);
+          throw new Error(
+            `PDF generation failed. Primary: ${primaryError.message}. Fallback: ${fallbackError.message}`
+          );
+        }
+      }
+
+      console.log(`✅ CV PDF generated successfully (${compilationMethod})`);
+      console.log(`  → Completeness: ${this.calculateCompleteness(cvData)}%`);
+
+      return {
+        pdfBuffer,
+        cvData,
+      };
+    } catch (error: any) {
+      console.error('❌ Error generating CV PDF (Hybrid):', error.message);
+
+      // Provide more helpful error messages
+      if (error.message.includes('Profile not found')) {
+        throw new Error('User profile not found. Please create a profile first.');
+      }
+      if (error.message.includes('No components found')) {
+        throw new Error('No CV components found. Please add your experiences, skills, or education.');
+      }
+      if (error.message.includes('pdflatex is not installed')) {
+        throw new Error('PDF compilation failed. Please ensure pdflatex is installed or use online compilation.');
+      }
+
       throw error;
     }
   }
