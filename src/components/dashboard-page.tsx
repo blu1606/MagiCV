@@ -34,6 +34,7 @@ import { GridPattern } from "@/components/ui/grid-pattern"
 import { NumberTicker } from "@/components/ui/number-ticker"
 import { AnimatedGradientText } from "@/components/ui/animated-gradient-text"
 import { ShimmerButton } from "@/components/ui/shimmer-button"
+import { QuickMatchScore } from "@/components/quick-match-score"
 
 interface CV {
   id: string
@@ -256,6 +257,11 @@ export function DashboardPage() {
             </div>
           </div>
           <p className="text-gray-300">Upload a job description PDF or create a new CV</p>
+        </div>
+
+        {/* Quick Match Score Widget */}
+        <div className="mb-8">
+          <QuickMatchScore variant="default" />
         </div>
 
         {/* Search and Filter Section */}

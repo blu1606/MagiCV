@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
-import { Download, ChevronLeft, Plus, Trash2, Sparkles, FileJson } from "lucide-react"
+import { Download, ChevronLeft, Plus, Trash2, Sparkles, FileJson, Wand2 } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
@@ -15,6 +15,8 @@ import { GridPattern } from "@/components/ui/grid-pattern"
 import { ShimmerButton } from "@/components/ui/shimmer-button"
 import { NumberTicker } from "@/components/ui/number-ticker"
 import type { JDMatchingResults } from "@/lib/types/jd-matching"
+import { AIRephrase } from "@/components/ai-rephrase"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface CVData {
   name: string
@@ -64,6 +66,19 @@ export function CVEditorPage({
   // Existing states
   const [isExporting, setIsExporting] = useState(false)
   const [skillInput, setSkillInput] = useState("")
+
+  // Rephrase dialog states
+  const [rephraseDialog, setRephraseDialog] = useState<{
+    open: boolean
+    text: string
+    field: string
+    id?: string
+  }>({
+    open: false,
+    text: '',
+    field: '',
+  })
+
   const [cvData, setCvData] = useState<CVData>({
     name: "Alex Johnson",
     email: "alex@example.com",
@@ -247,6 +262,34 @@ export function CVEditorPage({
     setCvData({
       ...cvData,
       projects: cvData.projects.map((proj) => (proj.id === id ? { ...proj, [field]: value } : proj)),
+    })
+  }
+
+  // Rephrase helpers
+  const openRephraseDialog = (text: string, field: string, id?: string) => {
+    setRephraseDialog({
+      open: true,
+      text,
+      field,
+      id,
+    })
+  }
+
+  const applyRephrasedText = (rephrasedText: string) => {
+    const { field, id } = rephraseDialog
+
+    if (field === 'summary') {
+      setCvData({ ...cvData, summary: rephrasedText })
+    } else if (field === 'experience' && id) {
+      updateExperience(id, 'description', rephrasedText)
+    } else if (field === 'project' && id) {
+      updateProject(id, 'description', rephrasedText)
+    }
+
+    setRephraseDialog({ open: false, text: '', field: '' })
+    toast({
+      title: "Applied!",
+      description: "AI-rephrased text has been applied",
     })
   }
 
@@ -752,7 +795,20 @@ export function CVEditorPage({
               </div>
 
               <div>
-                <label className="text-sm font-semibold mb-2 block text-white">Professional Summary</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-semibold text-white">Professional Summary</label>
+                  {cvData.summary && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openRephraseDialog(cvData.summary, 'summary')}
+                      className="gap-1 text-[#22d3ee] hover:text-[#0ea5e9] hover:bg-[#22d3ee]/10"
+                    >
+                      <Wand2 className="w-3 h-3" />
+                      <span className="text-xs">Rephrase with AI</span>
+                    </Button>
+                  )}
+                </div>
                 <Textarea
                   value={cvData.summary}
                   onChange={(e) => setCvData({ ...cvData, summary: e.target.value })}
@@ -802,12 +858,28 @@ export function CVEditorPage({
                             className="text-xs bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
                           />
                         </div>
-                        <Textarea
-                          value={exp.description}
-                          onChange={(e) => updateExperience(exp.id, "description", e.target.value)}
-                          placeholder="Job description and achievements..."
-                          className="min-h-16 resize-none text-sm bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
-                        />
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs text-gray-300">Description</label>
+                            {exp.description && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openRephraseDialog(exp.description, 'experience', exp.id)}
+                                className="gap-1 text-[#22d3ee] hover:text-[#0ea5e9] hover:bg-[#22d3ee]/10 h-6 px-2"
+                              >
+                                <Wand2 className="w-3 h-3" />
+                                <span className="text-xs">AI</span>
+                              </Button>
+                            )}
+                          </div>
+                          <Textarea
+                            value={exp.description}
+                            onChange={(e) => updateExperience(exp.id, "description", e.target.value)}
+                            placeholder="Job description and achievements..."
+                            className="min-h-16 resize-none text-sm bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
+                          />
+                        </div>
                       </div>
                       <Button
                         variant="ghost"
@@ -945,12 +1017,28 @@ export function CVEditorPage({
                           placeholder="Technologies Used (e.g., React, Node.js, MongoDB)"
                           className="text-sm bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
                         />
-                        <Textarea
-                          value={proj.description}
-                          onChange={(e) => updateProject(proj.id, "description", e.target.value)}
-                          placeholder="Project description and key achievements..."
-                          className="min-h-16 resize-none text-sm bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
-                        />
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs text-gray-300">Description</label>
+                            {proj.description && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openRephraseDialog(proj.description, 'project', proj.id)}
+                                className="gap-1 text-[#22d3ee] hover:text-[#0ea5e9] hover:bg-[#22d3ee]/10 h-6 px-2"
+                              >
+                                <Wand2 className="w-3 h-3" />
+                                <span className="text-xs">AI</span>
+                              </Button>
+                            )}
+                          </div>
+                          <Textarea
+                            value={proj.description}
+                            onChange={(e) => updateProject(proj.id, "description", e.target.value)}
+                            placeholder="Project description and key achievements..."
+                            className="min-h-16 resize-none text-sm bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
+                          />
+                        </div>
                       </div>
                       <Button
                         variant="ghost"
@@ -1071,6 +1159,24 @@ export function CVEditorPage({
           </div>
         </div>
       </main>
+
+      {/* AI Rephrase Dialog */}
+      <Dialog open={rephraseDialog.open} onOpenChange={(open) => setRephraseDialog({ ...rephraseDialog, open })}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-[#0f172a]/95 backdrop-blur-sm border-white/20">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Wand2 className="w-5 h-5 text-[#22d3ee]" />
+              AI Rephrase
+            </DialogTitle>
+          </DialogHeader>
+          <AIRephrase
+            initialText={rephraseDialog.text}
+            onApply={applyRephrasedText}
+            showComparison={true}
+            context={jobDescription}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
