@@ -49,11 +49,9 @@
 
 ### Submission Links
 
-- 🐳 **Docker Container**: [Docker Hub - `yourusername/agent-challenge:latest`](https://hub.docker.com/r/yourusername/agent-challenge)
-- 🎬 **Video Demo**: [YouTube/Vimeo Link - 2:30 min demo](https://your-video-link.com) *(Coming soon)*
-- 🚀 **Nosana Deployment**: Deployed on [Nosana Network](https://dashboard.nosana.com) *(Add your deployment URL)*
-- 📱 **Live Demo**: [Live Application URL](https://your-nosana-deployment.nos.ci) *(Coming soon)*
-- 📄 **Social Media Post**: [Twitter/X Post](https://twitter.com/your-post) *(Coming soon)*
+- 🐳 **Docker Container**: [Docker Hub - `blue106/magicv-app:latest`](https://hub.docker.com/r/blue106/magicv-app)
+- 🎬 **Video Demo**: [X/Video Link - 6 min demo](https://x.com/Blues83769245/status/1984894403958452728) 
+- 🚀 **Nosana Deployment**: Deployed on [Nosana Network](https://dashboard.nosana.com) 
 
 ### Agent Description & Purpose
 
