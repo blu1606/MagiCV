@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
-import { Plus, FileText, Trash2, Download, Copy, Search, Filter, Upload } from "lucide-react"
+import { Plus, FileText, Trash2, Download, Copy, Search, Filter, Upload, Sparkles } from "lucide-react"
 import { useState } from "react"
 import Link from "next/link"
 import { Input } from "@/components/ui/input"
@@ -35,6 +35,8 @@ import { NumberTicker } from "@/components/ui/number-ticker"
 import { AnimatedGradientText } from "@/components/ui/animated-gradient-text"
 import { ShimmerButton } from "@/components/ui/shimmer-button"
 import { QuickMatchScore } from "@/components/quick-match-score"
+import { ComponentLibraryStats } from "@/components/component-library-stats"
+import { TemplateSelector, type TemplateId } from "@/components/template-selector"
 
 interface CV {
   id: string
@@ -51,6 +53,7 @@ export function DashboardPage() {
   const { toast } = useToast()
 
   const [jobDescription, setJobDescription] = useState("")
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateId>("modern")
   const [isGenerating, setIsGenerating] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [filterStatus, setFilterStatus] = useState<"all" | "draft" | "completed" | "archived">("all")
@@ -210,44 +213,73 @@ export function DashboardPage() {
             <h1 className="text-4xl font-bold text-white">Welcome back</h1>
             <div className="flex items-center gap-3">
               <Link href="/jd/upload">
-                <ShimmerButton className="bg-gradient-to-r from-[#f97316] to-[#fb923c] text-white">
+                <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
                   <Upload className="w-4 h-4 mr-2" />
-                  Upload JD
-                </ShimmerButton>
+                  Upload Job Description
+                </Button>
+              </Link>
+              <Link href="/editor/new">
+                <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Blank CV
+                </Button>
               </Link>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <ShimmerButton className="bg-gradient-to-r from-[#0ea5e9] to-[#22d3ee] text-white">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Generate CV
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    AI-Optimized CV
                   </ShimmerButton>
                 </DialogTrigger>
               <DialogContent className="sm:max-w-lg md:max-w-xl bg-[#0f172a]/95 backdrop-blur-sm border-white/20 text-white max-h-[90vh] overflow-y-auto p-8">
                 <DialogHeader>
-                  <DialogTitle className="text-white">Generate New CV</DialogTitle>
-                  <DialogDescription className="text-gray-300">Paste a job description to generate an optimized CV</DialogDescription>
+                  <DialogTitle className="text-white flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-[#22d3ee]" />
+                    AI-Optimized CV Generation
+                  </DialogTitle>
+                  <DialogDescription className="text-gray-300">
+                    Paste a job description to create a CV optimized for that specific role. Leave blank for a comprehensive generic CV.
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
-                  <Textarea
-                    placeholder="Paste the job description here..."
-                    value={jobDescription}
-                    onChange={(e) => setJobDescription(e.target.value)}
-                    className="min-h-40 resize-none bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
-                  />
+                  {/* Template Selection */}
+                  <div>
+                    <label className="text-sm font-semibold text-white mb-2 block">
+                      Choose Template
+                    </label>
+                    <TemplateSelector
+                      selected={selectedTemplate}
+                      onSelect={setSelectedTemplate}
+                      compact={true}
+                    />
+                  </div>
+
+                  {/* Job Description */}
+                  <div>
+                    <label className="text-sm font-semibold text-white mb-2 block">
+                      Job Description (Optional)
+                    </label>
+                    <Textarea
+                      placeholder="Paste the job description here for AI optimization, or leave blank for a generic CV..."
+                      value={jobDescription}
+                      onChange={(e) => setJobDescription(e.target.value)}
+                      className="min-h-32 resize-none bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
+                    />
+                  </div>
                   <ShimmerButton
                     onClick={handleGenerateCV}
-                    disabled={!jobDescription.trim() || isGenerating}
+                    disabled={isGenerating}
                     className="w-full bg-gradient-to-r from-[#0ea5e9] to-[#22d3ee] text-white"
                   >
                     {isGenerating ? (
                       <>
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                        Building your draft...
+                        Generating your CV...
                       </>
                     ) : (
                       <>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Generate CV
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        {jobDescription.trim() ? 'Generate Optimized CV' : 'Generate Generic CV'}
                       </>
                     )}
                   </ShimmerButton>
@@ -259,9 +291,13 @@ export function DashboardPage() {
           <p className="text-gray-300">Upload a job description PDF or create a new CV</p>
         </div>
 
-        {/* Quick Match Score Widget */}
-        <div className="mb-8">
+        {/* Widgets Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Quick Match Score Widget */}
           <QuickMatchScore variant="default" />
+
+          {/* Component Library Stats */}
+          <ComponentLibraryStats />
         </div>
 
         {/* Search and Filter Section */}

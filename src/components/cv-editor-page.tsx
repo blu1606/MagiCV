@@ -3,9 +3,9 @@
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
-import { Download, ChevronLeft, Plus, Trash2, Sparkles, FileJson, Wand2 } from "lucide-react"
+import { Download, ChevronLeft, Plus, Trash2, Sparkles, FileJson, Wand2, Save, Check } from "lucide-react"
 import Link from "next/link"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -66,6 +66,11 @@ export function CVEditorPage({
   // Existing states
   const [isExporting, setIsExporting] = useState(false)
   const [skillInput, setSkillInput] = useState("")
+
+  // Save draft states
+  const [isSaving, setIsSaving] = useState(false)
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
 
   // Rephrase dialog states
   const [rephraseDialog, setRephraseDialog] = useState<{
@@ -292,6 +297,73 @@ export function CVEditorPage({
       description: "AI-rephrased text has been applied",
     })
   }
+
+  // Save draft functionality
+  const saveDraft = useCallback(async (showToast = true) => {
+    setIsSaving(true)
+    setSaveStatus('saving')
+
+    try {
+      const response = await fetch('/api/cv/draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cvId: cvId,
+          title: `CV for ${cvData.name}`,
+          jobDescription: jobDescription,
+          cvData: cvData,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to save draft')
+      }
+
+      const data = await response.json()
+      setLastSaved(new Date())
+      setSaveStatus('saved')
+
+      if (showToast) {
+        toast({
+          title: "Draft Saved",
+          description: "Your changes have been saved",
+        })
+      }
+
+      return data
+    } catch (error: any) {
+      console.error('Save draft error:', error)
+      setSaveStatus('unsaved')
+
+      if (showToast) {
+        toast({
+          title: "Save Failed",
+          description: error.message || "Failed to save draft",
+          variant: "destructive"
+        })
+      }
+    } finally {
+      setIsSaving(false)
+    }
+  }, [cvId, cvData, jobDescription, toast])
+
+  // Autosave every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (saveStatus === 'unsaved') {
+        saveDraft(false) // Silent autosave
+      }
+    }, 30000) // 30 seconds
+
+    return () => clearInterval(interval)
+  }, [saveStatus, saveDraft])
+
+  // Mark as unsaved when data changes
+  useEffect(() => {
+    if (lastSaved !== null) {
+      setSaveStatus('unsaved')
+    }
+  }, [cvData, jobDescription])
 
   // AI Fill-in: Transform matching results to CVData
   useEffect(() => {
@@ -594,6 +666,53 @@ export function CVEditorPage({
             )}
           </div>
           <div className="flex items-center gap-4">
+            {/* Save Status Indicator */}
+            <div className="flex items-center gap-2">
+              {saveStatus === 'saved' && lastSaved && (
+                <div className="flex items-center gap-2 text-sm text-green-400">
+                  <Check className="w-4 h-4" />
+                  <span>Saved {new Date(lastSaved).toLocaleTimeString()}</span>
+                </div>
+              )}
+              {saveStatus === 'saving' && (
+                <div className="flex items-center gap-2 text-sm text-[#0ea5e9]">
+                  <div className="w-4 h-4 border-2 border-[#0ea5e9] border-t-transparent rounded-full animate-spin" />
+                  <span>Saving...</span>
+                </div>
+              )}
+              {saveStatus === 'unsaved' && (
+                <div className="flex items-center gap-2 text-sm text-orange-400">
+                  <span>Unsaved changes</span>
+                </div>
+              )}
+            </div>
+
+            {/* Save Draft Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => saveDraft(true)}
+              disabled={isSaving || saveStatus === 'saved'}
+              className="gap-2 border-white/20 text-white hover:bg-white/10"
+            >
+              {isSaving ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Saving...
+                </>
+              ) : saveStatus === 'saved' ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  Saved
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  Save Draft
+                </>
+              )}
+            </Button>
+
             {matchScore !== null && (
               <div className="flex items-center gap-3">
                 <div className="relative w-12 h-12">
