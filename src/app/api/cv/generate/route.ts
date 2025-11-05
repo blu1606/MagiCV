@@ -14,7 +14,8 @@ import { createClient } from '@supabase/supabase-js';
  *   cvData?: object, // Optional: if provided, use this instead of querying components
  *   includeProjects?: boolean,
  *   useOnlineCompiler?: boolean,
- *   saveToDatabase?: boolean
+ *   saveToDatabase?: boolean,
+ *   useHybridArchitecture?: boolean // NEW: Use Solution A (Hybrid Architecture) for complete CVs
  * }
  */
 export async function POST(request: NextRequest) {
@@ -52,7 +53,8 @@ export async function POST(request: NextRequest) {
       cvData: providedCvData, // Optional: direct CV data from frontend
       includeProjects = true,
       useOnlineCompiler = false,
-      saveToDatabase = false
+      saveToDatabase = false,
+      useHybridArchitecture = true // NEW: Default to hybrid architecture (Solution A)
     } = body;
 
     // Job description is now optional - if not provided, generate generic CV with best components
@@ -67,16 +69,27 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('📝 Generating CV for user:', userId, jobDescription ? '(optimized for job)' : '(generic CV)');
+    console.log(`  → Architecture: ${useHybridArchitecture ? 'Hybrid (Complete)' : 'Legacy (Sparse)'}`);
 
     // 4. Generate CV PDF
-    const { pdfBuffer, cvData: generatedCvData } = await CVGeneratorService.generateCVPDF(
-      userId,
-      jobDescription,
-      {
-        includeProjects,
-        useOnlineCompiler,
-      }
-    );
+    // Use Hybrid Architecture (Solution A) for complete, professional CVs
+    const { pdfBuffer, cvData: generatedCvData } = useHybridArchitecture
+      ? await CVGeneratorService.generateCVPDFHybrid(
+          userId,
+          jobDescription,
+          {
+            includeProjects,
+            useOnlineCompiler,
+          }
+        )
+      : await CVGeneratorService.generateCVPDF(
+          userId,
+          jobDescription,
+          {
+            includeProjects,
+            useOnlineCompiler,
+          }
+        );
 
     // 5. Calculate match score (only if job description provided)
     const matchScore = jobDescription

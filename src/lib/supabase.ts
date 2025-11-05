@@ -52,11 +52,37 @@ export type ProviderType = 'linkedin' | 'github' | 'behance';
 
 export type ComponentType = 'experience' | 'project' | 'education' | 'skill';
 
+export type ComponentCategory = 'always-include' | 'match-required' | 'optional';
+
+export interface Language {
+  name: string;
+  level: string; // e.g., "Native", "Fluent", "Intermediate", "Basic"
+}
+
 export interface Profile {
   id: string; // UUID from auth.users
   full_name?: string;
   avatar_url?: string;
   profession?: string;
+
+  // Enhanced profile fields (Solution A: Hybrid Architecture)
+  professional_title?: string;
+  summary?: string;
+  bio?: string;
+
+  // Contact information
+  email?: string;
+  phone?: string;
+  location?: string;
+  linkedin_url?: string;
+  github_url?: string;
+  website_url?: string;
+
+  // Skills and interests
+  soft_skills?: string[]; // ["Leadership", "Communication", "Problem Solving"]
+  languages?: Language[]; // [{"name": "English", "level": "Native"}, ...]
+  interests?: string[]; // ["Open Source", "Hiking", "Photography"]
+
   created_at: string;
   updated_at: string;
 }
@@ -87,6 +113,7 @@ export interface Component {
   description?: string;
   highlights: any[]; // jsonb array
   embedding?: number[]; // vector(768)
+  category?: ComponentCategory; // Solution A: Hybrid Architecture
   created_at: string;
   updated_at: string;
   src?: string;
