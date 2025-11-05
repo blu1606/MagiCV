@@ -79,17 +79,59 @@ export function DashboardPage() {
     })
 
   const handleGenerateCV = async () => {
-    if (!jobDescription.trim()) return
-
     setIsGenerating(true)
+
     try {
-      // TODO: Implement CV generation API call
-      console.log('Generating CV for:', jobDescription)
-      // For now, just close the dialog
+      const response = await fetch('/api/cv/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobDescription: jobDescription || '',
+          saveToDatabase: true,
+          includeProjects: true,
+          // Note: template selection will be used in future when multiple templates are ready
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Generation failed')
+      }
+
+      // Download the PDF
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `CV-${Date.now()}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+
+      toast({
+        title: 'CV Generated!',
+        description: jobDescription
+          ? 'Your AI-optimized CV has been created and downloaded'
+          : 'Your comprehensive CV has been created and downloaded',
+      })
+
+      // Refresh CV list
+      await refetchCVs()
+      if (refetchStats) {
+        await refetchStats()
+      }
+
+      // Close dialog and reset
       setJobDescription("")
       setIsDialogOpen(false)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating CV:', error)
+      toast({
+        variant: 'destructive',
+        title: 'Generation Failed',
+        description: error.message || 'Failed to generate CV. Please try again.',
+      })
     } finally {
       setIsGenerating(false)
     }
@@ -148,10 +190,34 @@ export function DashboardPage() {
 
   const handleDuplicateCV = async (cv: CV) => {
     try {
-      // TODO: Implement CV duplication API call
-      console.log('Duplicating CV:', cv.id)
-    } catch (error) {
+      const response = await fetch(`/api/cv/${cv.id}/duplicate`, {
+        method: 'POST',
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Duplication failed')
+      }
+
+      const { cv: newCV } = await response.json()
+
+      toast({
+        title: 'CV Duplicated',
+        description: `Created copy: "${newCV.title}"`,
+      })
+
+      // Refresh CV list
+      await refetchCVs()
+      if (refetchStats) {
+        await refetchStats()
+      }
+    } catch (error: any) {
       console.error('Error duplicating CV:', error)
+      toast({
+        variant: 'destructive',
+        title: 'Duplication Failed',
+        description: error.message || 'Failed to duplicate CV. Please try again.',
+      })
     }
   }
 
