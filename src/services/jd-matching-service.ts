@@ -89,31 +89,51 @@ export class JDMatchingService {
       };
 
       const components: JDComponent[] = [];
+      const usedRequirementTexts = new Set<string>();
 
+      // 1. Skill Categories (High Priority)
       const skillCategories = this.selectSkillCategories(
         jdData.groupedSkills as GroupedSkillInput[] | undefined,
         jdData.skills as FlatSkillInput[] | undefined
       );
-
       for (const category of skillCategories.slice(0, 5)) {
         const component = await this.createSkillCategoryComponent(category);
         components.push(component);
       }
 
+      // 2. Special Requirements (e.g., "5+ years experience", "must have clearance")
       const specialRequirements = this.extractSpecialRequirements(
         jdData.requirements || [],
         jdData.qualifications || []
       );
-
       const requirementSlots = Math.max(0, 10 - components.length);
-      const usedRequirementTexts = new Set<string>();
       for (const requirement of specialRequirements.slice(0, Math.min(3, requirementSlots))) {
         const component = await this.createSpecialRequirementComponent(requirement.text);
         components.push(component);
         usedRequirementTexts.add(requirement.text.toLowerCase());
       }
 
-      if (components.length < 5) {
+      // 3. Education Requirements
+      if (components.length < 8) {
+        const educationComponent = await this.createEducationComponent(
+          jdData.qualifications || [],
+          jdData.requirements || []
+        );
+        if (educationComponent) {
+          components.push(educationComponent);
+        }
+      }
+
+      // 4. Project/Portfolio Requirements
+      if (components.length < 9) {
+        const projectComponent = await this.createProjectComponent(jdData.requirements || []);
+        if (projectComponent) {
+          components.push(projectComponent);
+        }
+      }
+
+      // 5. Key Responsibilities (as a fallback)
+      if (components.length < 7) {
         const responsibilitiesComponent = await this.createResponsibilitiesComponent(
           jdData.responsibilities || []
         );
@@ -122,7 +142,8 @@ export class JDMatchingService {
         }
       }
 
-      if (components.length < 5) {
+      // 6. General Requirements Summary (as a final fallback)
+      if (components.length < 8) {
         const remainingRequirements = (jdData.requirements || []).filter((req) => {
           if (!req) return false;
           return !usedRequirementTexts.has(req.trim().toLowerCase());
@@ -136,7 +157,7 @@ export class JDMatchingService {
       }
 
       const limitedComponents = components.slice(0, 10);
-      console.log(`✅ Extracted ${limitedComponents.length} JD components`);
+      console.log(`✅ Extracted ${limitedComponents.length} JD components of types: ${[...new Set(limitedComponents.map(c => c.type))].join(', ')}`);
 
       return {
         jdMetadata,
@@ -419,6 +440,48 @@ export class JDMatchingService {
     };
   }
 
+  private static async createEducationComponent(
+    qualifications: string[],
+    requirements: string[]
+  ): Promise<JDComponent | null> {
+    const combined = [...(qualifications || []), ...(requirements || [])];
+    const educationKeywords = /\b(degree|bachelor|master|phd|bsc|msc|b\.s|m\.s)\b/i;
+    const educationLine = combined.find(line => educationKeywords.test(line));
+
+    if (!educationLine) return null;
+
+    const description = educationLine.trim();
+    const embedding = await EmbeddingService.embed(`Education requirement: ${description}`);
+    return {
+      id: randomUUID(),
+      type: 'education',
+      title: 'Education Requirement',
+      description,
+      required: true,
+      embedding,
+    };
+  }
+
+  private static async createProjectComponent(
+    requirements: string[]
+  ): Promise<JDComponent | null> {
+    const projectKeywords = /\b(portfolio|github|projects|sample of work)\b/i;
+    const projectLine = (requirements || []).find(line => projectKeywords.test(line));
+
+    if (!projectLine) return null;
+
+    const description = projectLine.trim();
+    const embedding = await EmbeddingService.embed(`Project or portfolio requirement: ${description}`);
+    return {
+      id: randomUUID(),
+      type: 'project',
+      title: 'Project/Portfolio Requirement',
+      description,
+      required: false,
+      embedding,
+    };
+  }
+
   private static titleCase(value: string): string {
     if (!value) return value;
     const abbreviations = new Set(['ai', 'ml', 'ui', 'ux', 'qa', 'api', 'sre', 'devops']);
@@ -484,7 +547,8 @@ export class JDMatchingService {
    */
   static async matchSingleComponent(
     jdComponent: JDComponent,
-    cvComponents: Component[]
+    cvComponents: Component[],
+    usedCvComponentIds: Set<string>
   ): Promise<MatchResult> {
     try {
       if (!jdComponent.embedding) {
@@ -519,8 +583,13 @@ export class JDMatchingService {
                 // Calculate keyword match bonus
                 const keywordBonus = this.calculateKeywordBonus(jdComponent, cvComponent);
 
-                // Combined score (similarity + bonus, capped at 100)
-                const combinedScore = Math.min(similarityScore + (keywordBonus / 100), 1.0);
+                // Combined score (similarity + bonus)
+                let combinedScore = Math.min(similarityScore + (keywordBonus / 100), 1.0);
+
+                // Apply penalty if CV component has already been used for a similar JD component type
+                if (usedCvComponentIds.has(cvComponent.id)) {
+                  combinedScore *= 0.7; // Apply a 30% penalty
+                }
 
                 return { component: cvComponent, score: combinedScore, keywordBonus };
               } catch (e: any) {
@@ -645,10 +714,14 @@ Provide a concise explanation (1-2 sentences) of why this is a ${score >= 80 ? '
         }));
       }
 
-      // Match each JD component
+      const usedCvComponentIds = new Set<string>();
       const matches: MatchResult[] = [];
+
       for (const jdComponent of jdComponents) {
-        const match = await this.matchSingleComponent(jdComponent, cvComponents);
+        const match = await this.matchSingleComponent(jdComponent, cvComponents, usedCvComponentIds);
+        if (match.cvComponent) {
+          usedCvComponentIds.add(match.cvComponent.id);
+        }
         matches.push(match);
         console.log(`  ✓ Matched: ${jdComponent.title} → ${match.score}%`);
       }
@@ -756,20 +829,34 @@ Provide a concise explanation (1-2 sentences) of why this is a ${score >= 80 ? '
     const categoryMatches = matches.filter(m => {
       if (!m.cvComponent) return false;
 
-      // Direct type match
+      // Direct type match is always highest priority
       if (cvComponentTypes.includes(m.cvComponent.type)) return true;
 
-      // Enhanced mapping logic
-      // JD "skill" components can match CV skills, projects (that demonstrate skills), or experience
-      if (m.jdComponent.type === 'skill') {
-        return cvComponentTypes.includes('skill') ||
-               cvComponentTypes.includes('project') ||
-               cvComponentTypes.includes('experience');
+      // --- Enhanced Cross-Type Matching Logic ---
+
+      // A JD "skill" requirement can be fulfilled by CV "experience" or "project"
+      if (
+        m.jdComponent.type === 'skill' &&
+        (cvComponentTypes.includes('experience') || cvComponentTypes.includes('project'))
+      ) {
+        return true;
       }
 
-      // JD "requirement" or "responsibility" can match any CV component type
-      // as they represent broad job requirements
-      if (m.jdComponent.type === 'requirement' || m.jdComponent.type === 'responsibility') {
+      // A JD "requirement" can often be fulfilled by CV "experience", "project", or "education"
+      if (
+        m.jdComponent.type === 'requirement' &&
+        (cvComponentTypes.includes('experience') ||
+          cvComponentTypes.includes('project') ||
+          cvComponentTypes.includes('education'))
+      ) {
+        return true;
+      }
+      
+      // A JD "responsibility" is best matched by CV "experience" or "project"
+      if (
+        m.jdComponent.type === 'responsibility' &&
+        (cvComponentTypes.includes('experience') || cvComponentTypes.includes('project'))
+      ) {
         return true;
       }
 
@@ -778,7 +865,8 @@ Provide a concise explanation (1-2 sentences) of why this is a ${score >= 80 ? '
 
     if (categoryMatches.length === 0) return 0;
 
-    const avgScore = categoryMatches.reduce((sum, m) => sum + m.score, 0) / categoryMatches.length;
+    const avgScore =
+      categoryMatches.reduce((sum, m) => sum + m.score, 0) / categoryMatches.length;
     return Math.round(avgScore);
   }
 
