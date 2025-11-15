@@ -95,7 +95,7 @@ export class CVVariantGeneratorService {
 
       // Analyze JD characteristics using LLM
       const genAI = this.getClient();
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
       const jdText = `${jdMetadata.title} at ${jdMetadata.company}\n\n${jdMetadata.description}\n\nKey Requirements:\n${jdComponents.map(c => `- ${c.title}: ${c.description}`).join('\n')}`;
 
@@ -323,7 +323,7 @@ Return ONLY valid JSON.`;
     focusArea: FocusArea
   ): Promise<CVVariant> {
     const genAI = this.getClient();
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     // Filter good matches
     const goodMatches = matches.filter(m => m.score >= 40 && m.cvComponent !== null);

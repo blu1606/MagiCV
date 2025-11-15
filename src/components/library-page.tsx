@@ -24,6 +24,7 @@ import { ShimmerButton } from "@/components/ui/shimmer-button"
 import { AnimatedGradientText } from "@/components/ui/animated-gradient-text"
 import { GenerateEmbeddingsButton } from "@/components/generate-embeddings-button"
 import { GitHubImportButton } from "@/components/github-import-button"
+import { Checkbox } from "@/components/ui/checkbox"
 
 interface Component {
   id: string
@@ -48,6 +49,7 @@ export function LibraryPage() {
   const [isAdding, setIsAdding] = useState(false)
   const [isDuplicating, setIsDuplicating] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [selectedComponents, setSelectedComponents] = useState<string[]>([])
 
   const filteredComponents = components.filter((comp) => {
     const matchesSearch = comp.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -130,6 +132,41 @@ export function LibraryPage() {
         variant: 'destructive',
         title: 'Delete Failed',
         description: error.message || 'Failed to delete component. Please try again.',
+      })
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  const handleDeleteSelected = async () => {
+    const componentsToDelete = [...selectedComponents]
+    setDeletingId('bulk-deleting') // Use a special value to indicate bulk deletion
+
+    try {
+      await Promise.all(componentsToDelete.map(id =>
+        fetch(`/api/components/${id}`, { method: 'DELETE' })
+          .then(res => {
+            if (!res.ok) {
+              // We can collect errors here if we want to show partial success
+              console.error(`Failed to delete component ${id}`)
+            }
+          })
+      ))
+
+      toast({
+        title: 'Components Deleted',
+        description: `${componentsToDelete.length} components have been removed.`,
+      })
+
+      setSelectedComponents([])
+      await refetch()
+
+    } catch (error: any) {
+      console.error('Error deleting selected components:', error)
+      toast({
+        variant: 'destructive',
+        title: 'Bulk Delete Failed',
+        description: 'Some components could not be deleted. Please try again.',
       })
     } finally {
       setDeletingId(null)
@@ -303,7 +340,7 @@ export function LibraryPage() {
             />
           </div>
 
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
             {(["all", "experience", "education", "skill", "project"] as const).map((type) => (
               <Button
                 key={type}
@@ -319,6 +356,17 @@ export function LibraryPage() {
                 {type}
               </Button>
             ))}
+            {selectedComponents.length > 0 && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDeleteSelected}
+                disabled={deletingId !== null}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete ({selectedComponents.length})
+              </Button>
+            )}
           </div>
         </div>
 
@@ -341,74 +389,107 @@ export function LibraryPage() {
             </p>
           </Card>
         ) : (
-          <div className="grid gap-4">
-            {filteredComponents.map((component) => (
-              <Card key={component.id} className="p-8 hover:border-[#0ea5e9]/50 hover:bg-[#0f172a]/90 transition-all bg-[#0f172a]/80 backdrop-blur-sm border-white/20 group">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge className={`${getTypeColor(component.type)} text-xs capitalize`}>
-                        <AnimatedGradientText className="text-xs">
-                          {component.type}
-                        </AnimatedGradientText>
-                      </Badge>
-                    </div>
-                    <h3 className="font-semibold truncate text-white group-hover:text-[#0ea5e9] transition-colors">{component.title}</h3>
-                    {component.organization && (
-                      <p className="text-sm text-gray-400 mt-1">{component.organization}</p>
-                    )}
-                    <p className="text-sm text-gray-300 mt-1 line-clamp-2">{component.description || 'No description'}</p>
-                    {component.highlights && component.highlights.length > 0 && (
-                      <div className="mt-2">
-                        <p className="text-xs text-gray-400">Highlights:</p>
-                        <ul className="text-xs text-gray-300 mt-1">
-                          {component.highlights.slice(0, 2).map((highlight, index) => (
-                            <li key={index} className="truncate">• {highlight}</li>
-                          ))}
-                        </ul>
+          <>
+            <div className="flex items-center gap-4 mb-4">
+              <Checkbox
+                  id="select-all"
+                  checked={selectedComponents.length === filteredComponents.length && filteredComponents.length > 0}
+                  onCheckedChange={(checked) => {
+                      if (checked) {
+                          setSelectedComponents(filteredComponents.map(c => c.id))
+                      } else {
+                          setSelectedComponents([])
+                      }
+                  }}
+                  className="border-white/30"
+              />
+              <label htmlFor="select-all" className="text-sm text-white">
+                  Select All ({filteredComponents.length} components)
+              </label>
+            </div>
+            <div className="grid gap-4">
+              {filteredComponents.map((component) => (
+                <Card key={component.id} className="p-8 hover:border-[#0ea5e9]/50 hover:bg-[#0f172a]/90 transition-all bg-[#0f172a]/80 backdrop-blur-sm border-white/20 group">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-4 flex-1 min-w-0">
+                      <Checkbox
+                          id={`select-${component.id}`}
+                          checked={selectedComponents.includes(component.id)}
+                          onCheckedChange={(checked) => {
+                          setSelectedComponents(prev =>
+                              checked
+                              ? [...prev, component.id]
+                              : prev.filter(id => id !== component.id)
+                          )
+                          }}
+                          className="border-white/30 mt-1"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge className={`${getTypeColor(component.type)} text-xs capitalize`}>
+                            <AnimatedGradientText className="text-xs">
+                              {component.type}
+                            </AnimatedGradientText>
+                          </Badge>
+                        </div>
+                        <h3 className="font-semibold truncate text-white group-hover:text-[#0ea5e9] transition-colors">{component.title}</h3>
+                        {component.organization && (
+                          <p className="text-sm text-gray-400 mt-1">{component.organization}</p>
+                        )}
+                        <p className="text-sm text-gray-300 mt-1 line-clamp-2">{component.description || 'No description'}</p>
+                        {component.highlights && component.highlights.length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-xs text-gray-400">Highlights:</p>
+                            <ul className="text-xs text-gray-300 mt-1">
+                              {component.highlights.slice(0, 2).map((highlight, index) => (
+                                <li key={index} className="truncate">• {highlight}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        <p className="text-xs text-gray-400 mt-2">
+                          {component.created_at ? new Date(component.created_at).toLocaleDateString() : 'Unknown date'}
+                        </p>
                       </div>
-                    )}
-                    <p className="text-xs text-gray-400 mt-2">
-                      {component.created_at ? new Date(component.created_at).toLocaleDateString() : 'Unknown date'}
-                    </p>
+                    </div>
+                    <div className="flex gap-1 flex-shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDuplicate(component)}
+                        disabled={isDuplicating}
+                        title="Duplicate"
+                        className="text-white hover:bg-white/10"
+                      >
+                        {isDuplicating ? (
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Copy className="w-4 h-4" />
+                        )}
+                      </Button>
+                      <Button variant="ghost" size="sm" title="Edit" className="text-white hover:bg-white/10">
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(component.id)}
+                        disabled={deletingId === component.id}
+                        title="Delete"
+                        className="text-red-400 hover:bg-red-400/10"
+                      >
+                        {deletingId === component.id ? (
+                          <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex gap-1 flex-shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDuplicate(component)}
-                      disabled={isDuplicating}
-                      title="Duplicate"
-                      className="text-white hover:bg-white/10"
-                    >
-                      {isDuplicating ? (
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <Copy className="w-4 h-4" />
-                      )}
-                    </Button>
-                    <Button variant="ghost" size="sm" title="Edit" className="text-white hover:bg-white/10">
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(component.id)}
-                      disabled={deletingId === component.id}
-                      title="Delete"
-                      className="text-red-400 hover:bg-red-400/10"
-                    >
-                      {deletingId === component.id ? (
-                        <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <Trash2 className="w-4 h-4" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
+                </Card>
+              ))}
+            </div>
+          </>
         )}
 
         {/* Stats */}

@@ -589,7 +589,7 @@ export class JDMatchingService {
   ): Promise<string> {
     try {
       const genAI = this.getClient();
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
       const prompt = `You are a CV matching expert. Explain why this CV component matches (or doesn't match) the job requirement.
 

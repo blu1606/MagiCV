@@ -433,18 +433,18 @@ export function JDMatchingPage() {
               <Card className="bg-[#0f172a]/60 backdrop-blur-sm border-white/10">
                 <CardContent className="pt-6">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                    <div>
-                      <FileText className="w-8 h-8 text-[#0ea5e9] mx-auto mb-2" />
+                    <div className="flex flex-col items-center">
+                      <FileText className="w-8 h-8 text-[#0ea5e9] mb-2" />
                       <p className="text-sm text-[#94a3b8]">Component Extraction</p>
                       <p className="text-xs text-[#94a3b8]/60">AI-powered analysis</p>
                     </div>
-                    <div>
-                      <Sparkles className="w-8 h-8 text-[#f97316] mx-auto mb-2" />
+                    <div className="flex flex-col items-center">
+                      <Sparkles className="w-8 h-8 text-[#f97316] mb-2" />
                       <p className="text-sm text-[#94a3b8]">Smart Matching</p>
                       <p className="text-xs text-[#94a3b8]/60">Vector embeddings</p>
                     </div>
-                    <div>
-                      <CheckCircle2 className="w-8 h-8 text-[#22d3ee] mx-auto mb-2" />
+                    <div className="flex flex-col items-center">
+                      <CheckCircle2 className="w-8 h-8 text-[#22d3ee] mb-2" />
                       <p className="text-sm text-[#94a3b8]">Instant Results</p>
                       <p className="text-xs text-[#94a3b8]/60">Real-time visualization</p>
                     </div>
@@ -460,7 +460,7 @@ export function JDMatchingPage() {
               {/* Action Buttons */}
               <Card className="bg-[#0f172a]/80 backdrop-blur-sm border-white/10 sticky bottom-6">
                 <CardContent className="py-4">
-                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
                     <ShimmerButton
                       onClick={handleCustomizeInEditor}
                       className="bg-gradient-to-r from-[#22d3ee] to-[#0ea5e9] hover:opacity-90"

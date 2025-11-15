@@ -43,7 +43,7 @@ Phân tích khoảng cách giữa backend services đã implement, API endpoints
 - ✅ `calculateMatchScore()` - Tính điểm match giữa CV và JD
 
 **Dependencies:**
-- Google Gemini AI (gemini-2.0-flash-exp)
+- Google Gemini AI (gemini-2.0-flash)
 - SupabaseService
 - EmbeddingService
 - LaTeXService

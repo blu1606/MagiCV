@@ -3082,7 +3082,7 @@ Tôi sẽ phân tích chi tiết tất cả external dependencies trong `CVGener
           "mockStrategy": "jest.fn() returning mock model object",
           "testData": {
             "config": {
-              "model": "gemini-2.0-flash-exp"
+              "model": "gemini-2.0-flash"
             }
           },
           "errorCases": [
@@ -3431,7 +3431,7 @@ response
 | **Edge Case** | Given empty components array, When selectAndRankComponents called, Then LLM returns structure with empty arrays | `components: []`, `jobDescription: "Any JD"`, `profile: { full_name: null, profession: null }` | ✅ `model.generateContent()` called with 0 items in prompt<br>✅ Returns: `{ experiences: [], education: [], skills: {}, projects: [] }` | `{ experiences: [], education: [], skills: {}, projects: [] }` all empty | All arrays empty, structure valid |
 | **Error Case** | Given LLM returns malformed JSON, When selectAndRankComponents called, Then catches parse error and throws | `components: [3 items]`, `jobDescription: "Manager Role"`, `profile: { full_name: "Jane", profession: "PM" }` | ❌ `model.generateContent()` returns: `"This is not JSON { invalid"` | `Error` thrown with message containing "parse" or "JSON" | Error caught, message logged, exception thrown |
 | **Error Case** | Given LLM response with markdown formatting, When selectAndRankComponents called, Then strips markdown and parses JSON | `components: [4 items]`, `jobDescription: "DevOps"`, `profile: { full_name: "Bob", profession: "DevOps" }` | ✅ `model.generateContent()` returns: `` `\`\`json\n{...valid json...}\n\`\`\` `` | `{ experiences: [...], education: [...], skills: {...}, projects: [...] }` parsed | Markdown stripped, JSON extracted, structure valid |
-| **Integration** | Given valid components with all types and profile missing some fields, When selectAndRankComponents called, Then LLM processes all and returns ranked result | `components: [10 mixed items]`, `jobDescription: "Full 2000-char JD with multiple skills"`, `profile: { full_name: undefined, profession: undefined }` | ✅ `model.generateContent()` called with `model: "gemini-2.0-flash-exp"`<br>✅ Returns complex nested JSON with ranked items | Properly structured result with all component types ranked | Profile fields default to "Not specified" in prompt, result valid |
+| **Integration** | Given valid components with all types and profile missing some fields, When selectAndRankComponents called, Then LLM processes all and returns ranked result | `components: [10 mixed items]`, `jobDescription: "Full 2000-char JD with multiple skills"`, `profile: { full_name: undefined, profession: undefined }` | ✅ `model.generateContent()` called with `model: "gemini-2.0-flash"`<br>✅ Returns complex nested JSON with ranked items | Properly structured result with all component types ranked | Profile fields default to "Not specified" in prompt, result valid |
 
 ---
 

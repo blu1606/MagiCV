@@ -64,7 +64,7 @@ export class ProfessionalSummaryService {
       const totalYears = this.calculateTotalYears(topExperiences);
 
       const genAI = this.getClient();
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
       const prompt = `You are a professional CV writer specializing in creating compelling professional summaries that pass ATS systems and impress HR managers.
 
@@ -183,7 +183,7 @@ Return ONLY the professional summary text (no JSON, no markdown, no explanations
       })[0];
 
       const genAI = this.getClient();
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
       const prompt = `Write a professional summary (2-3 sentences, 50-120 words) for a CV:
 

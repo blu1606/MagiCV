@@ -218,7 +218,7 @@ export class ProfessionalSummaryService {
         .map(m => m.cvComponent!);
 
       const genAI = this.getClient();
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
       const prompt = `You are a professional CV writer specializing in creating compelling professional summaries that pass ATS and impress HR managers.
 
@@ -313,7 +313,7 @@ Return ONLY the professional summary text (no JSON, no formatting, just plain te
     })[0];
 
     const genAI = this.getClient();
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     const prompt = `Write a professional summary (2-3 sentences) for a CV:
 
@@ -913,7 +913,7 @@ export class CVVariantGeneratorService {
     generalistWeight: number;
   }> {
     const genAI = this.getClient();
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     const prompt = `Analyze this job description and determine the weight of different focus areas:
 
@@ -980,7 +980,7 @@ Return JSON:
     focusWeights: any
   ): Promise<CVVariant> {
     const genAI = this.getClient();
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     // Filter and rank components based on focus area
     const allMatches = matchingResults.matches.filter(m => m.score >= 40);

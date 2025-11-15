@@ -138,7 +138,7 @@ export function ComponentLibraryStats() {
       </div>
 
       {/* Total Count */}
-      <div className="mb-6 p-4 rounded-lg bg-[#0f172a]/60 border border-white/10">
+      <div className="mb-8 p-4 rounded-lg bg-[#0f172a]/60 border border-white/10">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium text-slate-300">Total Components</span>
           <div className="text-3xl font-bold text-[#22d3ee]">
@@ -148,7 +148,7 @@ export function ComponentLibraryStats() {
       </div>
 
       {/* Component Breakdown */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-4">
         {componentTypes.map((type) => (
           <div
             key={type.type}

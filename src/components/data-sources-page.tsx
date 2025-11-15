@@ -211,7 +211,7 @@ export function DataSourcesPage() {
         </div>
 
         {/* Data Sources */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {Object.entries(DATA_SOURCE_CONFIG).map(([key, config]) => {
             const source = dataSources.find(s => s.provider === key)
             const Icon = config.icon

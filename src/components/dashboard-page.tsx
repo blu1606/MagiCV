@@ -297,7 +297,7 @@ export function DashboardPage() {
                     AI-Optimized CV
                   </ShimmerButton>
                 </DialogTrigger>
-              <DialogContent className="sm:max-w-md md:max-w-lg bg-[#0f172a]/95 backdrop-blur-sm border-white/20 text-white max-h-[85vh] overflow-y-auto p-6">
+              <DialogContent className="sm:max-w-md md:max-w-lg bg-[#0f172a]/95 backdrop-blur-sm border-white/20 text-white max-h-[85vh] overflow-y-auto p-8">
                 <DialogHeader>
                   <DialogTitle className="text-white flex items-center gap-2">
                     <Sparkles className="w-5 h-5 text-[#22d3ee]" />
@@ -307,11 +307,11 @@ export function DashboardPage() {
                     Paste a job description to create a CV optimized for that specific role. Leave blank for a comprehensive generic CV.
                   </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4">
+                <div className="space-y-6 py-4">
                   {/* Template Selection */}
-                  <div>
-                    <label className="text-sm font-semibold text-white mb-2 block">
-                      Choose Template
+                  <div className="p-4 bg-[#0ea5e9]/10 rounded-lg border border-[#0ea5e9]/20 space-y-3">
+                    <label className="text-sm font-semibold text-white block">
+                      1. Choose Template
                     </label>
                     <TemplateSelector
                       selected={selectedTemplate}
@@ -321,9 +321,9 @@ export function DashboardPage() {
                   </div>
 
                   {/* Job Description */}
-                  <div>
-                    <label className="text-sm font-semibold text-white mb-2 block">
-                      Job Description (Optional)
+                  <div className="p-4 bg-[#0ea5e9]/10 rounded-lg border border-[#0ea5e9]/20 space-y-3">
+                    <label className="text-sm font-semibold text-white block">
+                      2. Job Description (Optional)
                     </label>
                     <Textarea
                       placeholder="Paste the job description here for AI optimization, or leave blank for a generic CV..."
@@ -331,6 +331,9 @@ export function DashboardPage() {
                       onChange={(e) => setJobDescription(e.target.value)}
                       className="min-h-32 resize-none bg-[#0f172a]/80 border-white/20 text-white placeholder:text-gray-400"
                     />
+                     <p className="text-xs text-gray-400">
+                      For best results, paste the full job description.
+                    </p>
                   </div>
                   <ShimmerButton
                     onClick={handleGenerateCV}
@@ -358,7 +361,7 @@ export function DashboardPage() {
         </div>
 
         {/* Widgets Grid */}
-        <div className="grid grid-cols-1 gap-6 mb-8">
+        <div className="grid grid-cols-1 gap-8 mb-8">
           {/* Quick Match Score Widget */}
           <QuickMatchScore variant="default" />
 

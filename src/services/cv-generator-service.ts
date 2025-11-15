@@ -95,7 +95,7 @@ export class CVGeneratorService {
       console.log('🤖 Using LLM to select and rank components...');
       
       const genAI = this.getClient();
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
       // Group components by type
       const componentsByType = {
@@ -675,7 +675,7 @@ Important: Select only the BEST 3-5 items per category. Quality over quantity!`;
       console.log('🤖 Using LLM to format CV content (Hybrid Architecture)...');
 
       const genAI = this.getClient();
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
       // Group components by type
       const componentsByType = {

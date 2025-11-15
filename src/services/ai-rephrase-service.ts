@@ -48,7 +48,7 @@ export class AIRephraseService {
     console.log(`🤖 Rephrasing text in ${options.mode} mode...`)
 
     const genAI = this.getClient()
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
 
     const prompt = this.buildPrompt(text, options)
 
@@ -85,7 +85,7 @@ export class AIRephraseService {
     console.log(`🤖 Rephrasing ${bullets.length} bullets in ${options.mode} mode...`)
 
     const genAI = this.getClient()
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
 
     const prompt = this.buildBatchPrompt(bullets, options)
 

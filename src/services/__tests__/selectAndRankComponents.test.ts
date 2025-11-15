@@ -188,7 +188,7 @@ describe('CVGeneratorService.selectAndRankComponents', () => {
       expect(result.skills).toHaveProperty('technical');
 
       // Verify LLM was called
-      expect(mockGenAI.getGenerativeModel).toHaveBeenCalledWith({ model: 'gemini-2.0-flash-exp' });
+      expect(mockGenAI.getGenerativeModel).toHaveBeenCalledWith({ model: 'gemini-2.0-flash' });
       expect(mockModel.generateContent).toHaveBeenCalledTimes(1);
     });
 

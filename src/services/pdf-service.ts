@@ -102,7 +102,7 @@ export class PDFService {
   }> {
     try {
       const genAI = this.getClient();
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
       const prompt = `Analyze the following job description and extract structured information in JSON format.
 

@@ -30,7 +30,7 @@ export function JDMatchingVisualization({ results }: JDMatchingVisualizationProp
   const noMatches = matches.filter(m => m.matchQuality === 'none')
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Seniority Match Card */}
       {results.seniorityAnalysis && (
         <Card className={`backdrop-blur-sm ${
@@ -122,7 +122,7 @@ export function JDMatchingVisualization({ results }: JDMatchingVisualizationProp
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Overall Score */}
             <div className="flex flex-col items-center justify-center p-6 bg-[#0ea5e9]/5 rounded-lg border border-[#0ea5e9]/20">
               <CircularProgress value={overallScore} size={140} strokeWidth={10} />
