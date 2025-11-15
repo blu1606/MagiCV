@@ -4,6 +4,17 @@ import { EmbeddingService } from './embedding-service';
 import { SupabaseService } from './supabase-service';
 import type { Component } from '@/lib/supabase';
 
+/**
+ * REQUIRED DATABASE SCHEMA CHANGE for GitHub Import De-duplication:
+ *
+ * -- Add a source_id column to track the origin of the component
+ * ALTER TABLE components ADD COLUMN source_id TEXT;
+ *
+ * -- Create a unique index to prevent duplicate components from the same source for the same user
+ * CREATE UNIQUE INDEX components_user_id_source_id_idx ON components (user_id, source_id);
+ *
+ */
+
 type LanguageStat = { language: string; count: number; percentage: number };
 
 type GithubRepository = {
@@ -298,7 +309,7 @@ const LANGUAGE_TO_CATEGORY_MAP: Record<string, string[]> = {
  */
 export class GitHubComponentService {
   /**
-   * Crawl GitHub profile and create components
+   * Crawl GitHub profile and create/update components
    */
   static async crawlAndCreateComponents(
     userId: string,
@@ -342,44 +353,44 @@ export class GitHubComponentService {
       console.log(`✅ Fetched ${repositories.length} repositories`);
       onProgress?.('Converting to components...', 20, 100);
 
-      const componentsCreated: Component[] = [];
+      const componentsUpserted: Component[] = [];
       const errors: Array<{ type: string; error: string }> = [];
 
-      // 1. Create profile/bio component (if bio exists)
+      // 1. Upsert profile/bio component (if bio exists)
       if (profile.bio) {
         try {
-          const bioComponent = await this.createProfileComponent(userId, profile);
-          componentsCreated.push(bioComponent);
-          console.log(`✓ Created profile component`);
+          const bioComponent = await this.upsertProfileComponent(userId, profile);
+          componentsUpserted.push(bioComponent);
+          console.log(`✓ Upserted profile component`);
         } catch (error: any) {
           errors.push({ type: 'profile', error: error.message });
         }
       }
 
-      onProgress?.('Creating project components...', 30, 100);
+      onProgress?.('Upserting project components...', 30, 100);
 
-      // 2. Create project components from top repositories
+      // 2. Upsert project components from top repositories
       const projectsToProcess = topProjects.slice(0, 10); // Top 10 projects
       for (let i = 0; i < projectsToProcess.length; i++) {
         const project = projectsToProcess[i];
         try {
-          const projectComponent = await this.createProjectComponent(
+          const projectComponent = await this.upsertProjectComponent(
             userId,
             project,
             repositories.find((r) => r.name === project.name)
           );
-          componentsCreated.push(projectComponent);
-          console.log(`✓ Created project: ${project.name}`);
+          componentsUpserted.push(projectComponent);
+          console.log(`✓ Upserted project: ${project.name}`);
         } catch (error: any) {
           errors.push({ type: 'project', error: error.message });
         }
 
         // Update progress
         const progress = 30 + ((i + 1) / projectsToProcess.length) * 50;
-        onProgress?.(`Creating projects... (${i + 1}/${projectsToProcess.length})`, progress, 100);
+        onProgress?.(`Upserting projects... (${i + 1}/${projectsToProcess.length})`, progress, 100);
       }
 
-      onProgress?.('Creating skill components...', 80, 100);
+      onProgress?.('Upserting skill components...', 80, 100);
 
       const skillCategories = this.buildSkillCategories(
         languageStats.primaryLanguages,
@@ -391,16 +402,16 @@ export class GitHubComponentService {
       for (let i = 0; i < skillsToProcess.length; i++) {
         const category = skillsToProcess[i];
         try {
-          const skillComponent = await this.createSkillComponent(userId, category);
-          componentsCreated.push(skillComponent);
-          console.log(`✓ Created skill category: ${category.name}`);
+          const skillComponent = await this.upsertSkillComponent(userId, category);
+          componentsUpserted.push(skillComponent);
+          console.log(`✓ Upserted skill category: ${category.name}`);
         } catch (error: any) {
           errors.push({ type: 'skill', error: error.message });
         }
 
         const progressBase = skillsToProcess.length === 0 ? 100 : 80 + ((i + 1) / skillsToProcess.length) * 20;
         onProgress?.(
-          `Creating skills... (${Math.min(i + 1, skillsToProcess.length)}/${skillsToProcess.length || 1})`,
+          `Upserting skills... (${Math.min(i + 1, skillsToProcess.length)}/${skillsToProcess.length || 1})`,
           progressBase,
           100
         );
@@ -408,8 +419,7 @@ export class GitHubComponentService {
 
       onProgress?.('Complete!', 100, 100);
 
-      console.log(`✅ Created ${componentsCreated.length} components total`);
-      console.log(`   Profile: 1, Projects: ${topProjects.length}, Skills: ${skillsToProcess.length}`);
+      console.log(`✅ Upserted ${componentsUpserted.length} components total`);
 
       if (errors.length > 0) {
         console.warn(`⚠️ ${errors.length} errors occurred during conversion`);
@@ -417,7 +427,7 @@ export class GitHubComponentService {
 
       return {
         success: true,
-        componentsCreated: componentsCreated.length,
+        componentsCreated: componentsUpserted.length,
         errors,
         profile,
       };
@@ -432,12 +442,13 @@ export class GitHubComponentService {
   }
 
   /**
-   * Create profile/bio component
+   * Upsert profile/bio component
    */
-  private static async createProfileComponent(
+  private static async upsertProfileComponent(
     userId: string,
     profile: any
   ): Promise<Component> {
+    const sourceId = `github-profile-${profile.login}`;
     const title = profile.name || profile.login;
     const description = [
       profile.bio,
@@ -454,14 +465,13 @@ export class GitHubComponentService {
       profile.email ? `Email: ${profile.email}` : null,
     ].filter(Boolean) as string[];
 
-    // Generate embedding
     const embeddingText = `${title} - ${description} ${highlights.join(', ')}`;
     const embedding = await EmbeddingService.embed(embeddingText);
 
-    // Create component in database
-    const component = await SupabaseService.createComponent({
+    return SupabaseService.upsertComponent({
       user_id: userId,
-      type: 'education', // Use education type for profile/bio
+      source_id: sourceId,
+      type: 'education',
       title: title,
       organization: 'GitHub Profile',
       description: description,
@@ -469,30 +479,22 @@ export class GitHubComponentService {
       embedding,
       src: 'github',
     });
-
-    return component;
   }
 
   /**
-   * Create project component from repository
+   * Upsert project component from repository
    */
-  private static async createProjectComponent(
+  private static async upsertProjectComponent(
     userId: string,
     project: any,
     repoDetails?: any
   ): Promise<Component> {
+    const sourceId = `github-project-${project.name}`;
     const title = project.name.replace(/-/g, ' ').replace(/_/g, ' ');
 
-    // Build description
     let description = project.description || 'GitHub repository';
-
-    // Add README summary if available
     if (repoDetails?.readme) {
-      // Take first 200 characters of README
-      const readmeSummary = repoDetails.readme
-        .replace(/[#*`]/g, '') // Remove markdown formatting
-        .substring(0, 300)
-        .trim();
+      const readmeSummary = repoDetails.readme.replace(/[#*`]/g, '').substring(0, 300).trim();
       if (readmeSummary) {
         description += `\n\n${readmeSummary}...`;
       }
@@ -505,13 +507,12 @@ export class GitHubComponentService {
       repoDetails ? `Repository: ${repoDetails.url}` : `Repository: ${project.url}`,
     ].filter(Boolean) as string[];
 
-    // Generate embedding
     const embeddingText = `${title} - ${description} ${highlights.join(', ')}`;
     const embedding = await EmbeddingService.embed(embeddingText);
 
-    // Create component in database
-    const component = await SupabaseService.createComponent({
+    return SupabaseService.upsertComponent({
       user_id: userId,
+      source_id: sourceId,
       type: 'project',
       title: title,
       organization: 'GitHub',
@@ -520,8 +521,6 @@ export class GitHubComponentService {
       embedding,
       src: 'github',
     });
-
-    return component;
   }
 
   private static buildSkillCategories(
@@ -855,12 +854,13 @@ export class GitHubComponentService {
   }
 
   /**
-   * Create skill component from aggregated category
+   * Upsert skill component from aggregated category
    */
-  private static async createSkillComponent(
+  private static async upsertSkillComponent(
     userId: string,
     category: AggregatedSkillCategory
   ): Promise<Component> {
+    const sourceId = `github-skill-${category.id}`;
     const { name, summary, technologies, repoCount, notableProjects, languageBreakdown, totalPercentage } =
       category;
 
@@ -903,8 +903,9 @@ export class GitHubComponentService {
     const embeddingText = `${name} - ${description} ${highlights.join(', ')}`;
     const embedding = await EmbeddingService.embed(embeddingText);
 
-    return SupabaseService.createComponent({
+    return SupabaseService.upsertComponent({
       user_id: userId,
+      source_id: sourceId,
       type: 'skill',
       title: name,
       organization: 'GitHub',
