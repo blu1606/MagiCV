@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { csrfProtect } from '@/lib/csrf'
 
 // Cache user sessions to reduce redundant auth checks
 // Cache expires after 30 seconds
@@ -17,7 +18,7 @@ function getCachedUser(sessionKey: string) {
 
 function setCachedUser(sessionKey: string, user: any) {
   userCache.set(sessionKey, { user, timestamp: Date.now() })
-  
+
   // Clean up old cache entries periodically
   if (userCache.size > 100) {
     const now = Date.now()
@@ -30,14 +31,24 @@ function setCachedUser(sessionKey: string, user: any) {
 }
 
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
+  const response = NextResponse.next({
     request,
   })
 
+  // 1. CSRF Protection
+  try {
+    await csrfProtect(request, response)
+  } catch (err) {
+    return new NextResponse('Invalid CSRF Token', { status: 403 })
+  }
+
+  // 2. Supabase Authentication
+  let supabaseResponse = response
+
   // Get session key from cookies for caching
-  const sessionKey = request.cookies.get('sb-access-token')?.value || 
-                     request.cookies.get('sb-refresh-token')?.value || 
-                     'no-session'
+  const sessionKey = request.cookies.get('sb-access-token')?.value ||
+    request.cookies.get('sb-refresh-token')?.value ||
+    'no-session'
 
   // Check cache first
   const cachedUser = getCachedUser(sessionKey)
@@ -58,6 +69,12 @@ export async function middleware(request: NextRequest) {
             supabaseResponse = NextResponse.next({
               request,
             })
+            // Copy CSRF headers if any
+            const csrfToken = response.headers.get('set-cookie')
+            if (csrfToken) {
+              supabaseResponse.headers.append('set-cookie', csrfToken)
+            }
+
             cookiesToSet.forEach(({ name, value, options }) =>
               supabaseResponse.cookies.set(name, value, options)
             )
@@ -67,7 +84,7 @@ export async function middleware(request: NextRequest) {
     )
 
     const user = cachedUser
-    
+
     // Protect authenticated routes with cached user
     if (
       !user &&
@@ -100,6 +117,12 @@ export async function middleware(request: NextRequest) {
           supabaseResponse = NextResponse.next({
             request,
           })
+          // Copy CSRF headers if any
+          const csrfToken = response.headers.get('set-cookie')
+          if (csrfToken) {
+            supabaseResponse.headers.append('set-cookie', csrfToken)
+          }
+
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           )
@@ -139,19 +162,6 @@ export async function middleware(request: NextRequest) {
   //   return NextResponse.redirect(url)
   // }
 
-  // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
-  // creating a new response object with NextResponse.next() make sure to:
-  // 1. Pass the request in it, like so:
-  //    const myNewResponse = NextResponse.next({ request })
-  // 2. Copy over the cookies, like so:
-  //    myNewResponse.cookies.setAll(supabaseResponse.cookies.getAll())
-  // 3. Change the myNewResponse object to fit your needs, but avoid changing
-  //    the cookies!
-  // 4. Finally:
-  //    return myNewResponse
-  // If this is not done, you may be causing the browser and server to go out
-  // of sync and terminate the user's session prematurely!
-
   return supabaseResponse
 }
 
@@ -168,3 +178,4 @@ export const config = {
     '/((?!_next/static|_next/image|favicon.ico|auth/callback|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
+
