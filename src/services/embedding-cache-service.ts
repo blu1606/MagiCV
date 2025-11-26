@@ -1,7 +1,9 @@
 /**
  * Embedding Cache Service
- * In-memory cache for embeddings to reduce API calls
+ * LRU cache for embeddings to reduce API calls and prevent memory leaks
  */
+
+import { LRUCache } from 'lru-cache';
 
 interface CacheEntry {
   embedding: number[];
@@ -9,9 +11,19 @@ interface CacheEntry {
 }
 
 export class EmbeddingCacheService {
-  private static cache = new Map<string, CacheEntry>();
-  private static readonly MAX_CACHE_SIZE = 1000;
-  private static readonly CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+  // Configure LRU Cache
+  // Default: 1000 items, 24 hour TTL
+  private static cache = new LRUCache<string, CacheEntry>({
+    max: parseInt(process.env.CACHE_SIZE || '1000', 10),
+    ttl: parseInt(process.env.CACHE_TTL || '86400', 10) * 1000,
+    updateAgeOnGet: true,
+  });
+
+  // Statistics
+  private static stats = {
+    hits: 0,
+    misses: 0,
+  };
 
   /**
    * Generate cache key from text
@@ -35,17 +47,12 @@ export class EmbeddingCacheService {
     const entry = this.cache.get(key);
 
     if (!entry) {
+      this.stats.misses++;
       return null;
     }
 
-    // Check if entry is expired
-    const now = Date.now();
-    if (now - entry.timestamp > this.CACHE_TTL_MS) {
-      this.cache.delete(key);
-      return null;
-    }
-
-    console.log('✅ Embedding cache hit');
+    this.stats.hits++;
+    // console.log('✅ Embedding cache hit');
     return entry.embedding;
   }
 
@@ -54,14 +61,6 @@ export class EmbeddingCacheService {
    */
   static set(text: string, embedding: number[]): void {
     const key = this.getCacheKey(text);
-
-    // Evict oldest entries if cache is full
-    if (this.cache.size >= this.MAX_CACHE_SIZE) {
-      const oldestKey = this.cache.keys().next().value as string | undefined;
-      if (oldestKey) {
-        this.cache.delete(oldestKey);
-      }
-    }
 
     this.cache.set(key, {
       embedding,
@@ -74,47 +73,32 @@ export class EmbeddingCacheService {
    */
   static clear(): void {
     this.cache.clear();
+    this.stats = { hits: 0, misses: 0 };
     console.log('🗑️ Embedding cache cleared');
   }
 
   /**
    * Get cache stats
    */
-  static getStats(): {
-    size: number;
-    maxSize: number;
-    hitRate: number;
-  } {
+  static getStats() {
+    const total = this.stats.hits + this.stats.misses;
+    const hitRate = total > 0 ? (this.stats.hits / total) * 100 : 0;
+
     return {
       size: this.cache.size,
-      maxSize: this.MAX_CACHE_SIZE,
-      hitRate: 0, // TODO: Track hits/misses for accurate hit rate
+      maxSize: this.cache.max,
+      hits: this.stats.hits,
+      misses: this.stats.misses,
+      hitRate: parseFloat(hitRate.toFixed(2)),
+      ttl: this.cache.ttl,
     };
   }
 
   /**
-   * Cleanup expired entries
+   * Manually prune expired entries (LRU does this automatically on access, but this forces it)
    */
   static cleanup(): void {
-    const now = Date.now();
-    let removed = 0;
-
-    for (const [key, entry] of this.cache.entries()) {
-      if (now - entry.timestamp > this.CACHE_TTL_MS) {
-        this.cache.delete(key);
-        removed++;
-      }
-    }
-
-    if (removed > 0) {
-      console.log(`🧹 Cleaned up ${removed} expired cache entries`);
-    }
+    this.cache.purgeStale();
   }
 }
 
-// Auto cleanup every hour (only in Node.js environment)
-if (typeof setInterval !== 'undefined' && typeof window === 'undefined') {
-  setInterval(() => {
-    EmbeddingCacheService.cleanup();
-  }, 60 * 60 * 1000);
-}
