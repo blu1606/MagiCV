@@ -32,7 +32,7 @@ interface TokenBucket {
 }
 
 // Rate limit configurations for different endpoint types
-export const RATE_LIMITS = {
+export const RATE_LIMITS: Record<string, RateLimitConfig> = {
     CV_GENERATION: {
         maxRequests: 10,
         windowSeconds: 600, // 10 minutes
@@ -68,7 +68,7 @@ export const RATE_LIMITS = {
         maxRequests: 60,
         windowSeconds: 60, // 1 minute
     }
-} as const;
+};
 
 // LRU cache to store rate limit buckets
 // Max 10,000 entries, TTL based on longest window (1 hour)

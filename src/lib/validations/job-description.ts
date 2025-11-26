@@ -9,12 +9,12 @@ import { uuidSchema, nonEmptyStringSchema, optionalNonEmptyStringSchema, urlSche
 export const jobDescriptionCreateSchema = z.object({
     user_id: uuidSchema,
     title: nonEmptyStringSchema.max(200, 'Title too long'),
-    company: optionalNonEmptyStringSchema.max(200),
+    company: z.string().trim().min(1).max(200).optional(),
     description: nonEmptyStringSchema.max(20000, 'Description too long'),
     requirements: z.string().trim().max(10000).optional(),
     responsibilities: z.string().trim().max(10000).optional(),
-    location: optionalNonEmptyStringSchema.max(200),
-    salary_range: optionalNonEmptyStringSchema.max(100),
+    location: z.string().trim().min(1).max(200).optional(),
+    salary_range: z.string().trim().min(1).max(100).optional(),
     employment_type: z.enum(['full-time', 'part-time', 'contract', 'internship', 'freelance']).optional(),
     experience_level: z.enum(['entry', 'mid', 'senior', 'lead', 'executive']).optional(),
     source_url: z.string().url().optional(),
@@ -26,13 +26,13 @@ export type JobDescriptionCreateRequest = z.infer<typeof jobDescriptionCreateSch
 
 // Job description update request
 export const jobDescriptionUpdateSchema = z.object({
-    title: optionalNonEmptyStringSchema.max(200),
-    company: optionalNonEmptyStringSchema.max(200),
+    title: z.string().trim().min(1).max(200).optional(),
+    company: z.string().trim().min(1).max(200).optional(),
     description: z.string().trim().max(20000).optional(),
     requirements: z.string().trim().max(10000).optional(),
     responsibilities: z.string().trim().max(10000).optional(),
-    location: optionalNonEmptyStringSchema.max(200),
-    salary_range: optionalNonEmptyStringSchema.max(100),
+    location: z.string().trim().min(1).max(200).optional(),
+    salary_range: z.string().trim().min(1).max(100).optional(),
     employment_type: z.enum(['full-time', 'part-time', 'contract', 'internship', 'freelance']).optional(),
     experience_level: z.enum(['entry', 'mid', 'senior', 'lead', 'executive']).optional(),
     source_url: z.string().url().optional(),

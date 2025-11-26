@@ -38,7 +38,7 @@ export type CVMatchRequest = z.infer<typeof cvMatchSchema>;
 export const cvRephraseSchema = z.object({
     text: nonEmptyStringSchema.max(5000, 'Text too long (max 5000 characters)'),
     tone: z.enum(['professional', 'casual', 'technical', 'creative']).default('professional'),
-    targetRole: optionalNonEmptyStringSchema.max(200),
+    targetRole: z.string().trim().min(1).max(200).optional(),
 });
 
 export type CVRephraseRequest = z.infer<typeof cvRephraseSchema>;
@@ -46,7 +46,7 @@ export type CVRephraseRequest = z.infer<typeof cvRephraseSchema>;
 // CV summary generation
 export const cvSummarySchema = z.object({
     userId: uuidSchema,
-    targetRole: optionalNonEmptyStringSchema.max(200),
+    targetRole: z.string().trim().min(1).max(200).optional(),
     yearsOfExperience: z.number().int().nonnegative().max(50).optional(),
 });
 
@@ -63,7 +63,7 @@ export type CVVariantRequest = z.infer<typeof cvVariantSchema>;
 
 // CV update request
 export const cvUpdateSchema = z.object({
-    title: optionalNonEmptyStringSchema.max(200),
+    title: z.string().trim().min(1).max(200).optional(),
     job_description: z.string().trim().max(10000).optional(),
     match_score: z.number().min(0).max(100).optional(),
     content: z.record(z.any()).optional(),
@@ -85,7 +85,7 @@ export type CVCreateRequest = z.infer<typeof cvCreateSchema>;
 // CV draft request
 export const cvDraftSchema = z.object({
     userId: uuidSchema,
-    jobDescription: optionalNonEmptyStringSchema.max(10000),
+    jobDescription: z.string().trim().min(1).max(10000).optional(),
     includeProjects: z.boolean().default(true),
 });
 

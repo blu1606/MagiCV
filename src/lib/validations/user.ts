@@ -7,12 +7,12 @@ import { uuidSchema, emailSchema, nonEmptyStringSchema, optionalNonEmptyStringSc
 
 // Profile update request
 export const profileUpdateSchema = z.object({
-    full_name: optionalNonEmptyStringSchema.max(100),
+    full_name: z.string().trim().min(1).max(100).optional(),
     email: emailSchema.optional(),
     phone: z.string().trim().max(20).optional(),
-    location: optionalNonEmptyStringSchema.max(200),
+    location: z.string().trim().min(1).max(200).optional(),
     bio: z.string().trim().max(1000).optional(),
-    title: optionalNonEmptyStringSchema.max(200),
+    title: z.string().trim().min(1).max(200).optional(),
     linkedin_url: z.string().url().optional(),
     github_url: z.string().url().optional(),
     portfolio_url: z.string().url().optional(),

@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { EmbeddingCacheService } from './embedding-cache-service';
+import pLimit from 'p-limit';
 
 /**
  * Embedding Service using Google Gemini embedding-004 model
@@ -78,12 +79,53 @@ export class EmbeddingService {
   }
 
   /**
-   * Batch embed multiple texts
+   * Batch embed multiple texts with concurrency control
+   * @param texts Array of texts to embed
+   * @param maxConcurrent Maximum concurrent embedding requests (default: 10)
    */
-  static async batchEmbed(texts: string[]): Promise<number[][]> {
-    const embeddings = await Promise.all(
-      texts.map(text => this.embed(text))
+  static async batchEmbed(texts: string[], maxConcurrent: number = 10): Promise<number[][]> {
+    console.log(`📦 Batch embedding ${texts.length} texts with max concurrency ${maxConcurrent}`);
+    const startTime = Date.now();
+
+    // Use p-limit to control concurrency
+    const limit = pLimit(maxConcurrent);
+
+    // Create limited promises
+    const embeddingPromises = texts.map((text, index) =>
+      limit(async () => {
+        try {
+          const embedding = await this.embed(text);
+          return { success: true, embedding, index };
+        } catch (error: any) {
+          console.error(`  ✗ Failed to embed text ${index + 1}/${texts.length}:`, error.message);
+          return { success: false, embedding: null, index };
+        }
+      })
     );
+
+    // Wait for all embeddings using Promise.allSettled for partial failure handling
+    const results = await Promise.allSettled(embeddingPromises);
+
+    // Collect embeddings and maintain order
+    const embeddings: number[][] = [];
+    let successCount = 0;
+    let failureCount = 0;
+
+    for (const result of results) {
+      if (result.status === 'fulfilled' && result.value.success && result.value.embedding) {
+        embeddings.push(result.value.embedding);
+        successCount++;
+      } else {
+        failureCount++;
+        // Return empty array for failed embeddings to maintain array length
+        embeddings.push([]);
+      }
+    }
+
+    const totalTime = Date.now() - startTime;
+    console.log(`  ✅ Batch embedding completed in ${totalTime}ms`);
+    console.log(`  → Success: ${successCount}/${texts.length}, Failed: ${failureCount}/${texts.length}`);
+
     return embeddings;
   }
 
