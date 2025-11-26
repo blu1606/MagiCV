@@ -40,8 +40,9 @@
   "exclude": [
     "node_modules",
     "archive/**/*",
+    "scripts/**/*",
     "**/*.test.ts",
-    "**/*.test.tsx", 
+    "**/*.test.tsx",
     "**/*.spec.ts",
     "**/*.spec.tsx",
     "**/*.bench.ts",

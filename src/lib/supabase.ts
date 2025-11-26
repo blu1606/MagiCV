@@ -42,7 +42,7 @@ export const getSupabaseAdmin = (): SupabaseClient => {
       }
     );
   }
-  
+
   return adminClient;
 };
 
@@ -117,6 +117,7 @@ export interface Component {
   created_at: string;
   updated_at: string;
   src?: string;
+  source_id?: string;
 }
 
 export interface CV {

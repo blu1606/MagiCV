@@ -12,13 +12,19 @@ const nextConfig: NextConfig = {
       test: /archive\/.*\.(ts|tsx|js|jsx)$/,
       loader: 'ignore-loader'
     });
-    
+
+    // Exclude scripts folder from build
+    config.module.rules.push({
+      test: /scripts\/.*\.(ts|tsx|js|jsx)$/,
+      loader: 'ignore-loader'
+    });
+
     // Exclude test files from webpack compilation
     config.module.rules.push({
       test: /\.(test|spec|bench)\.(ts|tsx|js|jsx)$/,
       loader: 'ignore-loader'
     });
-    
+
     // Exclude Jest config files
     config.module.rules.push({
       test: /jest\.(config|setup)\.(js|ts)$/,

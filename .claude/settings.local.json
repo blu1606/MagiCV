@@ -7,7 +7,8 @@
       "Bash(pnpm test:coverage:*)",
       "Bash(npx tsc:*)",
       "Bash(dir:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(pnpm run build:*)"
     ],
     "deny": [],
     "ask": []

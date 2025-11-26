@@ -9,7 +9,7 @@ import { SupabaseService } from '@/services/supabase-service';
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
@@ -22,7 +22,8 @@ export async function POST(
       );
     }
 
-    const cvId = params.id;
+    const { id } = await params;
+    const cvId = id;
 
     // Get original CV
     const originalCV = await SupabaseService.getCVById(cvId);

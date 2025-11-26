@@ -17,7 +17,16 @@ interface MatchScoreResult {
   }
   suggestions: string[]
   missingSkills: string[]
-  topMatchedComponents: Component[]
+  topMatchedComponents: {
+    experience?: Component[]
+    skills?: Component[]
+    education?: Component[]
+    projects?: Component[]
+  }
+  metadata?: {
+    totalComponents: number
+    timestamp: number
+  }
 }
 
 interface CachedMatch {
@@ -77,7 +86,11 @@ export class MatchScoreOptimizerService {
         },
         suggestions: ['Add your experiences, skills, and education to get started'],
         missingSkills: [],
-        topMatchedComponents: [],
+        topMatchedComponents: {},
+        metadata: {
+          totalComponents: 0,
+          timestamp: Date.now(),
+        },
       }
       return emptyResult
     }
@@ -126,10 +139,21 @@ export class MatchScoreOptimizerService {
       missingSkills
     )
 
-    // Get top matched components
-    const topMatchedComponents = components
-      .sort((a, b) => (b as any).similarity - (a as any).similarity)
-      .slice(0, 10)
+    // Get top matched components grouped by type
+    const topMatchedComponents = {
+      experience: byType.experience
+        .sort((a, b) => (b as any).similarity - (a as any).similarity)
+        .slice(0, 10),
+      skills: byType.skill
+        .sort((a, b) => (b as any).similarity - (a as any).similarity)
+        .slice(0, 10),
+      education: byType.education
+        .sort((a, b) => (b as any).similarity - (a as any).similarity)
+        .slice(0, 5),
+      projects: byType.project
+        .sort((a, b) => (b as any).similarity - (a as any).similarity)
+        .slice(0, 10),
+    }
 
     const result: MatchScoreResult = {
       score: Math.round(totalScore * 10) / 10, // Round to 1 decimal
@@ -142,6 +166,10 @@ export class MatchScoreOptimizerService {
       suggestions,
       missingSkills,
       topMatchedComponents,
+      metadata: {
+        totalComponents: components.length,
+        timestamp: Date.now(),
+      },
     }
 
     // Cache the result

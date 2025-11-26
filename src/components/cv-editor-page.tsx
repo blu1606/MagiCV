@@ -420,22 +420,22 @@ export function CVEditorPage({
       setMatchDetails(null)
       return
     }
-    
+
     setIsCalculating(true)
-    
+
     try {
       const response = await fetch('/api/magiccv/match', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ jobDescription: jd, detailed: true })
       })
-      
+
       if (!response.ok) throw new Error('Failed to calculate match')
-      
+
       const data = await response.json()
       setMatchScore(data.score)
       setMatchDetails(data)
-      
+
       toast({
         title: "Match Score Updated",
         description: `Your profile matches ${data.score}% with this job`,
@@ -876,26 +876,24 @@ export function CVEditorPage({
                   className="w-full min-h-[120px] p-3 border border-white/20 rounded-lg resize-y focus:outline-none focus:ring-2 focus:ring-[#0ea5e9] focus:border-transparent text-white bg-[#0f172a]/60 placeholder:text-gray-400"
                 />
               </div>
-              
+
               {matchScore !== null && matchDetails && (
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-semibold text-gray-300">Match Score</span>
-                    <span className={`text-lg font-bold ${
-                      matchScore > 75 ? 'text-[#22d3ee]' : 
-                      matchScore > 50 ? 'text-[#f97316]' : 
-                      'text-red-400'
-                    }`}>
+                    <span className={`text-lg font-bold ${matchScore > 75 ? 'text-[#22d3ee]' :
+                        matchScore > 50 ? 'text-[#f97316]' :
+                          'text-red-400'
+                      }`}>
                       <NumberTicker value={matchScore} />%
                     </span>
                   </div>
                   <div className="w-full bg-gray-700 rounded-full h-2.5 overflow-hidden">
-                    <div 
-                      className={`h-full transition-all duration-500 ${
-                        matchScore > 75 ? 'bg-[#22d3ee]' : 
-                        matchScore > 50 ? 'bg-[#f97316]' : 
-                        'bg-red-500'
-                      }`}
+                    <div
+                      className={`h-full transition-all duration-500 ${matchScore > 75 ? 'bg-[#22d3ee]' :
+                          matchScore > 50 ? 'bg-[#f97316]' :
+                            'bg-red-500'
+                        }`}
                       style={{ width: `${matchScore}%` }}
                     />
                   </div>
@@ -1321,7 +1319,6 @@ export function CVEditorPage({
             initialText={rephraseDialog.text}
             onApply={applyRephrasedText}
             showComparison={true}
-            context={jobDescription}
           />
         </DialogContent>
       </Dialog>

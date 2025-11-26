@@ -123,7 +123,7 @@ export class SupabaseService {
   static async getUserByEmail(email: string): Promise<any> {
     const { data, error } = await this.supabase.auth.admin.listUsers();
     if (error) throw error;
-    
+
     const user = data.users.find(u => u.email === email);
     if (!user) return null;
 
@@ -142,7 +142,7 @@ export class SupabaseService {
     if (!profile) return null;
 
     const { data: authData } = await this.supabase.auth.admin.getUserById(id);
-    
+
     return {
       id: profile.id,
       email: authData?.user?.email || '',
@@ -155,7 +155,7 @@ export class SupabaseService {
   static async getAllUsers(): Promise<any[]> {
     const profiles = await this.getAllProfiles();
     const { data: authData } = await this.supabase.auth.admin.listUsers();
-    
+
     return profiles.map(p => {
       const authUser = authData?.users.find(u => u.id === p.id);
       return {
@@ -265,6 +265,39 @@ export class SupabaseService {
     return data;
   }
 
+  /**
+   * Upsert component - Create or update if exists (requires source_id unique constraint)
+   */
+  static async upsertComponent(component: Omit<Component, 'id' | 'created_at' | 'updated_at'>): Promise<Component> {
+    // Convert legacy data to new schema
+    const componentData: any = {
+      user_id: component.user_id,
+      account_id: component.account_id,
+      type: component.type,
+      title: component.title,
+      organization: component.organization,
+      start_date: component.start_date,
+      end_date: component.end_date,
+      description: component.description,
+      highlights: component.highlights || [],
+      embedding: component.embedding,
+      src: component.src,
+      source_id: component.source_id,
+    };
+
+    const { data, error } = await this.supabase
+      .from('components')
+      .upsert(componentData, {
+        onConflict: 'user_id,source_id',
+        ignoreDuplicates: false,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
   static async getUserComponents(userId: string): Promise<{
     total: number;
     byType: Record<string, number>;
@@ -301,7 +334,7 @@ export class SupabaseService {
       .from('components')
       .select()
       .eq('user_id', userId)
-      .order('created_at', { ascending: false});
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
     return data || [];
@@ -489,7 +522,7 @@ export class SupabaseService {
     fileBuffer: Buffer
   ): Promise<{ path: string; url: string }> {
     const path = `${userId}/${Date.now()}-${filename}`;
-    
+
     const { data, error } = await this.supabase.storage
       .from('cv_pdfs')
       .upload(path, fileBuffer, {
@@ -946,7 +979,7 @@ export class SupabaseService {
 
     // Calculate similarity for each component
     const withSimilarity = components.map((comp: any) => {
-      const similarity = comp.embedding 
+      const similarity = comp.embedding
         ? this.calculateCosineSimilarity(queryEmbedding, comp.embedding)
         : 0;
       return { ...comp, similarity };

@@ -4,7 +4,7 @@ import type { SeniorityLevel } from '@/services/seniority-analysis-service';
 /**
  * JD Component types
  */
-export type JDComponentType = 'requirement' | 'skill' | 'responsibility' | 'qualification';
+export type JDComponentType = 'requirement' | 'skill' | 'responsibility' | 'qualification' | 'education' | 'project';
 
 /**
  * Extracted component from Job Description

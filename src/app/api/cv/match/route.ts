@@ -66,12 +66,11 @@ export async function POST(request: NextRequest) {
         missingSkills: optimizedResult.missingSkills,
         suggestions: optimizedResult.suggestions,
         topMatches: {
-          experience: optimizedResult.topMatchedComponents.experience?.slice(0, 3),
-          skills: optimizedResult.topMatchedComponents.skills?.slice(0, 5),
-          education: optimizedResult.topMatchedComponents.education?.slice(0, 2),
-          projects: optimizedResult.topMatchedComponents.projects?.slice(0, 3),
+          experience: optimizedResult.topMatchedComponents.experience?.slice(0, 3) || [],
+          skills: optimizedResult.topMatchedComponents.skills?.slice(0, 5) || [],
+          education: optimizedResult.topMatchedComponents.education?.slice(0, 2) || [],
+          projects: optimizedResult.topMatchedComponents.projects?.slice(0, 3) || [],
         },
-        metadata: optimizedResult.metadata,
       };
     }
 
@@ -79,9 +78,9 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('❌ Match calculation error:', error.message);
     return NextResponse.json(
-      { 
+      {
         error: error.message,
-        details: error.stack 
+        details: error.stack
       },
       { status: 500 }
     );
@@ -134,7 +133,7 @@ export async function GET(request: NextRequest) {
     } else {
       // Get all CVs with match scores
       const cvs = await SupabaseService.getCVsByUserId(userId);
-      
+
       const cvsWithScores = cvs.map(cv => ({
         id: cv.id,
         title: cv.title,

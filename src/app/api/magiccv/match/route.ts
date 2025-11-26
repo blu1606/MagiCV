@@ -66,10 +66,10 @@ export async function POST(request: NextRequest) {
       score: optimizedResult.score,
       summary: optimizedResult.suggestions[0] || `Your profile matches ${Math.round(optimizedResult.score)}% with this job`,
       categoryScores: {
-        experience: optimizedResult.breakdown.experience?.score || 0,
-        skills: optimizedResult.breakdown.skills?.score || 0,
-        education: optimizedResult.breakdown.education?.score || 0,
-        projects: optimizedResult.breakdown.projects?.score || 0,
+        experience: optimizedResult.breakdown.experienceMatch || 0,
+        skills: optimizedResult.breakdown.skillsMatch || 0,
+        education: optimizedResult.breakdown.educationMatch || 0,
+        projects: optimizedResult.breakdown.projectsMatch || 0,
       },
       suggestions: optimizedResult.suggestions,
     };

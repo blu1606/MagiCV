@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import type { Account, Component } from '@/lib/supabase'
 
 /**
  * GET /api/data-sources/status
@@ -21,6 +22,7 @@ export async function GET(request: NextRequest) {
       .from('accounts')
       .select('*')
       .eq('user_id', user.id)
+      .returns<Account[]>()
 
     if (accountsError) {
       console.error('Error fetching accounts:', accountsError)
@@ -32,6 +34,7 @@ export async function GET(request: NextRequest) {
       .from('components')
       .select('account_id, src')
       .eq('user_id', user.id)
+      .returns<Pick<Component, 'account_id' | 'src'>[]>()
 
     if (componentsError) {
       console.error('Error fetching components:', componentsError)

@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
         user_id: user.id,
         title: title || `CV for ${cvData.name} - Draft`,
         job_description: jobDescription || null,
-        match_score: null,
+        match_score: undefined,
         content: cvData,
       });
     }
