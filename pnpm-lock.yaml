@@ -188,6 +188,9 @@ importers:
       dotenv:
         specifier: ^17.2.3
         version: 17.2.3
+      edge-csrf:
+        specifier: 2.0.0-rc7
+        version: 2.0.0-rc7
       embla-carousel-react:
         specifier: ^8.6.0
         version: 8.6.0(react@19.2.0)
@@ -206,6 +209,9 @@ importers:
       libsql:
         specifier: ^0.5.22
         version: 0.5.22
+      lru-cache:
+        specifier: ^11.2.2
+        version: 11.2.2
       lucide-react:
         specifier: ^0.548.0
         version: 0.548.0(react@19.2.0)
@@ -6036,6 +6042,10 @@ packages:
   ecdsa-sig-formatter@1.0.11:
     resolution: {integrity: sha512-nagl3RYrbNv6kQkeJIpt6NJZy8twLB/2vtz6yN9Z4vRKHN4/QZJIEbqohALSgwKdnksuY3k5Addp5lg8sVoVcQ==}
 
+  edge-csrf@2.0.0-rc7:
+    resolution: {integrity: sha512-9+r9jnWStACk8sHUFGyCJtPLgUPah+cWeaT5kHGjVqCrcRmlgm5xPDhckwoYoqonJMAgQtieuNEC5e5H56vteQ==}
+    deprecated: This package has been split into separate integration packages located at @edge-csrf/<framework>
+
   ee-first@1.1.1:
     resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==}
 
@@ -8103,6 +8113,10 @@ packages:
 
   lru-cache@10.4.3:
     resolution: {integrity: sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ==}
+
+  lru-cache@11.2.2:
+    resolution: {integrity: sha512-F9ODfyqML2coTIsQpSkRHnLSZMtkU8Q+mSfcaIyKwy58u+8k5nvAYeiNhsyMARvzNcXJ9QfWVrcPsC9e9rAxtg==}
+    engines: {node: 20 || >=22}
 
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
@@ -17972,6 +17986,8 @@ snapshots:
     dependencies:
       safe-buffer: 5.2.1
 
+  edge-csrf@2.0.0-rc7: {}
+
   ee-first@1.1.1: {}
 
   electron-to-chromium@1.5.240: {}
@@ -20516,6 +20532,8 @@ snapshots:
       highlight.js: 10.7.3
 
   lru-cache@10.4.3: {}
+
+  lru-cache@11.2.2: {}
 
   lru-cache@5.1.1:
     dependencies:
