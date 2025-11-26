@@ -1,46 +1,38 @@
-import { NextResponse, NextRequest } from 'next/server'
-import { getComponents, createComponent } from '@/services/data-service'
+import { NextRequest } from 'next/server';
+import { getComponents, createComponent } from '@/services/data-service';
+import { withValidation, withErrorHandling } from '@/lib/api-middleware';
+import { componentCreateSchema } from '@/lib/validations/component';
+import { successResponse, createdResponse } from '@/lib/api-response';
+import { createValidationError } from '@/lib/errors';
 
-export async function GET() {
-  console.log('🔔 API /api/components - GET called')
-  try {
-    console.log('🔍 API /api/components - Calling getComponents()...')
-    const components = await getComponents()
-    console.log('✅ API /api/components - getComponents returned, count:', Array.isArray(components) ? components.length : 'non-array')
-    return NextResponse.json(components)
-  } catch (error) {
-    console.error('API Error fetching components:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch components' },
-      { status: 500 }
-    )
-  }
+/**
+ * GET /api/components - List all components
+ */
+async function listComponents() {
+  const components = await getComponents();
+  return successResponse(components);
 }
 
-export async function POST(request: NextRequest) {
-  console.log('🔔 API /api/components - POST called')
-  try {
-    const body = await request.json()
-    console.log('📝 Creating component with data:', body)
+/**
+ * POST /api/components - Create a new component
+ */
+async function createNewComponent(request: NextRequest) {
+  const body = await request.json();
+  const newComponent = await createComponent(body);
 
-    const newComponent = await createComponent(body)
-
-    if (!newComponent) {
-      return NextResponse.json(
-        { error: 'Failed to create component' },
-        { status: 400 }
-      )
-    }
-
-    console.log('✅ Component created:', newComponent.id)
-    return NextResponse.json(newComponent, { status: 201 })
-  } catch (error) {
-    console.error('API Error creating component:', error)
-    return NextResponse.json(
-      { error: 'Failed to create component' },
-      { status: 500 }
-    )
+  if (!newComponent) {
+    throw createValidationError(
+      { name: 'ValidationError', message: 'Failed to create component' } as any
+    );
   }
+
+  return createdResponse(newComponent);
 }
+
+export const GET = withErrorHandling(listComponents);
+export const POST = withValidation(createNewComponent, {
+  body: componentCreateSchema
+});
+
 
 
