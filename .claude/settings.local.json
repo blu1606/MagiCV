@@ -8,7 +8,9 @@
       "Bash(npx tsc:*)",
       "Bash(dir:*)",
       "Bash(test:*)",
-      "Bash(pnpm run build:*)"
+      "Bash(pnpm run build:*)",
+      "Bash(git log:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

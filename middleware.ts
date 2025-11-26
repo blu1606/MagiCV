@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { csrfProtect } from '@/lib/csrf'
+import { checkRateLimit, getRateLimitIdentifier, getRateLimitHeaders, RATE_LIMITS } from '@/lib/rate-limit'
 
 // Cache user sessions to reduce redundant auth checks
 // Cache expires after 30 seconds
@@ -42,7 +43,68 @@ export async function middleware(request: NextRequest) {
     return new NextResponse('Invalid CSRF Token', { status: 403 })
   }
 
-  // 2. Supabase Authentication
+  // 2. Rate Limiting for API routes
+  const pathname = request.nextUrl.pathname;
+  if (pathname.startsWith('/api/')) {
+    // Get client IP for rate limiting
+    const ip = request.ip ||
+      request.headers.get('x-forwarded-for')?.split(',')[0] ||
+      request.headers.get('x-real-ip') ||
+      'unknown';
+
+    // Determine rate limit config based on endpoint
+    let rateLimitConfig = RATE_LIMITS.DEFAULT;
+    let rateLimitKey = '';
+
+    if (pathname.includes('/api/cv/generate') || pathname.includes('/api/cv/match')) {
+      rateLimitConfig = RATE_LIMITS.CV_GENERATION;
+      rateLimitKey = getRateLimitIdentifier(undefined, ip, 'cv-generation');
+    } else if (pathname.includes('/api/job-descriptions/upload') || pathname.includes('/api/components/generate')) {
+      rateLimitConfig = RATE_LIMITS.FILE_UPLOAD;
+      rateLimitKey = getRateLimitIdentifier(undefined, ip, 'file-upload');
+    } else {
+      rateLimitConfig = RATE_LIMITS.API_QUERY;
+      rateLimitKey = getRateLimitIdentifier(undefined, ip, 'api');
+    }
+
+    try {
+      const rateLimitResult = await checkRateLimit(rateLimitKey, rateLimitConfig, 'free');
+
+      // Add rate limit headers to response
+      const headers = getRateLimitHeaders(rateLimitResult);
+      Object.entries(headers).forEach(([key, value]) => {
+        response.headers.set(key, value);
+      });
+
+      if (!rateLimitResult.allowed) {
+        const retryAfter = Math.ceil((rateLimitResult.resetAt.getTime() - Date.now()) / 1000);
+        return new NextResponse(
+          JSON.stringify({
+            error: {
+              code: 'RATE_LIMIT_ERROR',
+              message: 'Too many requests. Please try again later.',
+              retryAfter,
+              limit: rateLimitResult.limit,
+              resetAt: rateLimitResult.resetAt.toISOString(),
+            }
+          }),
+          {
+            status: 429,
+            headers: {
+              'Content-Type': 'application/json',
+              'Retry-After': retryAfter.toString(),
+              ...headers,
+            },
+          }
+        );
+      }
+    } catch (err) {
+      // Log rate limit error but don't block request
+      console.error('Rate limit check failed:', err);
+    }
+  }
+
+  // 3. Supabase Authentication
   let supabaseResponse = response
 
   // Get session key from cookies for caching
