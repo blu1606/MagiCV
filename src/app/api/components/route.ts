@@ -1,5 +1,5 @@
 import { NextResponse, NextRequest } from 'next/server'
-import { getComponents, createComponent } from '@/lib/services/data-service'
+import { getComponents, createComponent } from '@/services/data-service'
 
 export async function GET() {
   console.log('🔔 API /api/components - GET called')
@@ -22,16 +22,16 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     console.log('📝 Creating component with data:', body)
-    
+
     const newComponent = await createComponent(body)
-    
+
     if (!newComponent) {
       return NextResponse.json(
         { error: 'Failed to create component' },
         { status: 400 }
       )
     }
-    
+
     console.log('✅ Component created:', newComponent.id)
     return NextResponse.json(newComponent, { status: 201 })
   } catch (error) {

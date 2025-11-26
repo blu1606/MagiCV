@@ -1,4 +1,4 @@
-import { OnboardingPage } from "@/components/onboarding-page"
+import { OnboardingPage } from "@/components/pages/onboarding-page"
 import { Suspense } from "react"
 
 function OnboardingPageWithSuspense() {

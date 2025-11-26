@@ -1,4 +1,4 @@
-import { CVEditorPage } from "@/components/cv-editor-page"
+import { CVEditorPage } from "@/components/pages/cv-editor-page"
 
 export default async function EditorRoute({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params

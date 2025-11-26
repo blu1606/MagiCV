@@ -1,4 +1,4 @@
-import { ProfessionSelectPage } from "@/components/profession-select-page"
+import { ProfessionSelectPage } from "@/components/pages/profession-select-page"
 import { Suspense } from "react"
 
 function ProfessionSelectPageWithSuspense() {

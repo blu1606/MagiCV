@@ -1,4 +1,4 @@
-import { UpgradePage } from "@/components/upgrade-page"
+import { UpgradePage } from "@/components/pages/upgrade-page"
 
 export default function UpgradeRoute() {
   return <UpgradePage />

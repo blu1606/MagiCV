@@ -1,4 +1,4 @@
-import { CVOptimizerPage } from "@/components/cv-optimizer-page"
+import { CVOptimizerPage } from "@/components/pages/cv-optimizer-page"
 import { Suspense } from "react"
 
 function CVOptimizerPageWithSuspense() {

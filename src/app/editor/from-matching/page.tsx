@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { CVEditorPage } from '@/components/cv-editor-page'
+import { CVEditorPage } from '@/components/pages/cv-editor-page'
 import type { JDMatchingResults } from '@/lib/types/jd-matching'
 import { Loader2 } from 'lucide-react'
 

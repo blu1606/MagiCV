@@ -1,4 +1,4 @@
-import { DataSourcesPage } from "@/components/data-sources-page"
+import { DataSourcesPage } from "@/components/pages/data-sources-page"
 import { Suspense } from "react"
 
 function DataSourcesPageWithSuspense() {

@@ -1,4 +1,4 @@
-import { JDMatchingPage } from '@/components/jd-matching-page'
+import { JDMatchingPage } from '@/components/pages/jd-matching-page'
 
 export const metadata = {
   title: 'JD Matching | MagicCV',

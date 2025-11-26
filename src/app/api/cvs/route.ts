@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getCVs } from '@/lib/services/data-service'
+import { getCVs } from '@/services/data-service'
 
 export async function GET() {
   try {
