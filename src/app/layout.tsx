@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 // import { CopilotKit } from "@copilotkit/react-core";
 import { ScrollProgress } from "@/components/ui/scroll-progress";
-import { Toaster } from "@/components/ui/toaster";
+import { Toaster } from "@/components/ui/sonner";
 import { ReactQueryProvider } from "@/lib/react-query-provider";
 import { ErrorBoundary } from "@/components/error-boundary";
 import "./globals.css";
@@ -45,7 +45,7 @@ export default function RootLayout({
             > */}
               {children}
             {/* </CopilotKit> */}
-            <Toaster />
+            <Toaster position="top-right" expand={false} richColors closeButton />
           </ReactQueryProvider>
         </ErrorBoundary>
       </body>

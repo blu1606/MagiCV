@@ -26,7 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "@/lib/toast"
 import { Badge } from "@/components/ui/badge"
 import { useCVs, useDashboardStats } from "@/hooks/use-data"
 import { SignOutButton } from "@/components/signout-button"
@@ -50,7 +50,6 @@ interface CV {
 export function DashboardPage() {
   const { cvs, loading: cvsLoading, error: cvsError, refetch: refetchCVs } = useCVs()
   const { stats, loading: statsLoading, refetch: refetchStats } = useDashboardStats()
-  const { toast } = useToast()
 
   const [jobDescription, setJobDescription] = useState("")
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateId>("modern")
@@ -109,12 +108,11 @@ export function DashboardPage() {
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
 
-      toast({
-        title: 'CV Generated!',
-        description: jobDescription
-          ? 'Your AI-optimized CV has been created and downloaded'
-          : 'Your comprehensive CV has been created and downloaded',
-      })
+      toast.success(
+        jobDescription
+          ? 'CV Generated! Your AI-optimized CV has been created and downloaded'
+          : 'CV Generated! Your comprehensive CV has been created and downloaded'
+      )
 
       // Refresh CV list
       await refetchCVs()
@@ -127,11 +125,9 @@ export function DashboardPage() {
       setIsDialogOpen(false)
     } catch (error: any) {
       console.error('Error generating CV:', error)
-      toast({
-        variant: 'destructive',
-        title: 'Generation Failed',
-        description: error.message || 'Failed to generate CV. Please try again.',
-      })
+      toast.error(
+        error.message || 'Failed to generate CV. Please try again.'
+      )
     } finally {
       setIsGenerating(false)
     }
@@ -158,10 +154,9 @@ export function DashboardPage() {
         throw new Error(error.error || 'Failed to delete CV')
       }
 
-      toast({
-        title: 'CV deleted',
-        description: `"${cvToDelete.title}" has been deleted successfully`,
-      })
+      toast.success(
+        `"${cvToDelete.title}" has been deleted successfully`
+      )
 
       // Close dialog first
       setDeleteDialogOpen(false)
@@ -174,11 +169,7 @@ export function DashboardPage() {
       }
     } catch (error: any) {
       console.error('Error deleting CV:', error)
-      toast({
-        variant: 'destructive',
-        title: 'Delete failed',
-        description: error.message,
-      })
+      toast.error(error.message || 'Failed to delete CV')
     } finally {
       // Dialog already closed in success case, only close on error
       if (deleteDialogOpen) {
@@ -201,10 +192,7 @@ export function DashboardPage() {
 
       const { cv: newCV } = await response.json()
 
-      toast({
-        title: 'CV Duplicated',
-        description: `Created copy: "${newCV.title}"`,
-      })
+      toast.success(`CV Duplicated: "${newCV.title}"`)
 
       // Refresh CV list
       await refetchCVs()
@@ -213,11 +201,7 @@ export function DashboardPage() {
       }
     } catch (error: any) {
       console.error('Error duplicating CV:', error)
-      toast({
-        variant: 'destructive',
-        title: 'Duplication Failed',
-        description: error.message || 'Failed to duplicate CV. Please try again.',
-      })
+      toast.error(error.message || 'Failed to duplicate CV. Please try again.')
     }
   }
 
