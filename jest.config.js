@@ -25,11 +25,11 @@ const customJestConfig = {
   // ============================================
   
   /**
-   * Test environment: node
-   * Use 'node' for API routes and services
-   * Use 'jsdom' if testing React components (we're testing services only)
+   * Test environment: jsdom
+   * Use 'jsdom' for React components and DOM testing
+   * Use 'node' for API routes and services (configure per-file if needed)
    */
-  testEnvironment: 'node',
+  testEnvironment: 'jsdom',
 
   // ============================================
   // MODULE RESOLUTION

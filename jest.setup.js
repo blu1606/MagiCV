@@ -12,8 +12,23 @@
 // EXTENDED MATCHERS (Optional)
 // ============================================
 
-// Add custom matchers if needed
-// import '@testing-library/jest-dom'; // For React component testing
+// Add custom matchers for React component testing
+import '@testing-library/jest-dom';
+
+// Mock window.matchMedia for ThemeProvider
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: jest.fn().mockImplementation(query => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: jest.fn(), // deprecated
+    removeListener: jest.fn(), // deprecated
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    dispatchEvent: jest.fn(),
+  })),
+});
 
 // ============================================
 // GLOBAL TEST UTILITIES
