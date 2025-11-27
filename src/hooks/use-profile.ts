@@ -1,14 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-
-interface Profile {
-  id?: string
-  full_name?: string | null
-  email?: string
-  avatar_url?: string | null
-  profession?: string | null
-  created_at?: string
-  updated_at?: string
-}
+import type { Profile } from '@/lib/supabase'
 
 /**
  * Fetch profile from API
@@ -34,11 +25,7 @@ async function fetchProfile(): Promise<Profile> {
 /**
  * Update profile via API
  */
-async function updateProfile(data: {
-  full_name?: string | null
-  avatar_url?: string | null
-  profession?: string | null
-}): Promise<Profile> {
+async function updateProfile(data: Partial<Profile>): Promise<Profile> {
   const response = await fetch('/api/profile', {
     method: 'PUT',
     headers: {

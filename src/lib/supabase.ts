@@ -163,10 +163,18 @@ export interface Profile {
   // Contact information
   email?: string;
   phone?: string;
-  location?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  country?: string;
+  location?: string; // Legacy field, kept for backward compatibility
+
+  // URLs
   linkedin_url?: string;
   github_url?: string;
   website_url?: string;
+  portfolio_url?: string;
 
   // Skills and interests
   soft_skills?: string[]; // ["Leadership", "Communication", "Problem Solving"]
