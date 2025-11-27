@@ -16,7 +16,7 @@ export const createMockComponent = (overrides?: Partial<Component>): Component =
   highlights: ['Achievement 1'],
   start_date: '2020-01',
   end_date: '2023-12',
-  embedding: null,
+  embedding: undefined,
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
   ...overrides,

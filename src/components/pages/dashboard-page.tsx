@@ -3,8 +3,11 @@
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
+import { Progress } from "@/components/ui/progress"
+import { Spinner } from "@/components/ui/spinner"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Plus, FileText, Trash2, Download, Copy, Search, Filter, Upload, Sparkles } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -26,7 +29,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "@/lib/toast"
+import { formatErrorForDisplay } from "@/lib/error-messages"
+import { PROGRESS_CONFIG, UI_CONFIG } from "@/lib/config"
 import { Badge } from "@/components/ui/badge"
 import { useCVs, useDashboardStats } from "@/hooks/use-data"
 import { SignOutButton } from "@/components/signout-button"
@@ -50,17 +55,20 @@ interface CV {
 export function DashboardPage() {
   const { cvs, loading: cvsLoading, error: cvsError, refetch: refetchCVs } = useCVs()
   const { stats, loading: statsLoading, refetch: refetchStats } = useDashboardStats()
-  const { toast } = useToast()
 
   const [jobDescription, setJobDescription] = useState("")
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateId>("modern")
   const [isGenerating, setIsGenerating] = useState(false)
+  const [generationProgress, setGenerationProgress] = useState(0)
+  const [generationStep, setGenerationStep] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   const [filterStatus, setFilterStatus] = useState<"all" | "draft" | "completed" | "archived">("all")
   const [sortBy, setSortBy] = useState<"recent" | "score">("recent")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [cvToDelete, setCvToDelete] = useState<CV | null>(null)
+  const [downloadingCvId, setDownloadingCvId] = useState<string | null>(null)
+  const [duplicatingCvId, setDuplicatingCvId] = useState<string | null>(null)
 
   const filteredCVs = cvs
     .filter((cv) => {
@@ -80,8 +88,23 @@ export function DashboardPage() {
 
   const handleGenerateCV = async () => {
     setIsGenerating(true)
+    setGenerationProgress(0)
+    setGenerationStep("Starting generation...")
 
     try {
+      // Simulate progress steps using configuration
+      const progressSteps = PROGRESS_CONFIG.STEPS;
+
+      let currentStep = 0;
+      const progressInterval = setInterval(() => {
+        if (currentStep < progressSteps.length) {
+          setGenerationProgress(progressSteps[currentStep].progress);
+          setGenerationStep(progressSteps[currentStep].message);
+          currentStep++;
+        }
+      }, PROGRESS_CONFIG.UPDATE_INTERVAL);
+
+      try {
       const response = await fetch('/api/cv/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -92,6 +115,10 @@ export function DashboardPage() {
           // Note: template selection will be used in future when multiple templates are ready
         })
       })
+
+        clearInterval(progressInterval);
+        setGenerationProgress(100);
+        setGenerationStep("Finalizing...");
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -109,12 +136,11 @@ export function DashboardPage() {
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
 
-      toast({
-        title: 'CV Generated!',
-        description: jobDescription
-          ? 'Your AI-optimized CV has been created and downloaded'
-          : 'Your comprehensive CV has been created and downloaded',
-      })
+      toast.success(
+        jobDescription
+          ? 'CV Generated! Your AI-optimized CV has been created and downloaded'
+          : 'CV Generated! Your comprehensive CV has been created and downloaded'
+      )
 
       // Refresh CV list
       await refetchCVs()
@@ -125,15 +151,24 @@ export function DashboardPage() {
       // Close dialog and reset
       setJobDescription("")
       setIsDialogOpen(false)
+      } catch (innerError: any) {
+        clearInterval(progressInterval);
+        throw innerError;
+      }
     } catch (error: any) {
       console.error('Error generating CV:', error)
-      toast({
-        variant: 'destructive',
-        title: 'Generation Failed',
-        description: error.message || 'Failed to generate CV. Please try again.',
+      const errorInfo = formatErrorForDisplay(error, true)
+      toast.error(errorInfo.message, {
+        description: errorInfo.action
+          ? `${errorInfo.action}${errorInfo.reference ? ` • Ref: ${errorInfo.reference}` : ''}`
+          : errorInfo.reference
+          ? `Ref: ${errorInfo.reference}`
+          : undefined,
       })
     } finally {
       setIsGenerating(false)
+      setGenerationProgress(0)
+      setGenerationStep("")
     }
   }
 
@@ -158,10 +193,9 @@ export function DashboardPage() {
         throw new Error(error.error || 'Failed to delete CV')
       }
 
-      toast({
-        title: 'CV deleted',
-        description: `"${cvToDelete.title}" has been deleted successfully`,
-      })
+      toast.success(
+        `"${cvToDelete.title}" has been deleted successfully`
+      )
 
       // Close dialog first
       setDeleteDialogOpen(false)
@@ -174,10 +208,9 @@ export function DashboardPage() {
       }
     } catch (error: any) {
       console.error('Error deleting CV:', error)
-      toast({
-        variant: 'destructive',
-        title: 'Delete failed',
-        description: error.message,
+      const errorInfo = formatErrorForDisplay(error)
+      toast.error(errorInfo.message, {
+        description: errorInfo.action,
       })
     } finally {
       // Dialog already closed in success case, only close on error
@@ -189,6 +222,7 @@ export function DashboardPage() {
   }
 
   const handleDuplicateCV = async (cv: CV) => {
+    setDuplicatingCvId(cv.id);
     try {
       const response = await fetch(`/api/cv/${cv.id}/duplicate`, {
         method: 'POST',
@@ -201,10 +235,7 @@ export function DashboardPage() {
 
       const { cv: newCV } = await response.json()
 
-      toast({
-        title: 'CV Duplicated',
-        description: `Created copy: "${newCV.title}"`,
-      })
+      toast.success(`CV Duplicated: "${newCV.title}"`)
 
       // Refresh CV list
       await refetchCVs()
@@ -213,11 +244,12 @@ export function DashboardPage() {
       }
     } catch (error: any) {
       console.error('Error duplicating CV:', error)
-      toast({
-        variant: 'destructive',
-        title: 'Duplication Failed',
-        description: error.message || 'Failed to duplicate CV. Please try again.',
+      const errorInfo = formatErrorForDisplay(error)
+      toast.error(errorInfo.message, {
+        description: errorInfo.action,
       })
+    } finally {
+      setDuplicatingCvId(null);
     }
   }
 
@@ -335,6 +367,18 @@ export function DashboardPage() {
                       For best results, paste the full job description.
                     </p>
                   </div>
+
+                  {/* Progress Indicator */}
+                  {isGenerating && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-300">{generationStep}</span>
+                        <span className="text-[#22d3ee] font-medium">{generationProgress}%</span>
+                      </div>
+                      <Progress value={generationProgress} className="h-2" />
+                    </div>
+                  )}
+
                   <ShimmerButton
                     onClick={handleGenerateCV}
                     disabled={isGenerating}
@@ -342,7 +386,7 @@ export function DashboardPage() {
                   >
                     {isGenerating ? (
                       <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                        <Spinner className="w-4 h-4 mr-2" />
                         Generating your CV...
                       </>
                     ) : (
@@ -412,10 +456,37 @@ export function DashboardPage() {
         {/* CVs List */}
         <div>
           {cvsLoading ? (
-            <Card className="p-12 text-center bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
-              <div className="w-12 h-12 border-2 border-[#0ea5e9] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-gray-300">Loading CVs...</p>
-            </Card>
+            <div className="grid gap-4">
+              {Array.from({ length: UI_CONFIG.SKELETON_COUNT }).map((_, i) => (
+                <Card key={i} className="p-8 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-6 w-48" />
+                        <Skeleton className="h-5 w-16" />
+                      </div>
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-3/4" />
+                      <div className="flex gap-4 pt-1">
+                        <Skeleton className="h-3 w-24" />
+                        <Skeleton className="h-3 w-32" />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <Skeleton className="h-8 w-16 mb-1" />
+                        <Skeleton className="h-3 w-12" />
+                      </div>
+                      <div className="flex gap-1">
+                        <Skeleton className="h-8 w-8 rounded" />
+                        <Skeleton className="h-8 w-8 rounded" />
+                        <Skeleton className="h-8 w-8 rounded" />
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
           ) : cvsError ? (
             <Card className="p-12 text-center bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
               <FileText className="w-12 h-12 text-red-400 mx-auto mb-4 opacity-50" />
@@ -462,10 +533,15 @@ export function DashboardPage() {
                               e.preventDefault()
                               handleDuplicateCV(cv)
                             }}
+                            disabled={duplicatingCvId === cv.id}
                             title="Duplicate CV"
                             className="text-white hover:bg-white/10"
                           >
-                            <Copy className="w-4 h-4" />
+                            {duplicatingCvId === cv.id ? (
+                              <Spinner className="w-4 h-4" />
+                            ) : (
+                              <Copy className="w-4 h-4" />
+                            )}
                           </Button>
                           <Button
                             variant="ghost"
@@ -473,6 +549,7 @@ export function DashboardPage() {
                             onClick={async (e) => {
                               e.preventDefault()
                               e.stopPropagation()
+                              setDownloadingCvId(cv.id)
                               try {
                                 const response = await fetch(`/api/cv/${cv.id}/download`)
                                 if (!response.ok) {
@@ -488,23 +565,26 @@ export function DashboardPage() {
                                 a.click()
                                 document.body.removeChild(a)
                                 URL.revokeObjectURL(url)
-                                toast({
-                                  title: 'CV Downloaded',
-                                  description: 'Your CV has been downloaded successfully',
-                                })
+                                toast.success('CV Downloaded successfully')
                               } catch (error: any) {
                                 console.error('Download error:', error)
-                                toast({
-                                  title: 'Download Failed',
-                                  description: error.message || 'Failed to download CV',
-                                  variant: 'destructive'
+                                const errorInfo = formatErrorForDisplay(error)
+                                toast.error(errorInfo.message, {
+                                  description: errorInfo.action,
                                 })
+                              } finally {
+                                setDownloadingCvId(null)
                               }
                             }}
+                            disabled={downloadingCvId === cv.id}
                             title="Download CV"
                             className="text-white hover:bg-white/10"
                           >
-                            <Download className="w-4 h-4" />
+                            {downloadingCvId === cv.id ? (
+                              <Spinner className="w-4 h-4" />
+                            ) : (
+                              <Download className="w-4 h-4" />
+                            )}
                           </Button>
                           <Button
                             variant="ghost"

@@ -54,8 +54,8 @@ export class CVGeneratorService {
         limit
       );
 
-      // Fallback: nếu không tìm thấy component nào (có thể do embedding chưa có)
-      // thì lấy tất cả components của user
+      // Fallback: if no components found (possibly due to missing embeddings)
+      // then get all user components
       if (components.length === 0) {
         console.warn('⚠️ No components found via vector search, getting all user components');
         const result = await SupabaseService.getUserComponents(userId);
@@ -310,11 +310,11 @@ Important: Select only the BEST 3-5 items per category. Quality over quantity!`;
     console.log('🚀 Starting parallel component matching...');
     console.log(`  → Max concurrent requests: ${maxConcurrent}`);
 
-    // 1) Trích xuất groupedSkills (Software, AI, Cloud, ...)
+    // 1) Extract grouped skills (Software, AI, Cloud, etc.)
     const jd = await PDFService.extractJDComponents(jobDescription);
     const grouped = (jd.groupedSkills || []).slice(0, categoriesLimit);
 
-    // Nếu không có groupedSkills, fallback về vector search toàn văn
+    // If no grouped skills found, fallback to full-text vector search
     if (grouped.length === 0) {
       console.log('  ⚠️  No grouped skills found, using full-text vector search');
       const components = await this.findRelevantComponents(userId, jobDescription, categoriesLimit * topKPerCategory);
@@ -323,7 +323,7 @@ Important: Select only the BEST 3-5 items per category. Quality over quantity!`;
       return components;
     }
 
-    // 2) Với mỗi category, tạo truy vấn ngắn gọn: summary + technologies
+    // 2) For each category, create a concise query: summary + technologies
     const queries = grouped.map(g => {
       const techs = (g.technologies || []).slice(0, 10).join(', ');
       return `${g.category}: ${g.summary}. Tech: ${techs}`;
@@ -331,7 +331,7 @@ Important: Select only the BEST 3-5 items per category. Quality over quantity!`;
 
     console.log(`  → Processing ${queries.length} categories in parallel`);
 
-    // 3) Parallelize embedding generation và similarity search
+    // 3) Parallelize embedding generation and similarity search
     // Use p-limit to control concurrency
     const limit = pLimit(maxConcurrent);
 
@@ -380,7 +380,7 @@ Important: Select only the BEST 3-5 items per category. Quality over quantity!`;
       }
     }
 
-    // 5) Loại trùng theo id, giữ thứ tự xuất hiện (theo ưu tiên category)
+    // 5) Deduplicate by id, preserving order of appearance (by category priority)
     const seen = new Set<string>();
     const deduped: Component[] = [];
     for (const c of results) {
