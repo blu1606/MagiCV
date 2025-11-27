@@ -256,11 +256,16 @@ export class ProfileService {
   }> {
     const { profile, email } = await this.getCompleteProfile(userId);
 
+    // Build location from new fields (city, state, zip) or fallback to legacy location field
+    const location = [profile.city, profile.state, profile.zip]
+      .filter(Boolean)
+      .join(', ') || profile.location || 'City, Country';
+
     return {
       name: profile.full_name || 'Your Name',
       email: profile.email || email || 'email@example.com',
       phone: profile.phone || '(000) 000-0000',
-      location: profile.location || 'City, Country',
+      location: location,
       professional_title: profile.professional_title || profile.profession || 'Professional Title',
       summary: profile.summary || 'Professional summary goes here.',
       soft_skills: profile.soft_skills || [],
@@ -268,7 +273,7 @@ export class ProfileService {
       interests: profile.interests || [],
       linkedin_url: profile.linkedin_url,
       github_url: profile.github_url,
-      website_url: profile.website_url,
+      website_url: profile.website_url || profile.portfolio_url,
     };
   }
 

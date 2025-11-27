@@ -38,6 +38,15 @@ export function SettingsPage() {
     full_name: profile?.full_name || "",
     profession: profile?.profession || "",
     avatar_url: profile?.avatar_url || "",
+    phone: profile?.phone || "",
+    address: profile?.address || "",
+    city: profile?.city || "",
+    state: profile?.state || "",
+    zip: profile?.zip || "",
+    country: profile?.country || "Vietnam",
+    linkedin_url: profile?.linkedin_url || "",
+    github_url: profile?.github_url || "",
+    portfolio_url: profile?.portfolio_url || "",
   })
 
   // Sync form with profile data when it loads
@@ -47,6 +56,15 @@ export function SettingsPage() {
         full_name: profile.full_name || "",
         profession: profile.profession || "",
         avatar_url: profile.avatar_url || "",
+        phone: profile.phone || "",
+        address: profile.address || "",
+        city: profile.city || "",
+        state: profile.state || "",
+        zip: profile.zip || "",
+        country: profile.country || "Vietnam",
+        linkedin_url: profile.linkedin_url || "",
+        github_url: profile.github_url || "",
+        portfolio_url: profile.portfolio_url || "",
       })
     }
   }, [profile])
@@ -65,11 +83,20 @@ export function SettingsPage() {
   const handleSaveProfile = async () => {
     try {
       await updateProfileMutation.mutateAsync({
-        full_name: profileForm.full_name || null,
-        profession: profileForm.profession || null,
-        avatar_url: profileForm.avatar_url || null,
+        full_name: profileForm.full_name || undefined,
+        profession: profileForm.profession || undefined,
+        avatar_url: profileForm.avatar_url || undefined,
+        phone: profileForm.phone || undefined,
+        address: profileForm.address || undefined,
+        city: profileForm.city || undefined,
+        state: profileForm.state || undefined,
+        zip: profileForm.zip || undefined,
+        country: profileForm.country || undefined,
+        linkedin_url: profileForm.linkedin_url || undefined,
+        github_url: profileForm.github_url || undefined,
+        portfolio_url: profileForm.portfolio_url || undefined,
       })
-      
+
       toast({
         title: "Profile updated",
         description: "Your profile has been updated successfully.",
@@ -153,9 +180,111 @@ export function SettingsPage() {
                   className="bg-[#0f172a]/60 border-white/20 text-white placeholder:text-gray-400"
                 />
               </div>
-              <ShimmerButton 
-                onClick={handleSaveProfile} 
-                disabled={updateProfileMutation.isPending} 
+
+              <div className="border-t border-white/10 pt-4">
+                <h3 className="text-sm font-semibold mb-3 text-white">Contact Information</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block text-white">Phone Number</label>
+                    <Input
+                      type="tel"
+                      value={profileForm.phone}
+                      onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                      placeholder="+84 123 456 789"
+                      className="bg-[#0f172a]/60 border-white/20 text-white placeholder:text-gray-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block text-white">Street Address</label>
+                    <Input
+                      value={profileForm.address}
+                      onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value })}
+                      placeholder="123 Main Street, Apt 4B"
+                      className="bg-[#0f172a]/60 border-white/20 text-white placeholder:text-gray-400"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium mb-2 block text-white">City</label>
+                      <Input
+                        value={profileForm.city}
+                        onChange={(e) => setProfileForm({ ...profileForm, city: e.target.value })}
+                        placeholder="Ho Chi Minh"
+                        className="bg-[#0f172a]/60 border-white/20 text-white placeholder:text-gray-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-2 block text-white">State/Province</label>
+                      <Input
+                        value={profileForm.state}
+                        onChange={(e) => setProfileForm({ ...profileForm, state: e.target.value })}
+                        placeholder="Ho Chi Minh City"
+                        className="bg-[#0f172a]/60 border-white/20 text-white placeholder:text-gray-400"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium mb-2 block text-white">Postal Code</label>
+                      <Input
+                        value={profileForm.zip}
+                        onChange={(e) => setProfileForm({ ...profileForm, zip: e.target.value })}
+                        placeholder="700000"
+                        className="bg-[#0f172a]/60 border-white/20 text-white placeholder:text-gray-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-2 block text-white">Country</label>
+                      <Input
+                        value={profileForm.country}
+                        onChange={(e) => setProfileForm({ ...profileForm, country: e.target.value })}
+                        placeholder="Vietnam"
+                        className="bg-[#0f172a]/60 border-white/20 text-white placeholder:text-gray-400"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-white/10 pt-4">
+                <h3 className="text-sm font-semibold mb-3 text-white">Professional Links</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block text-white">LinkedIn URL</label>
+                    <Input
+                      type="url"
+                      value={profileForm.linkedin_url}
+                      onChange={(e) => setProfileForm({ ...profileForm, linkedin_url: e.target.value })}
+                      placeholder="https://linkedin.com/in/yourprofile"
+                      className="bg-[#0f172a]/60 border-white/20 text-white placeholder:text-gray-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block text-white">GitHub URL</label>
+                    <Input
+                      type="url"
+                      value={profileForm.github_url}
+                      onChange={(e) => setProfileForm({ ...profileForm, github_url: e.target.value })}
+                      placeholder="https://github.com/yourusername"
+                      className="bg-[#0f172a]/60 border-white/20 text-white placeholder:text-gray-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block text-white">Portfolio URL</label>
+                    <Input
+                      type="url"
+                      value={profileForm.portfolio_url}
+                      onChange={(e) => setProfileForm({ ...profileForm, portfolio_url: e.target.value })}
+                      placeholder="https://yourportfolio.com"
+                      className="bg-[#0f172a]/60 border-white/20 text-white placeholder:text-gray-400"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <ShimmerButton
+                onClick={handleSaveProfile}
+                disabled={updateProfileMutation.isPending}
                 className="bg-gradient-to-r from-[#0ea5e9] to-[#22d3ee] text-white"
               >
                 {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}

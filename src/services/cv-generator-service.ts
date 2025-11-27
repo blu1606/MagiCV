@@ -252,14 +252,23 @@ Important: Select only the BEST 3-5 items per category. Quality over quantity!`;
         profile
       );
 
-      // Build CV data structure for template
+      // Build CV data structure for template with real profile data
+      const cityStateZip = [
+        profile.city,
+        profile.state,
+        profile.zip
+      ].filter(Boolean).join(', ') || profile.location || 'City, State ZIP';
+
       const cvData = {
         profile: {
           name: profile.full_name || 'Your Name',
           email: email || 'email@example.com',
-          phone: '(000) 000-0000', // TODO: Add phone to profile table
-          address: '123 Street', // TODO: Add address to profile table
-          city_state_zip: 'City, State ZIP', // TODO: Add location to profile table
+          phone: profile.phone || '(000) 000-0000',
+          address: profile.address || '123 Street',
+          city_state_zip: cityStateZip,
+          linkedin: profile.linkedin_url || '',
+          github: profile.github_url || '',
+          website: profile.portfolio_url || profile.website_url || '',
         },
         margins: LaTeXService.getDefaultMargins(),
         education: selected.education || [],
@@ -877,7 +886,7 @@ Return ONLY valid JSON without markdown formatting.`;
     if (cvData.profile?.name && cvData.profile.name !== 'Your Name') score += 5;
     if (cvData.profile?.email && cvData.profile.email !== 'email@example.com') score += 5;
     if (cvData.profile?.phone && cvData.profile.phone !== '(000) 000-0000') score += 5;
-    if (cvData.profile?.address && cvData.profile.address !== 'City, Country') score += 5;
+    if (cvData.profile?.address && cvData.profile.address !== '123 Street' && cvData.profile.city_state_zip !== 'City, State ZIP') score += 5;
 
     // Summary (10 points)
     if (cvData.summary && cvData.summary.length > 50) score += 10;
