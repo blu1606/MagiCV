@@ -1,5 +1,12 @@
 import { getSupabaseAdmin } from '@/lib/supabase';
 import type { Profile, Account, Component, CV, CVPdf, ComponentType, ProviderType, LegacySourceType } from '@/lib/supabase';
+import {
+  type PaginatedResponse,
+  type PaginationParams,
+  normalizePaginationParams,
+  applyCursorPagination,
+  createPaginatedResponse
+} from '@/lib/pagination';
 
 /**
  * Supabase Service - Updated to match actual database schema
@@ -352,6 +359,82 @@ export class SupabaseService {
     return data || [];
   }
 
+  /**
+   * Get user components with cursor-based pagination
+   */
+  static async getUserComponentsPaginated(
+    userId: string,
+    params: PaginationParams
+  ): Promise<PaginatedResponse<Component>> {
+    const { limit, cursor, sortBy, sortOrder } = normalizePaginationParams(params);
+
+    let query = this.supabase
+      .from('components')
+      .select('*', { count: 'exact' })
+      .eq('user_id', userId);
+
+    // Apply cursor pagination
+    query = applyCursorPagination(query, cursor, limit, sortBy, sortOrder);
+
+    const { data, error, count } = await query;
+
+    if (error) throw error;
+
+    return createPaginatedResponse(data || [], limit, sortBy, count || undefined);
+  }
+
+  /**
+   * Get components by type with pagination
+   */
+  static async getComponentsByTypePaginated(
+    userId: string,
+    type: ComponentType,
+    params: PaginationParams
+  ): Promise<PaginatedResponse<Component>> {
+    const { limit, cursor, sortBy, sortOrder } = normalizePaginationParams(params);
+
+    let query = this.supabase
+      .from('components')
+      .select('*', { count: 'exact' })
+      .eq('user_id', userId)
+      .eq('type', type);
+
+    // Apply cursor pagination
+    query = applyCursorPagination(query, cursor, limit, sortBy, sortOrder);
+
+    const { data, error, count } = await query;
+
+    if (error) throw error;
+
+    return createPaginatedResponse(data || [], limit, sortBy, count || undefined);
+  }
+
+  /**
+   * Get components by source with pagination (legacy)
+   */
+  static async getComponentsBySourcePaginated(
+    userId: string,
+    source: LegacySourceType,
+    params: PaginationParams
+  ): Promise<PaginatedResponse<Component>> {
+    const { limit, cursor, sortBy, sortOrder } = normalizePaginationParams(params);
+
+    let query = this.supabase
+      .from('components')
+      .select('*', { count: 'exact' })
+      .eq('user_id', userId)
+      .eq('src', source);
+
+    // Apply cursor pagination
+    query = applyCursorPagination(query, cursor, limit, sortBy, sortOrder);
+
+    const { data, error, count } = await query;
+
+    if (error) throw error;
+
+    return createPaginatedResponse(data || [], limit, sortBy, count || undefined);
+  }
+
   // Legacy method for backward compatibility
   static async getComponentsBySource(userId: string, source: LegacySourceType): Promise<Component[]> {
     const { data, error } = await this.supabase
@@ -443,6 +526,30 @@ export class SupabaseService {
 
     if (error) throw error;
     return data || [];
+  }
+
+  /**
+   * Get user CVs with cursor-based pagination
+   */
+  static async getCVsByUserIdPaginated(
+    userId: string,
+    params: PaginationParams
+  ): Promise<PaginatedResponse<CV>> {
+    const { limit, cursor, sortBy, sortOrder } = normalizePaginationParams(params);
+
+    let query = this.supabase
+      .from('cvs')
+      .select('*', { count: 'exact' })
+      .eq('user_id', userId);
+
+    // Apply cursor pagination
+    query = applyCursorPagination(query, cursor, limit, sortBy, sortOrder);
+
+    const { data, error, count } = await query;
+
+    if (error) throw error;
+
+    return createPaginatedResponse(data || [], limit, sortBy, count || undefined);
   }
 
   static async getCVById(id: string): Promise<CV | null> {

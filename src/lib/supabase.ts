@@ -9,6 +9,12 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
   throw new Error('Missing NEXT_PUBLIC_SUPABASE_ANON_KEY');
 }
 
+// Connection pool configuration
+const DB_POOL_SIZE = parseInt(process.env.DB_POOL_SIZE || '20', 10);
+const DB_TIMEOUT = parseInt(process.env.DB_TIMEOUT || '30000', 10); // 30 seconds
+const DB_STATEMENT_TIMEOUT = parseInt(process.env.DB_STATEMENT_TIMEOUT || '10000', 10); // 10 seconds
+const DB_IDLE_TIMEOUT = parseInt(process.env.DB_IDLE_TIMEOUT || '60000', 10); // 60 seconds
+
 // Singleton pattern for default client
 let defaultClient: SupabaseClient | null = null;
 
@@ -16,8 +22,31 @@ export const supabase = (() => {
   if (!defaultClient) {
     defaultClient = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        db: {
+          schema: 'public',
+        },
+        auth: {
+          autoRefreshToken: true,
+          persistSession: true,
+          detectSessionInUrl: true,
+        },
+        global: {
+          headers: {
+            'X-Client-Info': 'magiccv-web',
+          },
+        },
+      }
     );
+
+    // Log connection pool configuration
+    console.log('🔧 Supabase client configured with connection pooling:', {
+      poolSize: DB_POOL_SIZE,
+      timeout: `${DB_TIMEOUT}ms`,
+      statementTimeout: `${DB_STATEMENT_TIMEOUT}ms`,
+      idleTimeout: `${DB_IDLE_TIMEOUT}ms`,
+    });
   }
   return defaultClient;
 })();
@@ -35,15 +64,76 @@ export const getSupabaseAdmin = (): SupabaseClient => {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY,
       {
+        db: {
+          schema: 'public',
+        },
         auth: {
           autoRefreshToken: false,
           persistSession: false
-        }
+        },
+        global: {
+          headers: {
+            'X-Client-Info': 'magiccv-admin',
+          },
+        },
       }
     );
+
+    // Log admin client configuration
+    console.log('🔧 Supabase admin client configured with connection pooling:', {
+      poolSize: DB_POOL_SIZE,
+      timeout: `${DB_TIMEOUT}ms`,
+      role: 'service_role',
+    });
   }
 
   return adminClient;
+};
+
+/**
+ * Connection pool monitoring utilities
+ */
+export const getConnectionPoolMetrics = () => {
+  return {
+    poolSize: DB_POOL_SIZE,
+    timeout: DB_TIMEOUT,
+    statementTimeout: DB_STATEMENT_TIMEOUT,
+    idleTimeout: DB_IDLE_TIMEOUT,
+  };
+};
+
+/**
+ * Health check for database connection
+ */
+export const checkDatabaseHealth = async (): Promise<{
+  healthy: boolean;
+  latency: number;
+  error?: string;
+}> => {
+  const start = Date.now();
+  try {
+    const client = getSupabaseAdmin();
+    const { error } = await client.from('profiles').select('id').limit(1);
+
+    if (error) {
+      return {
+        healthy: false,
+        latency: Date.now() - start,
+        error: error.message,
+      };
+    }
+
+    return {
+      healthy: true,
+      latency: Date.now() - start,
+    };
+  } catch (error: any) {
+    return {
+      healthy: false,
+      latency: Date.now() - start,
+      error: error.message || 'Unknown error',
+    };
+  }
 };
 
 // Database types based on actual Supabase schema

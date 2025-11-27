@@ -6,6 +6,7 @@ import { LLMUtilsService } from './llm-utils-service';
 import { ProfileService } from './profile-service';
 import type { Component, Profile } from '@/lib/supabase';
 import { PDFService } from './pdf-service';
+import pLimit from 'p-limit';
 
 /**
  * CV Generator Service
@@ -290,14 +291,24 @@ Important: Select only the BEST 3-5 items per category. Quality over quantity!`;
   /**
    * Match components theo từng category lớn trích xuất từ JD
    * Thay vì lưu DB, dùng kết quả matching để build đầu vào cho LLM
+   * Now with parallel processing for improved performance
    */
   static async matchComponentsByCategories(
     userId: string,
     jobDescription: string,
-    options?: { categoriesLimit?: number; topKPerCategory?: number }
+    options?: {
+      categoriesLimit?: number;
+      topKPerCategory?: number;
+      maxConcurrent?: number;
+    }
   ): Promise<Component[]> {
+    const startTime = Date.now();
     const categoriesLimit = options?.categoriesLimit ?? 10;
     const topKPerCategory = options?.topKPerCategory ?? 5;
+    const maxConcurrent = options?.maxConcurrent ?? 10;
+
+    console.log('🚀 Starting parallel component matching...');
+    console.log(`  → Max concurrent requests: ${maxConcurrent}`);
 
     // 1) Trích xuất groupedSkills (Software, AI, Cloud, ...)
     const jd = await PDFService.extractJDComponents(jobDescription);
@@ -305,7 +316,11 @@ Important: Select only the BEST 3-5 items per category. Quality over quantity!`;
 
     // Nếu không có groupedSkills, fallback về vector search toàn văn
     if (grouped.length === 0) {
-      return this.findRelevantComponents(userId, jobDescription, categoriesLimit * topKPerCategory);
+      console.log('  ⚠️  No grouped skills found, using full-text vector search');
+      const components = await this.findRelevantComponents(userId, jobDescription, categoriesLimit * topKPerCategory);
+      const totalTime = Date.now() - startTime;
+      console.log(`  ✅ Component matching completed in ${totalTime}ms (fallback mode)`);
+      return components;
     }
 
     // 2) Với mỗi category, tạo truy vấn ngắn gọn: summary + technologies
@@ -314,19 +329,58 @@ Important: Select only the BEST 3-5 items per category. Quality over quantity!`;
       return `${g.category}: ${g.summary}. Tech: ${techs}`;
     });
 
-    // 3) Tìm topKPerCategory component cho từng truy vấn
+    console.log(`  → Processing ${queries.length} categories in parallel`);
+
+    // 3) Parallelize embedding generation và similarity search
+    // Use p-limit to control concurrency
+    const limit = pLimit(maxConcurrent);
+
+    // Create an array of promises for parallel execution
+    const searchPromises = queries.map((q, index) =>
+      limit(async () => {
+        try {
+          const queryStartTime = Date.now();
+
+          // Generate embedding and search in parallel for this query
+          const embedding = await EmbeddingService.embed(q);
+          const batch = await SupabaseService.similaritySearchComponents(
+            userId,
+            embedding,
+            topKPerCategory
+          );
+
+          const queryTime = Date.now() - queryStartTime;
+          console.log(`    ✓ Category ${index + 1}/${queries.length} completed in ${queryTime}ms (${batch.length} components)`);
+
+          return { success: true, batch, error: null };
+        } catch (error: any) {
+          console.error(`    ✗ Category ${index + 1} failed:`, error.message);
+          return { success: false, batch: [], error: error.message };
+        }
+      })
+    );
+
+    // Wait for all searches to complete using Promise.allSettled for partial failure handling
+    const searchResults = await Promise.allSettled(searchPromises);
+
+    // 4) Collect results and handle partial failures
     const results: Component[] = [];
-    for (const q of queries) {
-      const embedding = await EmbeddingService.embed(q);
-      const batch = await SupabaseService.similaritySearchComponents(
-        userId,
-        embedding,
-        topKPerCategory
-      );
-      results.push(...batch);
+    let successCount = 0;
+    let failureCount = 0;
+
+    for (const result of searchResults) {
+      if (result.status === 'fulfilled' && result.value.success) {
+        results.push(...result.value.batch);
+        successCount++;
+      } else {
+        failureCount++;
+        if (result.status === 'rejected') {
+          console.error('    ✗ Search promise rejected:', result.reason);
+        }
+      }
     }
 
-    // 4) Loại trùng theo id, giữ thứ tự xuất hiện (theo ưu tiên category)
+    // 5) Loại trùng theo id, giữ thứ tự xuất hiện (theo ưu tiên category)
     const seen = new Set<string>();
     const deduped: Component[] = [];
     for (const c of results) {
@@ -335,6 +389,20 @@ Important: Select only the BEST 3-5 items per category. Quality over quantity!`;
         seen.add(id);
         deduped.push(c);
       }
+    }
+
+    const totalTime = Date.now() - startTime;
+    console.log(`  ✅ Parallel component matching completed in ${totalTime}ms`);
+    console.log(`  → Success: ${successCount}/${queries.length} categories`);
+    if (failureCount > 0) {
+      console.log(`  ⚠️  Failed: ${failureCount}/${queries.length} categories`);
+    }
+    console.log(`  → Total components: ${results.length} (${deduped.length} unique)`);
+
+    // If all searches failed, fallback to full-text search
+    if (successCount === 0) {
+      console.warn('  ⚠️  All category searches failed, falling back to full-text search');
+      return this.findRelevantComponents(userId, jobDescription, categoriesLimit * topKPerCategory);
     }
 
     return deduped;

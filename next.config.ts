@@ -4,6 +4,16 @@ const nextConfig: NextConfig = {
   turbopack: {}, // Enable Turbopack with default config
   serverExternalPackages: ["@mastra/core", "@mastra/libsql"],
 
+  // Enable static optimization for better caching
+  compress: true,
+  poweredByHeader: false,
+
+  // Image optimization
+  images: {
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 31536000, // 1 year for optimized images
+  },
+
   // Security Headers
   async headers() {
     return [

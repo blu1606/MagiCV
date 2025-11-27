@@ -52,7 +52,7 @@ export type ComponentCreateRequest = z.infer<typeof componentCreateSchema>;
 // Component update request
 export const componentUpdateSchema = z.object({
     type: componentTypeSchema.optional(),
-    title: optionalNonEmptyStringSchema.max(200),
+    title: z.string().trim().min(1).max(200).optional(),
     description: z.string().trim().max(5000).optional(),
     content: z.record(z.any()).optional(),
     tags: z.array(z.string().trim().max(50)).max(20).optional(),

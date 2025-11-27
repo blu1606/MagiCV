@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { csrfProtect } from '@/lib/csrf'
 import { checkRateLimit, getRateLimitIdentifier, getRateLimitHeaders, RATE_LIMITS } from '@/lib/rate-limit'
+import { CACHE_STRATEGIES, buildCacheControl } from '@/lib/cache-headers'
 
 // Cache user sessions to reduce redundant auth checks
 // Cache expires after 30 seconds
@@ -222,6 +223,32 @@ export async function middleware(request: NextRequest) {
   //   url.pathname = '/dashboard'
   //   return NextResponse.redirect(url)
   // }
+
+  // Add cache headers based on route type
+  const requestPath = request.nextUrl.pathname;
+
+  // API routes - different caching strategies
+  if (requestPath.startsWith('/api/')) {
+    if (requestPath.includes('/health')) {
+      // Health checks - short cache
+      supabaseResponse.headers.set('Cache-Control', buildCacheControl(CACHE_STRATEGIES.SHORT_CACHE));
+    } else if (requestPath.includes('/components') || requestPath.includes('/cvs')) {
+      // User data - private cache
+      supabaseResponse.headers.set('Cache-Control', buildCacheControl(CACHE_STRATEGIES.USER_DATA));
+    } else {
+      // Other API - public short cache
+      supabaseResponse.headers.set('Cache-Control', buildCacheControl(CACHE_STRATEGIES.PUBLIC_API));
+    }
+  } else if (requestPath.match(/\.(pdf|png|jpg|jpeg|gif|webp|svg|woff|woff2|ttf|eot)$/)) {
+    // Static assets - long cache
+    supabaseResponse.headers.set('Cache-Control', buildCacheControl(CACHE_STRATEGIES.STATIC_ASSET));
+  } else if (requestPath.startsWith('/dashboard') || requestPath.startsWith('/settings')) {
+    // User pages - no cache
+    supabaseResponse.headers.set('Cache-Control', buildCacheControl(CACHE_STRATEGIES.NO_CACHE));
+  } else {
+    // Public pages - medium cache
+    supabaseResponse.headers.set('Cache-Control', buildCacheControl(CACHE_STRATEGIES.MEDIUM_CACHE));
+  }
 
   return supabaseResponse
 }
