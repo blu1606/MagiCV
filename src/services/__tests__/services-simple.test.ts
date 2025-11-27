@@ -7,7 +7,7 @@
 
 import { describe, test, expect, beforeAll, afterAll, jest } from '@jest/globals';
 
-// Mock các services trước khi import
+// Mock services before import
 jest.mock('@/services/embedding-service');
 jest.mock('@/services/supabase-service');
 jest.mock('@/services/latex-service');

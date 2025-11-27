@@ -46,7 +46,7 @@ describe('API Endpoints Tests', () => {
     test('Should handle missing userId', async () => {
       const { CVGeneratorService } = await import('@/services/cv-generator-service');
       
-      // Test sẽ reject nếu không có userId
+      // Test should reject if no userId provided
       const mockGenerate = jest.fn().mockRejectedValue(new Error('User ID required'));
       (CVGeneratorService as any).generateCV = mockGenerate;
       
@@ -56,11 +56,11 @@ describe('API Endpoints Tests', () => {
     });
 
     test('Should handle empty job description', async () => {
-      // Empty JD should still work với fallback
+      // Empty JD should still work with fallback
       const userId = 'user_123';
       const jobDescription = '';
-      
-      // Mock sẽ return empty components nhưng không error
+
+      // Mock should return empty components but not error
       expect(userId).toBeDefined();
       expect(typeof jobDescription).toBe('string');
     });
