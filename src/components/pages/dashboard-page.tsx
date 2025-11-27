@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { toast } from "@/lib/toast"
 import { formatErrorForDisplay } from "@/lib/error-messages"
+import { PROGRESS_CONFIG, UI_CONFIG } from "@/lib/config"
 import { Badge } from "@/components/ui/badge"
 import { useCVs, useDashboardStats } from "@/hooks/use-data"
 import { SignOutButton } from "@/components/signout-button"
@@ -91,13 +92,8 @@ export function DashboardPage() {
     setGenerationStep("Starting generation...")
 
     try {
-      // Simulate progress steps
-      const progressSteps = [
-        { progress: 20, message: "Analyzing job description..." },
-        { progress: 40, message: "Selecting relevant experience..." },
-        { progress: 60, message: "Optimizing content with AI..." },
-        { progress: 80, message: "Generating PDF..." },
-      ];
+      // Simulate progress steps using configuration
+      const progressSteps = PROGRESS_CONFIG.STEPS;
 
       let currentStep = 0;
       const progressInterval = setInterval(() => {
@@ -106,7 +102,7 @@ export function DashboardPage() {
           setGenerationStep(progressSteps[currentStep].message);
           currentStep++;
         }
-      }, 1000);
+      }, PROGRESS_CONFIG.UPDATE_INTERVAL);
 
       try {
       const response = await fetch('/api/cv/generate', {
@@ -461,7 +457,7 @@ export function DashboardPage() {
         <div>
           {cvsLoading ? (
             <div className="grid gap-4">
-              {[1, 2, 3].map((i) => (
+              {Array.from({ length: UI_CONFIG.SKELETON_COUNT }).map((_, i) => (
                 <Card key={i} className="p-8 bg-[#0f172a]/80 backdrop-blur-sm border-white/20">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 space-y-3">

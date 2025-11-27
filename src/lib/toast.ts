@@ -4,22 +4,18 @@
  */
 
 import { toast as sonnerToast, ExternalToast } from 'sonner';
+import { TOAST_CONFIG } from './config';
 
 /**
  * Toast configuration with appropriate durations and options
  */
 const TOAST_DURATIONS = {
-  success: 3000,
-  error: 5000,
-  info: 4000,
-  warning: 4000,
+  success: TOAST_CONFIG.SUCCESS_DURATION,
+  error: TOAST_CONFIG.ERROR_DURATION,
+  info: TOAST_CONFIG.INFO_DURATION,
+  warning: TOAST_CONFIG.WARNING_DURATION,
   loading: Infinity,
 } as const;
-
-/**
- * Max number of concurrent toasts to prevent overwhelming the UI
- */
-const MAX_TOASTS = 3;
 
 /**
  * Success toast for completed actions
