@@ -27,6 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { toast } from "@/lib/toast"
+import { formatErrorForDisplay } from "@/lib/error-messages"
 import { Badge } from "@/components/ui/badge"
 import { useCVs, useDashboardStats } from "@/hooks/use-data"
 import { SignOutButton } from "@/components/signout-button"
@@ -125,9 +126,14 @@ export function DashboardPage() {
       setIsDialogOpen(false)
     } catch (error: any) {
       console.error('Error generating CV:', error)
-      toast.error(
-        error.message || 'Failed to generate CV. Please try again.'
-      )
+      const errorInfo = formatErrorForDisplay(error, true)
+      toast.error(errorInfo.message, {
+        description: errorInfo.action
+          ? `${errorInfo.action}${errorInfo.reference ? ` • Ref: ${errorInfo.reference}` : ''}`
+          : errorInfo.reference
+          ? `Ref: ${errorInfo.reference}`
+          : undefined,
+      })
     } finally {
       setIsGenerating(false)
     }
@@ -169,7 +175,10 @@ export function DashboardPage() {
       }
     } catch (error: any) {
       console.error('Error deleting CV:', error)
-      toast.error(error.message || 'Failed to delete CV')
+      const errorInfo = formatErrorForDisplay(error)
+      toast.error(errorInfo.message, {
+        description: errorInfo.action,
+      })
     } finally {
       // Dialog already closed in success case, only close on error
       if (deleteDialogOpen) {
@@ -201,7 +210,10 @@ export function DashboardPage() {
       }
     } catch (error: any) {
       console.error('Error duplicating CV:', error)
-      toast.error(error.message || 'Failed to duplicate CV. Please try again.')
+      const errorInfo = formatErrorForDisplay(error)
+      toast.error(errorInfo.message, {
+        description: errorInfo.action,
+      })
     }
   }
 
