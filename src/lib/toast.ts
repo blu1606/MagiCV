@@ -76,10 +76,9 @@ export const showPromise = <T,>(
     loading: string;
     success: string | ((data: T) => string);
     error: string | ((error: unknown) => string);
-  },
-  data?: ExternalToast
+  }
 ) => {
-  return sonnerToast.promise(promise, messages, data);
+  return sonnerToast.promise(promise, messages);
 };
 
 /**
